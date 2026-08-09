@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Run unit tests
+        run: PYTHONPATH=src python -m unittest discover -s tests/unit -v
+
+      - name: Compile Python sources
+        run: python -m compileall -q src scripts tests
+
+      - name: Verify offline model contracts
+        run: |
+          python scripts/check_model_bakeoff_contract.py
+          python scripts/check_model_extension_contract.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+
+      - name: Validate learning UI
+        run: |
+          node --check learning/app.js
+          node tests/ui/rendered-html.test.mjs
