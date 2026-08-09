@@ -31,6 +31,12 @@ The trusted/untrusted filesystem boundary is defined in the
 
 ## Interactive learning field manual
 
+Open the published field manual:
+
+**https://msulemans.github.io/local-code-agent-lab/**
+
+Or run it locally:
+
 Run the dependency-free learning UI:
 
 ```bash

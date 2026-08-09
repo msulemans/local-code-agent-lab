@@ -1002,6 +1002,28 @@ additional fake-backend protocol exercises. Do not begin the multi-turn loop,
 editing, or test execution until the bounded real-model smoke closes Milestone
 005.
 
+## Public repository and learning site
+
+Status: repository and static learning UI publicly verified.
+
+- GitHub repository: `https://github.com/msulemans/local-code-agent-lab`
+- GitHub Pages: `https://msulemans.github.io/local-code-agent-lab/`
+- The repository was created public under the authenticated `msulemans`
+  account. Local `main` and `origin/main` matched before Pages work.
+- Every commit uses `msulemans <53903082+msulemans@users.noreply.github.com>`;
+  the company Git identity remains global but is overridden locally.
+- Pages publishes only `learning/` through `.github/workflows/pages.yml`.
+  Official actions are pinned to immutable commit SHAs.
+- The first workflow run, `31305813210`, failed before upload because Pages had
+  not yet been enabled; `configure-pages` received HTTP 404. Pages was then
+  explicitly enabled with `build_type=workflow` and HTTPS enforcement.
+- The unchanged manual run `31306104742` passed validation, configuration,
+  upload, and deployment in 17 seconds.
+- An independent fetch returned HTTP/2 200, `content-type: text/html`, 15,773
+  bytes, and the expected `LocalCode Field Manual` title.
+- Model artifacts, checkpoints, compatibility run evidence, and generated data
+  remain ignored and were not published by Pages.
+
 ## Decision log
 
 | ID | Decision | Reason | Status |
@@ -1022,6 +1044,7 @@ editing, or test execution until the bounded real-model smoke closes Milestone
 | D-014 | Acquire candidates sequentially, smallest first | Avoid a conditional 19 GB download when the 4.7 GB candidate already meets the frozen gate | fixed for Milestone 004 |
 | D-015 | Treat invalid model actions as observations | A future bounded loop needs safe feedback without executing guessed intent | fixed |
 | D-016 | Defer Qwen3.5 inference while retained swap remains | Preserves the registered clean-baseline evidence boundary at the learner's request | pending clean restart |
+| D-017 | Publish only `learning/` to GitHub Pages | The browser curriculum is static; repository tools, models, and local evidence must remain outside the web artifact | fixed |
 
 ## Run ledger
 
