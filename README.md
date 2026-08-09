@@ -100,6 +100,11 @@ observations, and dispatches at most one validated read-only call through an
 exact registry. A fake backend proves deterministic event sequences without
 loading Ollama.
 
+A loopback-only Ollama backend adapter now converts exactly one native tool
+proposal into the same protocol envelope without repairing its tool name or
+arguments. Fake-client tests cover the complete backend-to-fixture path; the
+real Qwen3.5 smoke remains deferred until a clean host baseline is available.
+
 Milestone 004A also freezes
 the two-candidate model compatibility plan, exact tool schemas, 20-prompt
 development pack, metrics, gates, and stop rules. Candidate 1 is downloaded and

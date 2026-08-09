@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
 Last updated: 2026-08-09 (Australia/Sydney)
-Status: Milestone 005 offline gate passed; real-model smoke deferred by learner
+Status: Milestone 005 offline runtime complete; real-model smoke deferred by learner
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -35,7 +35,7 @@ compatibility evidence boundary.
 
 ## Current milestone
 
-Milestone 005 — Protocol and one-turn controller. The fake-backend/offline gate
+Milestone 005 — Protocol and one-turn controller. The fake-Ollama/offline gate
 passes; the bounded Qwen3.5 smoke test remains pending a learner-approved clean
 restart.
 
@@ -968,11 +968,16 @@ deterministically?
   observations rather than exceptions escaping the run.
 - Added immutable event types for accepted/rejected actions and successful or
   failed tool observations.
+- Added a loopback-only Ollama backend adapter with deterministic sampling,
+  bounded context/output, hidden-thinking exclusion, exact native-call
+  translation, and `keep_alive=0` for the future smoke path.
+- The adapter preserves proposed tool names and arguments exactly. Unknown,
+  malformed, or multiple calls are not repaired into executable actions.
 
 ### Evidence
 
 - `PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v` passes all
-  55 tests.
+  61 tests.
 - The learner independently ran that exact command in normal Terminal on
   2026-08-09; it reported `Ran 53 tests in 0.303s` and `OK`.
 - Before the full suite, the learner reproduced all four deterministic demo
@@ -989,6 +994,9 @@ deterministically?
   `payload_too_large` before JSON parsing.
 - Duplicate JSON fields at any nesting depth are rejected as `duplicate_field`
   instead of silently keeping the last value.
+- A fake Ollama-shaped native call crosses the complete offline path—backend,
+  protocol validator, registry, and real fixture search—and produces the
+  expected accepted/result event sequence with exactly one backend request.
 - No Ollama request, model load, download, test execution inside an untrusted
   repository, or edit capability occurred in this offline work.
 

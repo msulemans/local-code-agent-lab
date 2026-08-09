@@ -57,7 +57,7 @@ assert.match(js, /20 prompts/);
 assert.match(js, /4\.15 GiB swap/);
 assert.match(js, /0 tools executed/);
 assert.match(js, /Offline gate passed/);
-assert.match(js, /55 tests passed/);
+assert.match(js, /61 tests passed/);
 assert.match(html, /Qwen3\.5 smoke test waits for a clean restart/);
 
 console.log(`learning UI contract passed: ${ids.length} unique static IDs`);

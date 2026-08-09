@@ -25,6 +25,22 @@ issue -> backend text -> ActionValidator -> ToolRegistry -> observation/events
 
 The model proposes. Trusted Python code decides whether anything runs.
 
+## The local backend bridge
+
+`src/localcode/backends/ollama.py` implements the controller's `ModelBackend`
+protocol without owning agent behavior. It sends the issue and the same four
+tool schemas to the loopback-only Ollama transport with deterministic sampling.
+
+If Ollama returns exactly one well-formed native tool proposal, the adapter
+converts only the transport shape into protocol-v1 JSON. It preserves the tool
+name and arguments exactly; an unknown tool remains unknown and invalid
+arguments remain invalid. Multiple or malformed tool calls are not rescued.
+Hidden model thinking is never copied into the action envelope.
+
+The adapter sets `keep_alive` to zero for the bounded smoke path, so Ollama is
+asked to unload the model after the response. Fake-client tests exercise this
+bridge without loading any model.
+
 ## The action envelope
 
 ```json
@@ -106,7 +122,7 @@ Then run the complete offline proof:
 PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v
 ```
 
-The current expected result is `Ran 55 tests` followed by `OK`.
+The current expected result is `Ran 61 tests` followed by `OK`.
 
 ## Read the implementation in this order
 
@@ -115,7 +131,9 @@ The current expected result is `Ran 55 tests` followed by `OK`.
 3. `src/localcode/actions.py` — parsing and strict validation.
 4. `src/localcode/registry.py` — the exact name-to-function map.
 5. `src/localcode/controller.py` — one backend call and at most one tool call.
-6. `tests/unit/test_one_turn_controller.py` — executable claims.
+6. `src/localcode/backends/ollama.py` — local inference transport adapter.
+7. `tests/unit/test_one_turn_controller.py` — executable controller claims.
+8. `tests/unit/test_ollama_backend.py` — executable backend-boundary claims.
 
 ## Explain-back check
 
