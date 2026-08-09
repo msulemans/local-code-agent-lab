@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive field guide to building LocalCode, a safe local coding agent, from first principles.">
+  <title>LocalCode Field Manual — Learn the Agent You Are Building</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the field manual</a>
+
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="LocalCode field manual home">
+      <span class="brand-glyph" aria-hidden="true">LC</span>
+      <span><strong>LocalCode</strong><small>Agent field manual · M2 Max</small></span>
+    </a>
+    <nav aria-label="Primary lesson navigation">
+      <a href="#anatomy">Anatomy</a>
+      <a href="#tools">Tools</a>
+      <a href="#loop">Loop</a>
+      <a href="#benchmark">Benchmark</a>
+      <a href="#practice">Practice</a>
+    </nav>
+    <button class="depth-toggle" id="depthToggle" type="button" aria-pressed="false">
+      <span aria-hidden="true"></span> Show deeper notes
+    </button>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" data-track="briefing">
+      <div class="hero-copy">
+        <p class="eyebrow">Phase 3 · Build your own coding agent</p>
+        <h1>Teach the machine<br><em>to look before it touches.</em></h1>
+        <p class="hero-lede">You are not wrapping an API. You are building the system that turns a local coding model into a controlled engineer: repository tools, evidence, budgets, retries, tests, review, and a patch an independent evaluator can judge.</p>
+        <div class="hero-actions">
+          <a class="primary-action" href="#anatomy">Open the field manual <span aria-hidden="true">↓</span></a>
+          <button class="quiet-action" id="resumeButton" type="button">Resume my last lesson</button>
+        </div>
+        <dl class="status-ledger" aria-label="Current LocalCode project status">
+          <div><dt>Runtime</dt><dd>Python 3.11</dd></div>
+          <div><dt>Offline proof</dt><dd>005 one-turn controller</dd></div>
+          <div><dt>Available</dt><dd>4 read-only tools</dd></div>
+          <div><dt>Model</dt><dd>Qwen3.5 9B verified, unrun</dd></div>
+        </dl>
+      </div>
+
+      <aside class="flight-recorder" aria-label="Interactive agent event trace">
+        <div class="recorder-header">
+          <span>RUN TRACE · READ-ONLY PROOF</span>
+          <strong><i></i> LIVE</strong>
+        </div>
+        <div class="trace-track" aria-hidden="true"><span></span></div>
+        <ol class="hero-events">
+          <li class="active"><span>01</span><div><small>ISSUE</small><strong>Parser crashes on None</strong></div></li>
+          <li><span>02</span><div><small>ACTION</small><strong>search_code("parse_value")</strong></div></li>
+          <li><span>03</span><div><small>OBSERVATION</small><strong>src/tiny_parser.py:2</strong></div></li>
+          <li class="waiting"><span>04</span><div><small>NEXT CAPABILITY</small><strong>Editing is not built yet</strong></div></li>
+        </ol>
+        <p>The trace separates what the model proposes from what the runtime actually allowed and observed.</p>
+      </aside>
+    </section>
+
+    <section class="progress-dock" aria-label="Learning progress">
+      <div>
+        <span>YOUR FIELD MANUAL</span>
+        <strong id="progressValue">0%</strong>
+      </div>
+      <div class="progress-track"><i id="progressBar"></i></div>
+      <ol id="lessonNav"></ol>
+      <p>Saved only in this browser. Project milestone state remains in <code>AGENT_STATE.md</code>.</p>
+    </section>
+
+    <section class="lesson-section" id="anatomy" data-track="anatomy">
+      <div class="section-heading">
+        <p class="eyebrow">Lesson 01 · Anatomy</p>
+        <h2>A model predicts.<br>A runtime takes responsibility.</h2>
+        <p>A coding agent is a controlled loop around a model. Click a component to see what it owns—and what it must never be trusted to own.</p>
+      </div>
+
+      <div class="anatomy-workbench">
+        <div class="anatomy-map" id="anatomyMap" role="tablist" aria-label="Agent components"></div>
+        <article class="anatomy-detail" id="anatomyDetail" aria-live="polite"></article>
+      </div>
+
+      <aside class="plain-language">
+        <span>THE SIMPLEST CORRECT EXPLANATION</span>
+        <p><strong>The model is the strategist.</strong> It suggests the next move. <strong>The runtime is the referee and recorder.</strong> It checks the suggestion, executes only allowed actions, returns evidence, counts the budget, and decides when the run ends.</p>
+      </aside>
+      <button class="lesson-complete" type="button" data-complete="anatomy"><span>+</span> Mark lesson complete</button>
+    </section>
+
+    <section class="lesson-section tool-section" id="tools" data-track="tools">
+      <div class="section-heading compact">
+        <p class="eyebrow">Lesson 02 · Tool contracts</p>
+        <h2>Give the model eyes before hands.</h2>
+        <p>The browser simulation below mirrors the contracts implemented in Milestone 003. It does not touch your filesystem.</p>
+      </div>
+
+      <div class="tool-console">
+        <div class="tool-tabs" id="toolTabs" role="tablist" aria-label="Read-only tools"></div>
+        <div class="tool-command">
+          <div>
+            <span id="toolMode">SAFE REQUEST</span>
+            <code id="toolCall"></code>
+          </div>
+          <button id="runToolDemo" type="button">Run simulated observation</button>
+        </div>
+        <div class="tool-body">
+          <article>
+            <div class="console-label"><span>OBSERVATION</span><strong id="toolStatus">READY</strong></div>
+            <pre id="toolOutput" tabindex="0">Select a tool, then run the observation.</pre>
+          </article>
+          <aside>
+            <span>CONTRACT</span>
+            <h3 id="toolTitle"></h3>
+            <p id="toolDescription"></p>
+            <dl id="toolLimits"></dl>
+          </aside>
+        </div>
+        <div class="unsafe-scenarios">
+          <span>TRY A SAFETY CASE</span>
+          <div id="scenarioButtons" role="group" aria-label="Tool safety scenarios"></div>
+        </div>
+      </div>
+
+      <div class="boundary-grid">
+        <article><span class="boundary-symbol">↰</span><h3>Path escape</h3><p><code>../</code> and absolute paths could leave the repository. The runtime rejects them before reading.</p></article>
+        <article><span class="boundary-symbol">◇</span><h3>Symlink</h3><p>A safe-looking file can point elsewhere. Version 1 rejects every symlink component.</p></article>
+        <article><span class="boundary-symbol">•••</span><h3>Secret path</h3><p><code>.env</code>, keys, credentials, model artifacts, and VCS internals never become observations.</p></article>
+        <article><span class="boundary-symbol">…</span><h3>Truncation</h3><p>A bounded result may be incomplete. The agent must narrow its next action instead of pretending it saw everything.</p></article>
+      </div>
+      <p class="deep-note">Read-only is a permission category, not a safety proof. A read can leak credentials, consume memory, inject hostile repository text into context, or cause an external Git helper to execute. Each tool therefore needs a semantic contract beyond “it does not write.”</p>
+      <button class="lesson-complete" type="button" data-complete="tools"><span>+</span> Mark lesson complete</button>
+    </section>
+
+    <section class="lesson-section loop-section" id="loop" data-track="loop">
+      <div class="section-heading">
+        <p class="eyebrow">Lesson 03 · Agent loop</p>
+        <h2>Watch evidence change the next decision.</h2>
+        <p>Step through LocalCode’s architecture. One validated read-only turn is now implemented; multiple turns, editing, tests, and review remain planned capabilities.</p>
+      </div>
+
+      <div class="loop-workbench">
+        <div class="loop-rail" id="loopRail" role="tablist" aria-label="Agent loop stages"></div>
+        <article class="loop-detail" id="loopDetail" aria-live="polite"></article>
+        <aside class="event-ticket">
+          <div><span>STRUCTURED EVENT</span><strong id="eventSequence">SEQ 000</strong></div>
+          <pre id="eventJson" tabindex="0"></pre>
+        </aside>
+      </div>
+
+      <div class="termination-board">
+        <div><span>SUCCESS</span><strong>Required tests pass</strong><p>Return the patch and exact evidence.</p></div>
+        <div><span>SAFE FAILURE</span><strong>Action rejected</strong><p>Return a typed observation; execute nothing.</p></div>
+        <div><span>BUDGET</span><strong>Steps or time exhausted</strong><p>Stop explicitly; never loop forever.</p></div>
+        <div><span>BLOCKED</span><strong>Environment cannot evaluate</strong><p>Separate infrastructure failure from patch quality.</p></div>
+      </div>
+      <button class="lesson-complete" type="button" data-complete="loop"><span>+</span> Mark lesson complete</button>
+    </section>
+
+    <section class="lesson-section evidence-section" id="journey" data-track="journey">
+      <div class="section-heading compact">
+        <p class="eyebrow">Lesson 04 · What we have actually built</p>
+        <h2>The milestone ledger is the antidote to imagined progress.</h2>
+        <p>Select a milestone to separate verified evidence from planned architecture.</p>
+      </div>
+      <div class="journey-layout">
+        <ol class="journey-nav" id="journeyNav"></ol>
+        <article class="journey-detail" id="journeyDetail" aria-live="polite"></article>
+      </div>
+      <aside class="evidence-rule"><span>THE EVIDENCE RULE</span><p>“The code exists” is not the same as “the capability works.” A milestone closes only when its exact gate passes and the observed result is recorded in <code>AGENT_STATE.md</code>.</p></aside>
+      <button class="lesson-complete" type="button" data-complete="journey"><span>+</span> Mark lesson complete</button>
+    </section>
+
+    <section class="lesson-section benchmark-section" id="benchmark" data-track="benchmark">
+      <div class="section-heading">
+        <p class="eyebrow">Lesson 05 · Benchmark science</p>
+        <h2>Change one capability.<br>Keep the contest fair.</h2>
+        <p>The four configurations answer a causal question: what does the loop, retrieval, or review add when the model and budget stay fixed?</p>
+      </div>
+
+      <div class="benchmark-workbench">
+        <div class="configuration-selector" id="configurationSelector" role="tablist" aria-label="Benchmark configurations"></div>
+        <article class="configuration-detail" id="configurationDetail"></article>
+        <div class="score-hypothesis">
+          <span>REGISTERED HYPOTHESIS · NOT A PROMISE</span>
+          <div class="score-bars" id="scoreBars"></div>
+          <p>If the real result is <code>0 → 1 → 2 → 2</code>, that is still valid evidence. We never swap hard tasks to manufacture the hoped-for curve.</p>
+        </div>
+      </div>
+
+      <div class="fairness-checklist">
+        <h3>What must remain frozen?</h3>
+        <div id="fairnessChecklist"></div>
+        <p id="fairnessVerdict" aria-live="polite">Check every control to make the comparison interpretable.</p>
+      </div>
+
+      <div class="split-warning">
+        <div><span>AGENT CONTEXT</span><strong>Issue + pre-fix repository + allowed observations</strong></div>
+        <i aria-hidden="true">≠</i>
+        <div><span>EVALUATOR-ONLY</span><strong>Gold patch + hidden test patch + post-fix state</strong></div>
+      </div>
+      <p class="deep-note">SWE-bench “resolved” is an independent evaluator outcome, not the agent’s self-report. On this Mac, ARM image support and Docker’s current 7.75 GiB allocation remain benchmark risks even though the host has 207 GiB free.</p>
+      <button class="lesson-complete" type="button" data-complete="benchmark"><span>+</span> Mark lesson complete</button>
+    </section>
+
+    <section class="lesson-section failure-section" id="failures" data-track="failures">
+      <div class="section-heading compact">
+        <p class="eyebrow">Failure laboratory</p>
+        <h2>A good trace turns mistakes into components.</h2>
+        <p>Open an incident. Follow symptom → diagnosis → reusable lesson instead of responding with “prompt harder.”</p>
+      </div>
+      <div class="failure-filters" id="failureFilters" role="group" aria-label="Failure categories"></div>
+      <div class="failure-list" id="failureList"></div>
+      <button class="lesson-complete" type="button" data-complete="failures"><span>+</span> Mark lesson complete</button>
+    </section>
+
+    <section class="lesson-section practice-section" id="practice" data-track="practice">
+      <div class="section-heading">
+        <p class="eyebrow">Lesson 06 · Explain it yourself</p>
+        <h2>Recognition is not understanding.</h2>
+        <p>Answer aloud before revealing a card. The quiz then tests whether you can keep model, runtime, tool, and evaluator claims separate.</p>
+      </div>
+
+      <div class="practice-grid">
+        <article class="flashcard-panel">
+          <div class="practice-meta"><span>EXPLAIN-BACK CARD</span><strong id="flashcardNumber"></strong></div>
+          <h3 id="flashcardQuestion"></h3>
+          <div class="flashcard-answer" id="flashcardAnswer" hidden></div>
+          <div class="practice-actions">
+            <button class="primary-action small" id="revealFlashcard" type="button">Reveal answer</button>
+            <button class="quiet-action" id="nextFlashcard" type="button">Next card →</button>
+          </div>
+        </article>
+
+        <article class="quiz-panel">
+          <div class="quiz-meter"><i id="quizProgress"></i></div>
+          <div id="quizCard"></div>
+        </article>
+      </div>
+      <button class="lesson-complete" type="button" data-complete="practice"><span>+</span> Mark lesson complete</button>
+    </section>
+
+    <section class="lesson-section glossary-section" id="glossary" data-track="glossary">
+      <div class="section-heading compact">
+        <p class="eyebrow">Pocket glossary</p>
+        <h2>Own the words that control the system.</h2>
+      </div>
+      <label class="glossary-search">
+        <span>SEARCH TERMINOLOGY</span>
+        <input id="glossarySearch" type="search" placeholder="Try: observation, context, patch, resolved…" autocomplete="off">
+      </label>
+      <div class="glossary-grid" id="glossaryGrid"></div>
+      <button class="lesson-complete" type="button" data-complete="glossary"><span>+</span> Mark lesson complete</button>
+    </section>
+
+    <section class="next-mission">
+      <div><span>CURRENT RUNTIME MILESTONE</span><strong>005</strong></div>
+      <div>
+        <h2>One safe action, proven without loading a model.</h2>
+        <p>The fake backend now crosses the same strict validator and tool registry a local model will use. Valid search succeeds; malformed JSON, unknown tools, and path escape return typed observations. The Qwen3.5 smoke test waits for a clean restart chosen by the learner.</p>
+        <code>model text → validate exactly → execute at most one read-only tool → record observation</code>
+        <p>Hands-on guide: <code>docs/MILESTONE_005_LESSON.md</code></p>
+      </div>
+      <a href="#top">Return to briefing ↑</a>
+    </section>
+  </main>
+
+  <footer>
+    <span>LocalCode Agent Lab · Learning UI v1</span>
+    <p>Progress is local to this browser. No model or repository tool runs in this page.</p>
+    <button id="resetProgress" type="button">Reset learning progress</button>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
