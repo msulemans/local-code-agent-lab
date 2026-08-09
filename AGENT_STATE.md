@@ -972,7 +972,7 @@ deterministically?
 ### Evidence
 
 - `PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v` passes all
-  53 tests.
+  55 tests.
 - The learner independently ran that exact command in normal Terminal on
   2026-08-09; it reported `Ran 53 tests in 0.303s` and `OK`.
 - Before the full suite, the learner reproduced all four deterministic demo
@@ -985,6 +985,10 @@ deterministically?
   rejected by repository policy as a `path_escape` tool observation.
 - Two controllers given identical fake responses, issue, run ID, and injected
   timestamp produce identical canonical event JSON and identical observations.
+- Model responses above 16,384 characters are rejected as
+  `payload_too_large` before JSON parsing.
+- Duplicate JSON fields at any nesting depth are rejected as `duplicate_field`
+  instead of silently keeping the last value.
 - No Ollama request, model load, download, test execution inside an untrusted
   repository, or edit capability occurred in this offline work.
 

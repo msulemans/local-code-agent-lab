@@ -10,6 +10,9 @@ from typing import Any, Mapping
 from .compatibility import arguments_match_schema, schema_map
 
 
+MAX_ACTION_PAYLOAD_CHARS = 16_384
+
+
 class ActionValidationError(ValueError):
     """A safe explanation of why a model action cannot be executed."""
 
@@ -60,8 +63,13 @@ class ActionValidator:
     def validate(self, payload: str) -> ValidatedAction:
         if not isinstance(payload, str):
             raise ActionValidationError("invalid_json", "model response must be JSON text")
+        if len(payload) > MAX_ACTION_PAYLOAD_CHARS:
+            raise ActionValidationError(
+                "payload_too_large",
+                f"model response exceeds {MAX_ACTION_PAYLOAD_CHARS} characters",
+            )
         try:
-            envelope = json.loads(payload)
+            envelope = json.loads(payload, object_pairs_hook=_unique_object)
         except json.JSONDecodeError as exc:
             raise ActionValidationError("invalid_json", "model response is not valid JSON") from exc
         if not isinstance(envelope, dict):
@@ -113,6 +121,15 @@ class ActionValidator:
             tool=tool,
             arguments=tuple(sorted(normalized.items())),
         )
+
+
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for name, value in pairs:
+        if name in result:
+            raise ActionValidationError("duplicate_field", f"duplicate JSON field: {name!r}")
+        result[name] = value
+    return result
 
 
 def _field_mismatch(label: str, actual: set[str], expected: set[str]) -> str:

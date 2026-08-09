@@ -61,6 +61,11 @@ The validator may:
 - canonicalize harmless syntax such as `./src/` to `src`;
 - reject an invalid proposal with a typed code.
 
+Before parsing, it also rejects responses above 16,384 characters. During
+parsing, it rejects duplicate JSON fields at any depth. Standard JSON parsers
+often keep only the last duplicate value, which would make an ambiguous model
+response appear authoritative.
+
 It may not silently change `terminal` into `search_code`, turn a bad glob into a
 path, or guess a missing query. Those changes would make controller intelligence
 look like model intelligence and corrupt later benchmark comparisons.
@@ -101,7 +106,7 @@ Then run the complete offline proof:
 PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v
 ```
 
-The current expected result is `Ran 53 tests` followed by `OK`.
+The current expected result is `Ran 55 tests` followed by `OK`.
 
 ## Read the implementation in this order
 

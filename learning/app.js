@@ -233,7 +233,7 @@ const milestones = [
     state: "Offline gate passed",
     title: "Protocol and one-turn controller",
     story: "A fake backend returns untrusted JSON text. The strict validator accepts one versioned envelope, the registry dispatches at most one read-only tool, and success or rejection becomes an immutable event plus observation.",
-    evidence: "53 tests passed · valid search proof · invalid JSON/unknown tool/path escape observed · deterministic trace",
+    evidence: "55 tests passed · valid search proof · malformed/oversized/ambiguous actions observed · deterministic trace",
     decision: "Keep the real Qwen3.5 smoke test deferred until a clean restart. Do not weaken the resource baseline or pretend the fake backend proves model compatibility.",
   },
 ];

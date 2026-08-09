@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "protocol_version": "1",
+  "max_payload_chars": 16384,
   "description": "One strict JSON action envelope containing one read-only tool call.",
   "envelope": {
     "type": "object",

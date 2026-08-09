@@ -4,7 +4,7 @@ from dataclasses import FrozenInstanceError
 import json
 import unittest
 
-from localcode.actions import ActionValidationError, ActionValidator
+from localcode.actions import MAX_ACTION_PAYLOAD_CHARS, ActionValidationError, ActionValidator
 
 
 SCHEMAS = "benchmarks/model_compatibility/tool_schemas.json"
@@ -61,6 +61,24 @@ class ActionValidatorTests(unittest.TestCase):
             self.validator.validate(payload(arguments={"query": "parse(", "max_results": 0}))
 
         self.assertEqual(raised.exception.code, "invalid_arguments")
+
+    def test_oversized_payload_is_rejected_before_parsing(self) -> None:
+        with self.assertRaises(ActionValidationError) as raised:
+            self.validator.validate("x" * (MAX_ACTION_PAYLOAD_CHARS + 1))
+
+        self.assertEqual(raised.exception.code, "payload_too_large")
+
+    def test_duplicate_json_fields_are_rejected_at_any_depth(self) -> None:
+        duplicate = (
+            '{"protocol_version":"1","thought_summary":"Inspect safely",'
+            '"action":{"tool":"search_code","tool":"read_file",'
+            '"arguments":{"query":"parse"}}}'
+        )
+
+        with self.assertRaises(ActionValidationError) as raised:
+            self.validator.validate(duplicate)
+
+        self.assertEqual(raised.exception.code, "duplicate_field")
 
 
 if __name__ == "__main__":
