@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "protocol_version": "1",
+  "description": "One strict JSON action envelope containing one read-only tool call.",
+  "envelope": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["protocol_version", "thought_summary", "action"],
+    "properties": {
+      "protocol_version": {"const": "1"},
+      "thought_summary": {"type": "string", "minLength": 1, "maxLength": 500},
+      "action": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool", "arguments"]
+      }
+    }
+  },
+  "tool_schemas": "benchmarks/model_compatibility/tool_schemas.json"
+}

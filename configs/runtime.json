@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "project_name": "localcode",
+  "event_schema_version": 1,
+  "runs_directory": "runs",
+  "fixture_root": "tests/fixtures/micro_repos"
+}

@@ -1,0 +1,40 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
+.coverage
+
+# Runtime evidence is local and immutable once created.
+runs/*
+!runs/.gitkeep
+
+# Model and generated-data artifacts must never enter source control.
+models/*
+!models/.gitkeep
+checkpoints/*
+!checkpoints/.gitkeep
+adapters/*
+!adapters/.gitkeep
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
+# External benchmark outputs are reproducible local evidence.
+evaluation_results/
+logs/

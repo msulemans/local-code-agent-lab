@@ -1,0 +1,11 @@
+[project]
+name = "localcode-agent-lab"
+version = "0.0.0"
+description = "An evidence-first learning lab for a local coding agent"
+requires-python = ">=3.11,<3.13"
+dependencies = []
+
+[tool.localcode]
+source-root = "src"
+test-command = "PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v"
+ui-test-command = "node --check learning/app.js && node tests/ui/rendered-html.test.mjs"
