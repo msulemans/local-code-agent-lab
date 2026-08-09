@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "experiment_id": "model-compatibility-v1",
+  "status": "no_candidate_passed_compatibility_review_required",
+  "registered_at": "2026-08-08T00:00:00+10:00",
+  "host": {
+    "architecture": "arm64",
+    "chip": "Apple M2 Max",
+    "unified_memory_gib": 32,
+    "minimum_free_host_disk_gib": 120
+  },
+  "backend": {
+    "name": "ollama",
+    "observed_version": "0.32.0",
+    "reason": "Already installed and exposes one normalized tool-call API for both candidates.",
+    "network_during_inference": false
+  },
+  "sampling": {
+    "temperature": 0,
+    "seed": 42,
+    "max_output_tokens": 256,
+    "repetitions_per_prompt": 1
+  },
+  "context_probes_tokens": [4096, 16384],
+  "context_probe_repetitions": 3,
+  "context_probe_token_tolerance_fraction": 0.05,
+  "prompt_pack": "benchmarks/model_compatibility/prompt_pack.jsonl",
+  "tool_schemas": "benchmarks/model_compatibility/tool_schemas.json",
+  "system_prompt": "benchmarks/model_compatibility/system_prompt.txt",
+  "acquisition_policy": {
+    "mode": "sequential_smallest_first",
+    "maximum_downloaded_candidates": 2,
+    "candidate_2_condition": "Candidate 1 fails a quality gate but passes stability, memory, and latency gates.",
+    "approval_required_before_each_download": true,
+    "verify_after_pull": [
+      "full Ollama manifest digest",
+      "all local blob SHA-256 digests",
+      "actual bytes added to Ollama storage",
+      "host free disk remains above the registered floor"
+    ]
+  },
+  "gates": {
+    "cold_load_completes": true,
+    "context_probes_complete_without_error": true,
+    "minimum_schema_valid_tool_calls": "11/12",
+    "minimum_correct_action_decisions": "14/16",
+    "minimum_correct_reasoning_answers": "3/4",
+    "minimum_median_output_tokens_per_second_each_context": 8.0,
+    "maximum_median_time_to_first_token_seconds_4k": 15.0,
+    "maximum_median_time_to_first_token_seconds_16k": 45.0,
+    "maximum_peak_model_working_set_gib": 24.0,
+    "maximum_swap_growth_gib": 2.0,
+    "minimum_host_memory_free_percent": 5
+  },
+  "candidates": [
+    {
+      "order": 1,
+      "id": "qwen25-coder-7b-instruct-q4km",
+      "architecture": "dense",
+      "parameters_total_billions": 7.61,
+      "parameters_active_billions": 7.61,
+      "upstream_repository": "Qwen/Qwen2.5-Coder-7B-Instruct",
+      "upstream_revision": "c03e6d358207e414f1eca0bb1891e29f1db0e242",
+      "upstream_license": "Apache-2.0",
+      "upstream_native_context_tokens": 131072,
+      "ollama_tag": "qwen2.5-coder:7b-instruct-q4_K_M",
+      "ollama_manifest_digest_prefix": "dae161e27b0e",
+      "quantization": "Q4_K_M",
+      "published_artifact_size_gb_decimal": 4.7,
+      "local_artifact_sha256": "dae161e27b0e90dd1856c8bb3209201fd6736d8eb66298e75ed87571486f4364",
+      "local_manifest_bytes": 858,
+      "local_blob_count": 5,
+      "local_total_blob_bytes": 4683087561,
+      "local_blob_sha256": [
+        "d9bb33f2786931fea42f50936a2424818aa2f14500638af2f01861eb2c8fb446",
+        "60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463",
+        "66b9ea09bd5b7099cbb4fc820f31b575c0366fa439b08245566692c6784e281e",
+        "1e65450c30670713aa47fe23e8b9662bdf4065e81cc8e3cbfaa98924fcc0d320",
+        "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e"
+      ],
+      "ollama_storage_before_kib": 4701104,
+      "ollama_storage_after_kib": 9274436,
+      "ollama_storage_delta_kib": 4573332,
+      "host_free_disk_after_gib": 202,
+      "status": "downloaded_verified_failed_quality",
+      "compatibility_runs": [
+        {
+          "run_id": "m004c-qwen25-7b-v1",
+          "status": "stopped_after_1_of_20_prompts",
+          "primary_reason": "swap_growth_limit",
+          "swap_growth_bytes": 4460380160,
+          "model_size_bytes": 4740716952,
+          "tools_executed": 0
+        },
+        {
+          "run_id": "m004c-qwen25-7b-v2",
+          "status": "complete_failed_quality_gates",
+          "primary_reason": "schema_and_action_quality_gates",
+          "schema_valid_tool_calls": "0/12",
+          "correct_action_decisions": "1/16",
+          "correct_reasoning_answers": "3/4",
+          "swap_growth_bytes": 0,
+          "model_size_bytes": 5636211342,
+          "tools_executed": 0
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "id": "qwen3-coder-30b-a3b-instruct-q4km",
+      "architecture": "mixture_of_experts",
+      "parameters_total_billions": 30.53,
+      "parameters_active_billions": 3.3,
+      "upstream_repository": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+      "upstream_revision": "b2cff646eb4bb1d68355c01b18ae02e7cf42d120",
+      "upstream_license": "Apache-2.0",
+      "upstream_native_context_tokens": 262144,
+      "ollama_tag": "qwen3-coder:30b-a3b-q4_K_M",
+      "ollama_manifest_digest_prefix": "06c1097efce0",
+      "quantization": "Q4_K_M",
+      "published_artifact_size_gb_decimal": 19.0,
+      "local_artifact_sha256": "06c1097efce0431c2045fe7b2e5108366e43bee1b4603a7aded8f21689e90bca",
+      "local_manifest_bytes": 711,
+      "local_blob_count": 4,
+      "local_total_blob_bytes": 18556700764,
+      "local_blob_sha256": [
+        "24a94682582c6045f4950846fc7711479dcecb478b86759f0306a2ef8484d318",
+        "1194192cf2a187eb02722edcc3f77b11d21f537048ce04b67ccf8ba78863006a",
+        "d18a5cc71b84bc4af394a31116bd3932b42241de70c77d2b76d69a314ec8aa12",
+        "69aa441ea44ff5e1e7b56cac4f471e71e8a5e2e3963c29684a9234d5d5e5f7aa"
+      ],
+      "ollama_storage_before_kib": 9274436,
+      "ollama_storage_after_kib": 27396228,
+      "ollama_storage_delta_kib": 18121792,
+      "host_free_disk_after_gib": 225,
+      "descriptor_size_anomaly": {
+        "blob_sha256": "24a94682582c6045f4950846fc7711479dcecb478b86759f0306a2ef8484d318",
+        "manifest_bytes": 539,
+        "actual_bytes": 542,
+        "hash_matches": true
+      },
+      "status": "downloaded_verified_failed_stability",
+      "compatibility_runs": [
+        {
+          "run_id": "m004c-qwen3-30b-v1",
+          "status": "stopped_after_1_of_20_prompts",
+          "primary_reason": "swap_growth_limit",
+          "schema_valid_tool_calls": "1/1_evaluated",
+          "correct_action_decisions": "0/1_evaluated",
+          "swap_growth_bytes": 2720991805,
+          "model_size_bytes": 18863829810,
+          "minimum_host_memory_free_percent": 14,
+          "tools_executed": 0
+        }
+      ]
+    }
+  ]
+}

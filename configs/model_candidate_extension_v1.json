@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "experiment_id": "model-compatibility-extension-v1",
+  "status": "candidate_1_downloaded_verified_needs_clean_baseline",
+  "registered_at": "2026-08-09T00:00:00+10:00",
+  "parent_experiment": {
+    "manifest": "configs/model_candidates.json",
+    "experiment_id": "model-compatibility-v1",
+    "required_status": "no_candidate_passed_compatibility_review_required"
+  },
+  "extension_reason": "Candidate 1 passed stability but failed quality; candidate 2 produced a native tool call but failed the clean-host swap gate; strict candidate-1 adaptation still failed quality.",
+  "host": {
+    "architecture": "arm64",
+    "chip": "Apple M2 Max",
+    "unified_memory_gib": 32,
+    "minimum_free_host_disk_gib": 120
+  },
+  "backend": {
+    "name": "ollama",
+    "observed_version": "0.32.0",
+    "network_during_inference": false
+  },
+  "sampling": {
+    "temperature": 0,
+    "seed": 42,
+    "max_output_tokens": 256,
+    "repetitions_per_prompt": 1
+  },
+  "context_probes_tokens": [4096, 16384],
+  "context_probe_repetitions": 3,
+  "context_probe_token_tolerance_fraction": 0.05,
+  "prompt_pack": "benchmarks/model_compatibility/prompt_pack.jsonl",
+  "tool_schemas": "benchmarks/model_compatibility/tool_schemas.json",
+  "system_prompt": "benchmarks/model_compatibility/system_prompt.txt",
+  "frozen_source_sha256": {
+    "benchmarks/model_compatibility/prompt_pack.jsonl": "f5c3e3c2503456817f8ad96410077c86352d1a728c0220414ae7e60e37ee5e6d",
+    "benchmarks/model_compatibility/tool_schemas.json": "d1e4b748a444ec783ad2d2754e46c2b6bf87d4ce8ef4a77872f2257887ef81ad",
+    "benchmarks/model_compatibility/system_prompt.txt": "e69a01d4ea7749d33252ae8498843147fd42d72bb958425c219dd69839c982ad",
+    "src/localcode/compatibility.py": "578ef84eef559a0fb6f40945eee36906e43b2e771032615a6502fa6038370403"
+  },
+  "acquisition_policy": {
+    "maximum_downloaded_candidates": 1,
+    "approval_required_before_download": true,
+    "ollama_storage_before_kib": 27396228,
+    "host_free_disk_before_gib": 221,
+    "verify_after_pull": [
+      "full Ollama manifest digest",
+      "all local blob SHA-256 digests",
+      "descriptor size conformance reported separately",
+      "actual bytes added to Ollama storage",
+      "host free disk remains above the registered floor"
+    ]
+  },
+  "gates": {
+    "cold_load_completes": true,
+    "context_probes_complete_without_error": true,
+    "minimum_schema_valid_tool_calls": "11/12",
+    "minimum_correct_action_decisions": "14/16",
+    "minimum_correct_reasoning_answers": "3/4",
+    "minimum_median_output_tokens_per_second_each_context": 8.0,
+    "maximum_median_time_to_first_token_seconds_4k": 15.0,
+    "maximum_median_time_to_first_token_seconds_16k": 45.0,
+    "maximum_peak_model_working_set_gib": 24.0,
+    "maximum_swap_growth_gib": 2.0,
+    "minimum_host_memory_free_percent": 5
+  },
+  "candidates": [
+    {
+      "order": 1,
+      "id": "qwen35-9b-q4km",
+      "architecture": "dense_hybrid",
+      "parameters_total_billions": 9.65,
+      "parameters_active_billions": 9.65,
+      "upstream_repository": "Qwen/Qwen3.5-9B",
+      "upstream_revision": "cc5442c03a5c0bff0bd4c6888d9a40029c637733",
+      "upstream_license": "Apache-2.0",
+      "upstream_native_context_tokens": 262144,
+      "ollama_tag": "qwen3.5:9b-q4_K_M",
+      "ollama_manifest_digest_prefix": "6488c96fa5fa",
+      "quantization": "Q4_K_M",
+      "published_artifact_size_gb_decimal": 6.6,
+      "planned_run_id": "m004d-qwen35-9b-v1",
+      "local_artifact_sha256": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+      "local_manifest_bytes": 709,
+      "local_blob_count": 4,
+      "local_total_blob_bytes": 6594474711,
+      "local_blob_sha256": [
+        "be595b49fe22012bd1f5605ec14c7ffa58331783a88a4fd8c22e5fc8ec42cf9f",
+        "dec52a44569a2a25341c4e4d3fee25846eed4f6f0b936278e3a3c900bb99d37c",
+        "7339fa418c9ad3e8e12e74ad0fd26a9cc4be8703f9c110728a992b193be85cb2",
+        "9371364b27a52acac9d87f88bd93c9db1174d8d6ec57f6888925cdc1788871ff"
+      ],
+      "descriptor_sizes_match": true,
+      "ollama_storage_after_kib": 33836160,
+      "ollama_storage_delta_kib": 6439932,
+      "host_free_disk_after_gib": 216,
+      "status": "downloaded_verified_not_run",
+      "compatibility_runs": []
+    }
+  ]
+}
