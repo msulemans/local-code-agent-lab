@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
-Last updated: 2026-08-09 (Australia/Sydney)
-Status: Milestone 005 offline runtime complete; real-model smoke deferred by learner
+Last updated: 2026-08-10 (Australia/Sydney)
+Status: Milestone 005 guarded smoke path complete; real-model run deferred by learner
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -36,8 +36,8 @@ compatibility evidence boundary.
 ## Current milestone
 
 Milestone 005 — Protocol and one-turn controller. The fake-Ollama/offline gate
-passes; the bounded Qwen3.5 smoke test remains pending a learner-approved clean
-restart.
+and guarded smoke path pass; the bounded Qwen3.5 run remains pending a
+learner-approved clean restart.
 
 ### Completed
 
@@ -944,7 +944,7 @@ memory-heavy applications, capture `vm.swapusage`, `memory_pressure -Q`, and
 
 ## Milestone 005 — Protocol and one-turn controller
 
-Status: offline gate passed; real-model smoke deferred.
+Status: offline gate and guarded smoke command passed; real-model run deferred.
 
 ### Question
 
@@ -973,13 +973,20 @@ deterministically?
   translation, and `keep_alive=0` for the future smoke path.
 - The adapter preserves proposed tool names and arguments exactly. Unknown,
   malformed, or multiple calls are not repaired into executable actions.
+- Added a pure smoke preflight that requires zero used swap and an empty Ollama
+  process list before inference is reachable. It also captures a parseable
+  host free-memory percentage as baseline evidence.
+- Added `scripts/smoke_one_turn_ollama.py`, fixed to the registered Qwen3.5 9B
+  model, one fixture issue, one backend request, and one controller turn. The
+  command exists but has not been run against Ollama.
 
 ### Evidence
 
 - `PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v` passes all
-  61 tests.
-- The learner independently ran that exact command in normal Terminal on
-  2026-08-09; it reported `Ran 53 tests in 0.303s` and `OK`.
+  69 tests in the current worktree.
+- The learner independently ran the final 69-test suite in normal Terminal on
+  2026-08-10 after separately reproducing the five focused preflight tests and
+  three focused smoke-orchestration tests; every command reported `OK`.
 - Before the full suite, the learner reproduced all four deterministic demo
   cases: valid search, invalid JSON, unknown tool, and path escape. The observed
   event sequences and typed observation codes matched the registered lesson.
@@ -997,12 +1004,16 @@ deterministically?
 - A fake Ollama-shaped native call crosses the complete offline path—backend,
   protocol validator, registry, and real fixture search—and produces the
   expected accepted/result event sequence with exactly one backend request.
+- Retained swap and a non-empty Ollama process list each stop the smoke
+  orchestrator before `stream_chat`; both tests assert zero captured payloads.
+- A zero-swap, unloaded fake baseline permits exactly one backend request and
+  produces the expected accepted/result event sequence.
 - No Ollama request, model load, download, test execution inside an untrusted
   repository, or edit capability occurred in this offline work.
 
 ### Deferred gate
 
-The Milestone 005 real-model smoke test is not complete. The learner chose not
+The Milestone 005 real-model run is not complete. The learner chose not
 to restart macOS while about 2.21 GiB of retained swap remained. This is a
 valid pause: continue using fake backends, but do not run Qwen3.5 or claim model
 integration until a clean unloaded baseline is captured later.
@@ -1010,9 +1021,10 @@ integration until a clean unloaded baseline is captured later.
 ### Next allowed action
 
 Study and manually inspect the one-turn protocol implementation, or perform
-additional fake-backend protocol exercises. Do not begin the multi-turn loop,
-editing, or test execution until the bounded real-model smoke closes Milestone
-005.
+additional fake-backend protocol exercises. The guarded smoke command must not
+be run until the learner chooses a clean restart. Do not begin the multi-turn
+loop, editing, or test execution until the bounded real-model run closes
+Milestone 005.
 
 ## Public repository and learning site
 

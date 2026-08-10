@@ -104,6 +104,9 @@ A loopback-only Ollama backend adapter now converts exactly one native tool
 proposal into the same protocol envelope without repairing its tool name or
 arguments. Fake-client tests cover the complete backend-to-fixture path; the
 real Qwen3.5 smoke remains deferred until a clean host baseline is available.
+A dedicated smoke preflight parses the macOS swap and memory evidence and the
+Ollama process list before inference is reachable. Retained swap or any loaded
+model blocks the run with a typed error and zero chat requests.
 
 Milestone 004A also freezes
 the two-candidate model compatibility plan, exact tool schemas, 20-prompt
@@ -141,6 +144,10 @@ verify; it has not been run. A clean post-restart host baseline is required
 before inference. The learner chose not to restart yet, so the real-model
 Milestone 005 smoke test is explicitly deferred; the fake-backend protocol
 gate passes offline.
+
+The future smoke entry point is `scripts/smoke_one_turn_ollama.py`. Do not run
+it in a retained-swap session. Its offline tests prove that only zero swap and
+an empty Ollama process list can reach the single controller turn.
 
 ## Current development commands
 

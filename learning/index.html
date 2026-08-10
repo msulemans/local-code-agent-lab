@@ -259,9 +259,9 @@
     <section class="next-mission">
       <div><span>CURRENT RUNTIME MILESTONE</span><strong>005</strong></div>
       <div>
-        <h2>One safe action, proven without loading a model.</h2>
-        <p>The fake backend now crosses the same strict validator and tool registry a local model will use. Valid search succeeds; malformed JSON, unknown tools, and path escape return typed observations. The Qwen3.5 smoke test waits for a clean restart chosen by the learner.</p>
-        <code>model text → validate exactly → execute at most one read-only tool → record observation</code>
+        <h2>One safe action, with a guarded path to the real model.</h2>
+        <p>The fake backend crosses the same strict validator and tool registry a local model will use. The smoke preflight now blocks inference unless swap is zero and Ollama has no loaded model. The actual Qwen3.5 result still waits for a clean restart chosen by the learner.</p>
+        <code>capture baseline → permit or stop → validate exactly → execute at most one read-only tool</code>
         <p>Hands-on guide: <code>docs/MILESTONE_005_LESSON.md</code></p>
       </div>
       <a href="#top">Return to briefing ↑</a>

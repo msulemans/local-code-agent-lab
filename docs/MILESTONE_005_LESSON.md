@@ -41,6 +41,24 @@ The adapter sets `keep_alive` to zero for the bounded smoke path, so Ollama is
 asked to unload the model after the response. Fake-client tests exercise this
 bridge without loading any model.
 
+## The real-smoke preflight
+
+`src/localcode/preflight.py` parses three pieces of baseline evidence before
+the real model is reachable:
+
+1. `sysctl vm.swapusage` must report zero used swap;
+2. `memory_pressure -Q` must provide a parseable free-memory percentage; and
+3. Ollama's process list must contain no loaded model.
+
+`src/localcode/smoke.py` performs this preflight before constructing the
+backend and controller. Its fake-client tests assert that retained swap and a
+loaded model both result in zero chat payloads. The clean fake case permits
+exactly one backend request and one read-only tool result.
+
+The registered command is `scripts/smoke_one_turn_ollama.py`, but it must not
+be run merely because it exists. The learner must first choose a clean restart
+and capture the required unloaded-host baseline.
+
 ## The action envelope
 
 ```json
@@ -122,7 +140,7 @@ Then run the complete offline proof:
 PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v
 ```
 
-The current expected result is `Ran 61 tests` followed by `OK`.
+The current expected result is `Ran 69 tests` followed by `OK`.
 
 ## Read the implementation in this order
 
@@ -134,6 +152,9 @@ The current expected result is `Ran 61 tests` followed by `OK`.
 6. `src/localcode/backends/ollama.py` — local inference transport adapter.
 7. `tests/unit/test_one_turn_controller.py` — executable controller claims.
 8. `tests/unit/test_ollama_backend.py` — executable backend-boundary claims.
+9. `src/localcode/preflight.py` — the clean-host evidence gate.
+10. `src/localcode/smoke.py` — preflight followed by exactly one real-model turn.
+11. `tests/unit/test_smoke.py` — proof that blocked baselines cannot infer.
 
 ## Explain-back check
 
@@ -156,7 +177,7 @@ We are working only on LocalCode Milestone 005 in
 /Users/suleman/non-icloud/Personal/learning-labs/local-code-agent-lab.
 
 Read AGENT_STATE.md, docs/MILESTONES.md, and docs/MILESTONE_005_LESSON.md first.
-The offline one-turn controller is implemented and 53 unit tests pass. Qwen3.5
+The offline one-turn controller is implemented and 69 unit tests pass. Qwen3.5
 9B is downloaded and verified but must not be run until the learner chooses a
 restart and a clean unloaded-host baseline is captured. Do not weaken that
 gate. Do not start the multi-turn loop, editing, test execution, SWE-bench, or

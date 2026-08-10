@@ -232,9 +232,9 @@ const milestones = [
     id: "005",
     state: "Offline gate passed",
     title: "Protocol and one-turn controller",
-    story: "A fake Ollama-shaped response now crosses the local backend adapter, strict validator, exact registry, and one real read-only fixture tool. Success or rejection becomes an immutable event plus observation.",
-    evidence: "61 tests passed · complete fake-Ollama bridge · malformed/oversized/ambiguous actions observed · deterministic trace",
-    decision: "Keep the real Qwen3.5 smoke test deferred until a clean restart. Do not weaken the resource baseline or pretend the fake backend proves model compatibility.",
+    story: "A fake Ollama-shaped response now crosses the local backend adapter, strict validator, exact registry, and one real read-only fixture tool. A separate preflight blocks inference unless swap is zero and Ollama has no loaded model.",
+    evidence: "69 tests passed · complete fake-Ollama bridge · blocked baselines make zero chat requests · deterministic trace",
+    decision: "The guarded smoke command exists, but keep the real Qwen3.5 run deferred until a clean restart. Do not mistake fake-client proof for model compatibility.",
   },
 ];
 
