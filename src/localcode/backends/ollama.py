@@ -17,7 +17,8 @@ SCHEMA_VALIDITY_RULES = """Argument rules enforced by the strict validator:
   start_line, max_lines, max_bytes, max_files, max_changed_lines,
   timeout_seconds, and max_output_bytes all require at least 1.
 - Use exact types: strings as text, integers without quotes, booleans as
-  true or false.
+  true or false. Pass integers as JSON numbers, never quoted strings:
+  "max_results": 30 is valid; "max_results": "30" is rejected.
 - Always include required fields: query for search_code, path for read_file,
   patch for apply_patch, command_name for run_tests. command_name must be
   exactly python-unittest.

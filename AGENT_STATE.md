@@ -132,6 +132,21 @@ Lesson: a model cannot patch what it cannot see; when a trace shows the model
 claiming it lacks file context, check the compiled context envelope before
 blaming model quality.
 
+### m024 diagnosis 2026-08-16
+
+`m024-pilot-context-v1` proved the D-027 context fix (history is present in
+every turn) and that the loop mechanics are now working end-to-end with a real
+model: native tool calls translate, the strict validator rejects bad arguments,
+repeated-action detection fires, and controller guidance is emitted. The
+residual failure is model discipline on `qwen3.5:9b`: it emits
+`"max_results": "30"` (quoted string) so `search_code` is rejected as
+`invalid_arguments`, and it repeats the same call with a 0-match regex instead
+of following the controller's read_file guidance. D-028 adds an explicit
+integer-example rule; the recorded next step is the stronger
+`qwen3-coder:30b-a3b` candidate (already installed) with the resource guard
+watching memory, since the 9B model appears to be at its tool-calling
+capability ceiling.
+
 ### Completed (earlier)
 
 - Registered exactly two Qwen coding instruct candidates, smallest first.
@@ -1579,6 +1594,7 @@ Status: repository and static learning UI publicly verified.
 | D-025 | Translate content-form JSON tool calls (exactly one `{"name","arguments"}` object) into tool decisions without weakening the strict validator | Real Qwen checkpoints emit tool intent as JSON text in `content`; misreading it as a final answer caused every pilot to end in `invalid_action_exhaustion` | fixed 2026-08-16 |
 | D-026 | Tighten both Ollama system prompts with explicit schema-validity rules (no nulls on string/integer/boolean fields except `glob`/`end_line`, no zero below minimums, exact types, required fields, omit unneeded optionals, final-answer fallback) | The m004c tool-schema score of 0/12 shows models emit nulls and zero bounds that the strict validator rejects; the registered prompt did not state these rules | fixed 2026-08-16 |
 | D-027 | Raise the real-producer context budget (context_tokens 16,384 to 32,768 and max_context_chars 16,000 to 32,000, now a tunable) and forbid shell/bash/code-block output in the loop prompt | The m023 trace showed `history:[]` and `truncated:true` on the apply_patch turn: the 16K-char budget dropped the read_file content entirely, so the model hallucinated diffs and emitted bash code blocks; a model cannot patch what it cannot see | fixed 2026-08-16 |
+| D-028 | Add an explicit quoted-integer example to the schema rules and treat residual tool-call discipline failures as model-capability evidence | The m024 trace shows `qwen3.5:9b` emitting `"max_results": "30"` (quoted string) despite the rules, plus repeating a 0-match search against controller guidance; prompting has diminishing returns on this 9B model | fixed 2026-08-16; next action is the stronger qwen3-coder:30b candidate |
 
 ## Run ledger
 
@@ -1595,6 +1611,7 @@ Status: repository and static learning UI publicly verified.
 | `m021-deepseek-flask-a1-v1` | `deepseek-coder:6.7b` on `pallets__flask-5014` | 0/20; `backend_error` after 2.18 s, 0 tool calls | `runs/real-benchmark/m021-*` |
 | `m022-pilot-schema-v1` | `qwen3.5:9b-q4_K_M` on `pallets__flask-5014`; tightened prompts active | interrupted by Ctrl-C during the flask agent loop after ~2 min; no patch recorded; run dir immutable and not reusable | `runs/real-benchmark/m022-pilot-schema-v1/` (partial) |
 | `m023-pilot-schema-v1` | `qwen3.5:9b-q4_K_M` on `pallets__flask-5014`; tightened prompts; progress output | completed; 0/20; flask 5 tool calls then `invalid_action_exhaustion` in 83.8 s; raw trace preserved at `runs/trace-m023.jsonl` | root cause in trace: context truncation dropped all history before `apply_patch`, so the model worked without file content |
+| `m024-pilot-context-v1` | `qwen3.5:9b-q4_K_M` on `pallets__flask-5014`; raised context budget | completed; 0/20; flask 2 tool calls then `invalid_action_exhaustion` in 45.3 s; trace at `runs/trace-m024.jsonl` | context fix proved (history present); new failure is model discipline: `"max_results": "30"` quoted-string integers rejected by the schema, and repeated same search_code with a 0-match regex |
 
 Future entries must record: run ID, Git SHA, model ID and artifact hash,
 quantization, prompt version, configuration, task manifest hash, budgets, seed,
