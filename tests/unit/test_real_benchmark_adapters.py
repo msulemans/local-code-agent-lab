@@ -80,7 +80,7 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
 
         self.assertEqual(evaluator.namespace, "custom-images")
 
-    def test_preflight_runs_once_across_instances_in_one_run(self) -> None:
+    def test_preflight_runs_once_but_resource_baseline_refreshes_per_instance(self) -> None:
         issue = RealBenchmarkIssue(
             "owner__repo-1",
             "owner/repo",
@@ -90,14 +90,24 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         configuration = RealBenchmarkConfiguration(
             "A2", "Retrieval agent", "+ ranked repository context", "retrieval_agent", "implemented"
         )
-        calls = {"count": 0}
+        preflight_calls = {"count": 0}
+        snapshot_calls = {"count": 0}
 
         def fake_validate(**kwargs):
-            calls["count"] += 1
-            return object()
+            preflight_calls["count"] += 1
+            return None
+
+        class FakeResources:
+            swap_used_bytes = 0
+            memory_free_percent = 80
+
+        def fake_parse(**kwargs):
+            snapshot_calls["count"] += 1
+            return FakeResources()
 
         with (
             patch("localcode.preflight.validate_smoke_baseline", side_effect=fake_validate),
+            patch("localcode.preflight.parse_host_resource_snapshot", side_effect=fake_parse),
             patch("localcode.smoke._run_host_command", return_value=""),
             patch("localcode.compatibility.OllamaClient"),
             patch(
@@ -111,10 +121,11 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
             with self.assertRaises(RealBenchmarkError):
                 producer.produce(configuration, issue)
 
-        # A multi-instance run keeps the model resident between instances, so
-        # the empty-ollama preflight must be checked once per run, not per
-        # instance (m041).
-        self.assertEqual(calls["count"], 1)
+        # The empty-ollama preflight is a once-per-run gate (m041), but the
+        # per-turn swap/memory guard needs a fresh baseline per instance so
+        # drift from earlier instances does not stop later ones (m042).
+        self.assertEqual(preflight_calls["count"], 1)
+        self.assertEqual(snapshot_calls["count"], 2)
 
 
 if __name__ == "__main__":

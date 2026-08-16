@@ -59,7 +59,7 @@ class LocalCodePatchProducer:
         self.max_context_chars = max_context_chars
         self.allow_retained_swap = allow_retained_swap
         self.keep_alive = keep_alive
-        self._baseline = None
+        self._preflight_ok = False
 
     def produce(self, configuration: RealBenchmarkConfiguration, issue: RealBenchmarkIssue):
         from .backends.ollama_loop import OllamaLoopBackend
@@ -69,7 +69,7 @@ class LocalCodePatchProducer:
         from .engineering_registry import EngineeringToolRegistry
         from .engineering_smoke import ResourceGuardedLoopBackend
         from .loop import AgentLoop, CompletionRequirements, LoopBudgets
-        from .preflight import validate_smoke_baseline
+        from .preflight import SmokeBaseline, parse_host_resource_snapshot, validate_smoke_baseline
         from .smoke import _run_host_command
         from .tools import git_diff
         from .workspace import create_workspace
@@ -78,18 +78,28 @@ class LocalCodePatchProducer:
             return _empty_attempt(issue, self.model, "producer scope excludes this instance")
         started = time.monotonic()
         client = OllamaClient()
-        # The preflight runs once per producer, not once per instance: a
-        # multi-instance run legitimately keeps the model resident between
-        # instances, so requiring an empty Ollama process list after the
-        # first instance would fail every later instance (m041).
-        if self._baseline is None:
-            self._baseline = validate_smoke_baseline(
+        # The empty-ollama preflight runs once per producer, not once per
+        # instance: a multi-instance run legitimately keeps the model resident
+        # between instances (m041). The resource baseline for the per-turn
+        # swap/memory guard, however, must be captured fresh per instance so
+        # drift from earlier instances does not trip the guard (m042).
+        if not self._preflight_ok:
+            validate_smoke_baseline(
                 swapusage_output=_run_host_command(("sysctl", "vm.swapusage")),
                 memory_pressure_output=_run_host_command(("memory_pressure", "-Q")),
                 running_models=client.running_models(),
                 allow_retained_swap=self.allow_retained_swap,
             )
-        baseline = self._baseline
+            self._preflight_ok = True
+        resources = parse_host_resource_snapshot(
+            swapusage_output=_run_host_command(("sysctl", "vm.swapusage")),
+            memory_pressure_output=_run_host_command(("memory_pressure", "-Q")),
+        )
+        baseline = SmokeBaseline(
+            swap_used_bytes=resources.swap_used_bytes,
+            memory_free_percent=resources.memory_free_percent,
+            loaded_models=(),
+        )
         with tempfile.TemporaryDirectory(prefix="localcode-real-agent-") as temporary:
             root = Path(temporary)
             source = root / "source"
