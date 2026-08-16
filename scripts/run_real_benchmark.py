@@ -58,6 +58,12 @@ def main() -> int:
         default=True,
         help="disable per-instance progress lines during preparation",
     )
+    parser.add_argument(
+        "--allow-retained-swap",
+        action="store_true",
+        default=False,
+        help="deliberately proceed with retained host swap (recorded evidence boundary tradeoff)",
+    )
     arguments = parser.parse_args()
 
     progress_observer = (
@@ -87,6 +93,7 @@ def main() -> int:
             model=arguments.model,
             tool_document=tool_document,
             only_instance_id=arguments.control_id,
+            allow_retained_swap=arguments.allow_retained_swap,
         )
     else:
         producer = DatasetControlPatchProducer(

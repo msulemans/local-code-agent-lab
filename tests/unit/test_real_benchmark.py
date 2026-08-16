@@ -186,6 +186,11 @@ class FakeEvaluator:
         assert issue_20["model_patch"] == ""
 
 
+class FailingEvaluator:
+    def evaluate(self, *args, **kwargs):
+        raise RealBenchmarkError("official SWE-bench evaluator failed: docker daemon unreachable")
+
+
 class RealBenchmarkTests(unittest.TestCase):
     def test_manifest_loads_exactly_twenty_instances_and_four_configurations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -305,6 +310,34 @@ class RealBenchmarkTests(unittest.TestCase):
             self.assertEqual(comparisons[("A1", "A2")].gained, ("example__repo-009",))
             self.assertEqual(comparisons[("A2", "A3")].gained, ())
             self.assertEqual(comparisons[("A2", "A3")].resolved_both, tuple(f"example__repo-{index:03d}" for index in range(1, 10)))
+
+    def test_evaluator_failure_preserves_the_run_as_environment_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest_path = Path(temporary) / "manifest.json"
+            manifest_path.write_text(json.dumps(manifest_document()), encoding="utf-8")
+            manifest = load_real_benchmark_manifest(manifest_path)
+
+            result = run_real_benchmark(
+                manifest,
+                run_id="realbench-v4",
+                runs_root=Path(temporary) / "runs",
+                issue_resolver=FakeIssueResolver(),
+                patch_producer=FakePatchProducer(),
+                evaluator=FailingEvaluator(),
+            )
+
+            self.assertTrue((result.run_directory / "run_summary.json").is_file())
+            measured = [c for c in result.configurations if c.status == "measured"]
+            self.assertEqual(len(measured), 4)
+            for configuration in measured:
+                self.assertEqual(configuration.resolved, 0)
+                self.assertEqual(len(configuration.cases), 20)
+                self.assertTrue(
+                    all(case.evaluation_status == "environment_error" for case in configuration.cases)
+                )
+                self.assertTrue(
+                    all(case.primary_failure_category == "ENVIRONMENT" for case in configuration.cases)
+                )
 
 
 if __name__ == "__main__":

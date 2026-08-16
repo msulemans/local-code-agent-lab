@@ -45,6 +45,7 @@ class LocalCodePatchProducer:
         max_turns: int = 12,
         max_tool_calls: int = 12,
         max_context_chars: int = 32_000,
+        allow_retained_swap: bool = False,
     ) -> None:
         self.model = model
         self.tool_document = tool_document
@@ -54,6 +55,7 @@ class LocalCodePatchProducer:
         self.max_turns = max_turns
         self.max_tool_calls = max_tool_calls
         self.max_context_chars = max_context_chars
+        self.allow_retained_swap = allow_retained_swap
 
     def produce(self, configuration: RealBenchmarkConfiguration, issue: RealBenchmarkIssue):
         from .backends.ollama_loop import OllamaLoopBackend
@@ -76,6 +78,7 @@ class LocalCodePatchProducer:
             swapusage_output=_run_host_command(("sysctl", "vm.swapusage")),
             memory_pressure_output=_run_host_command(("memory_pressure", "-Q")),
             running_models=client.running_models(),
+            allow_retained_swap=self.allow_retained_swap,
         )
         with tempfile.TemporaryDirectory(prefix="localcode-real-agent-") as temporary:
             root = Path(temporary)

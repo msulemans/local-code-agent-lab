@@ -685,15 +685,21 @@ def _evaluate_configuration(
         kind=prepared.kind,
         availability=prepared.availability,
     )
-    evaluation = tuple(
-        _validate_evaluation_result(result)
-        for result in evaluator.evaluate(
-            manifest,
-            configuration,
-            prepared.predictions_path,
-            prepared.predictions_path.parent,
+    try:
+        evaluation = tuple(
+            _validate_evaluation_result(result)
+            for result in evaluator.evaluate(
+                manifest,
+                configuration,
+                prepared.predictions_path,
+                prepared.predictions_path.parent,
+            )
         )
-    )
+    except RealBenchmarkError as exc:
+        # An unavailable external harness (e.g. Docker not running) must not
+        # destroy a completed producer run. Preserve every attempt and mark
+        # each case as an environment error so the evidence survives.
+        return _environment_error_configuration(manifest, prepared, str(exc))
     by_id = {result.instance_id: result for result in evaluation}
     expected_ids = tuple(instance.instance_id for instance in manifest.instances)
     if tuple(sorted(by_id)) != tuple(sorted(expected_ids)):
@@ -724,6 +730,47 @@ def _evaluate_configuration(
     )
     _write_json(prepared.predictions_path.parent / "measured_summary.json", result.to_dict())
     return result
+
+
+def _environment_error_configuration(
+    manifest: RealBenchmarkManifest,
+    prepared: PreparedConfigurationRun,
+    evaluator_error: str,
+) -> RealBenchmarkConfigurationResult:
+    """Record a whole configuration as environment errors when the evaluator is unavailable."""
+
+    detail = evaluator_error.strip()[:400]
+    cases = tuple(
+        _case_result(
+            instance,
+            attempt,
+            EvaluationInstanceResult(
+                instance_id=instance.instance_id,
+                resolved=False,
+                status="environment_error",
+                reason=f"evaluator unavailable: {detail}",
+            ),
+        )
+        for instance, attempt in zip(manifest.instances, prepared.attempts)
+    )
+    return RealBenchmarkConfigurationResult(
+        configuration_id=prepared.configuration_id,
+        label=prepared.label,
+        change=prepared.change,
+        kind=prepared.kind,
+        availability=prepared.availability,
+        status="measured",
+        reason=f"evaluation failed; recorded as environment errors: {detail}",
+        registered=prepared.registered,
+        attempted=prepared.attempted,
+        valid_patches=prepared.valid_patches,
+        resolved=0,
+        total_tokens_used=prepared.total_tokens_used,
+        total_tool_calls=prepared.total_tool_calls,
+        total_wall_seconds=prepared.total_wall_seconds,
+        predictions_path=prepared.predictions_path,
+        cases=cases,
+    )
 
 
 def _case_result(
