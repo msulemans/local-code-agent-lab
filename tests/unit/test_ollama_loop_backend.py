@@ -6,7 +6,7 @@ import unittest
 
 from localcode.actions import ActionValidationError
 from localcode.backends.ollama import BackendError, SCHEMA_VALIDITY_RULES
-from localcode.backends.ollama_loop import LOOP_SYSTEM_PROMPT, OllamaLoopBackend
+from localcode.backends.ollama_loop import LOOP_SYSTEM_PROMPT, REVIEW_SYSTEM_PROMPT, OllamaLoopBackend
 from localcode.compatibility import ChatResult, CompatibilityError
 from localcode.decisions import DecisionValidator, FinalDecision
 from localcode.loop import AgentLoop, CompletionRequirements, LoopBudgets, LoopRequest, TerminationReason
@@ -86,6 +86,26 @@ class OllamaLoopBackendTests(unittest.TestCase):
         self.assertIn(SCHEMA_VALIDITY_RULES, LOOP_SYSTEM_PROMPT)
         self.assertIn("Never pass zero", LOOP_SYSTEM_PROMPT)
         self.assertIn("python-unittest", LOOP_SYSTEM_PROMPT)
+
+    def test_review_system_prompt_carries_rules_and_can_replace_the_loop_prompt(self) -> None:
+        self.assertIn(SCHEMA_VALIDITY_RULES, REVIEW_SYSTEM_PROMPT)
+        self.assertIn("review component", REVIEW_SYSTEM_PROMPT)
+
+        client = FakeClient([chat_result(content="Done")])
+        backend = OllamaLoopBackend(
+            model="fake:latest",
+            tool_document=self.document,
+            client=client,
+            system_prompt="REVIEW ONLY",
+        )
+
+        backend.complete(self.request())
+
+        self.assertEqual(client.payloads[0]["messages"][0]["content"], "REVIEW ONLY")
+
+    def test_invalid_system_prompt_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "system_prompt"):
+            OllamaLoopBackend(model="fake:latest", tool_document=self.document, system_prompt="  ")
 
     def test_native_tool_call_becomes_exact_loop_decision(self) -> None:
         client = FakeClient(

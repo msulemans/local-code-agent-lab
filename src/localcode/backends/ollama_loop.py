@@ -38,6 +38,23 @@ validates decisions, executes tools, and terminates the run.
 {SCHEMA_VALIDITY_RULES}"""
 
 
+REVIEW_SYSTEM_PROMPT = f"""You are the review component inside LocalCode.
+The user message contains the original issue and a candidate patch produced by
+an earlier agent pass. Your job is one fresh critique and revision. Check the
+candidate patch against the issue: does it change the right location; does it
+fix the failing behavior; does it contain unrelated edits (remove them); could
+it regress other tests. If the patch is correct and minimal, run run_tests once
+for evidence and then return a concise final answer. Otherwise read the relevant
+files, revise with edit_file (an exact old_string/new_string pair) or
+apply_patch, run run_tests, and then return a final answer. Never claim a tool
+ran or invent a result. Never undo the candidate patch's core fix: repair
+regressions and remove unrelated changes only. Never emit shell commands,
+bash-style invocations, or markdown code blocks; use only the native tool-call
+format or a plain final answer.
+
+{SCHEMA_VALIDITY_RULES}"""
+
+
 class OllamaLoopBackend:
     """Translate one loopback Ollama response into a loop-decision envelope."""
 
@@ -53,6 +70,7 @@ class OllamaLoopBackend:
         allow_tool_subsets: bool = False,
         keep_alive: int | str = 0,
         think: bool | str = False,
+        system_prompt: str | None = None,
     ) -> None:
         if not isinstance(model, str) or not model or any(character.isspace() for character in model):
             raise ValueError("model must be a non-empty Ollama tag without whitespace")
@@ -68,6 +86,10 @@ class OllamaLoopBackend:
             raise ValueError("seed must be a non-negative integer")
         if think not in (False, "low", "medium", "high"):
             raise ValueError("think must be false, low, medium, or high")
+        if system_prompt is not None and (
+            not isinstance(system_prompt, str) or not system_prompt.strip()
+        ):
+            raise ValueError("system_prompt must be non-empty text")
 
         tools_by_name = schema_map(tool_document)
         self.model = model
@@ -80,6 +102,7 @@ class OllamaLoopBackend:
         self._allow_tool_subsets = allow_tool_subsets
         self._keep_alive = keep_alive
         self._think = think
+        self._system_prompt = LOOP_SYSTEM_PROMPT if system_prompt is None else system_prompt
         self._generated_tokens = 0
 
     def complete(self, request: LoopRequest) -> str:
@@ -97,7 +120,7 @@ class OllamaLoopBackend:
                 {
                     "model": self.model,
                     "messages": [
-                        {"role": "system", "content": LOOP_SYSTEM_PROMPT},
+                        {"role": "system", "content": self._system_prompt},
                         {"role": "user", "content": request.context},
                     ],
                     "tools": tools,

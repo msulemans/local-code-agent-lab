@@ -25,6 +25,7 @@ from .real_benchmark import (
     RealBenchmarkIssue,
     RealBenchmarkManifest,
 )
+from .tools import ToolResult
 
 
 class LocalCodePatchProducer:
@@ -71,7 +72,7 @@ class LocalCodePatchProducer:
             _unload_ollama_model(self.model)
 
     def produce(self, configuration: RealBenchmarkConfiguration, issue: RealBenchmarkIssue):
-        from .backends.ollama_loop import OllamaLoopBackend
+        from .backends.ollama_loop import OllamaLoopBackend, REVIEW_SYSTEM_PROMPT
         from .compatibility import OllamaClient
         from .context import RetrievalContextCompiler, SimpleContextCompiler
         from .decisions import DecisionValidator
@@ -142,7 +143,7 @@ class LocalCodePatchProducer:
                 observer=lambda _snapshot: None,
             )
             registry = EngineeringToolRegistry(workspace)
-            if configuration.configuration_id == "A2":
+            if configuration.configuration_id in {"A2", "A3"}:
                 compiler = RetrievalContextCompiler(workspace.root, max_files=6)
             else:
                 compiler = SimpleContextCompiler()
@@ -175,6 +176,66 @@ class LocalCodePatchProducer:
                 context_compiler=compiler,
             ).run(run_id=f"real-{issue.instance_id}", issue=issue.problem_statement)
             diff = git_diff(workspace.root)
+            review_tokens = 0
+            review_tool_calls = 0
+            if (
+                configuration.configuration_id == "A3"
+                and diff.content
+                and diff.content.lstrip().startswith("diff --git ")
+                and not diff.truncated
+            ):
+                review_backend = OllamaLoopBackend(
+                    model=self.model,
+                    tool_document=self.tool_document,
+                    client=client,
+                    context_tokens=self.context_tokens,
+                    max_output_tokens=self.max_output_tokens,
+                    allow_tool_subsets=True,
+                    keep_alive=self.keep_alive,
+                    think=self.think,
+                    system_prompt=REVIEW_SYSTEM_PROMPT,
+                )
+                review_guarded = ResourceGuardedLoopBackend(
+                    review_backend,
+                    baseline=baseline,
+                    command_runner=_run_host_command,
+                    observer=lambda _snapshot: None,
+                )
+                review_result = None
+                try:
+                    review_result = AgentLoop(
+                        review_guarded,
+                        validator,
+                        registry,
+                        LoopBudgets(
+                            max_turns=8,
+                            max_tool_calls=8,
+                            max_invalid_actions=4,
+                            max_identical_actions=2,
+                            recover_repeated_actions=True,
+                            phase_tool_policy=True,
+                            max_wall_seconds=360,
+                            max_context_chars=self.max_context_chars,
+                        ),
+                        clock=lambda: time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                        monotonic=time.monotonic,
+                        completion_requirements=CompletionRequirements(
+                            require_patch=False,
+                            require_passing_tests=False,
+                            require_test_execution=True,
+                        ),
+                        context_compiler=compiler,
+                    ).run(
+                        run_id=f"real-{issue.instance_id}-review",
+                        issue=_review_issue_text(issue.problem_statement, diff.content),
+                    )
+                except Exception:
+                    # A crashing review must never destroy the pre-review patch.
+                    review_result = None
+                if review_result is not None:
+                    review_tokens = review_backend.generated_tokens
+                    review_tool_calls = review_result.tool_calls_used
+                    diff = _final_patch(diff, git_diff(workspace.root))
         patch = diff.content if not diff.truncated else ""
         produced = (
             bool(patch)
@@ -193,13 +254,37 @@ class LocalCodePatchProducer:
                 if produced
                 else f"agent terminated with {termination}; executed tests={result.tests_executed}"
             ),
-            tokens_used=loop_backend.generated_tokens,
-            tool_calls=result.tool_calls_used,
+            tokens_used=loop_backend.generated_tokens + review_tokens,
+            tool_calls=result.tool_calls_used + review_tool_calls,
             wall_seconds=round(time.monotonic() - started, 6),
             termination_reason=termination,
             invalid_actions=result.invalid_actions_used,
             tests_executed=result.tests_executed,
         )
+
+
+def _review_issue_text(issue: str, diff_content: str, max_diff_chars: int = 12_000) -> str:
+    """Compose the issue envelope for the fresh A3 critique pass."""
+    shown = diff_content[:max_diff_chars]
+    if len(diff_content) > max_diff_chars:
+        shown += "\n[diff truncated]"
+    return (
+        "You are reviewing a candidate patch for the issue below. Critique it, "
+        "and revise the workspace only when the patch is wrong, incomplete, or "
+        "contains unrelated changes. If it is correct, run the tests once and "
+        "finish.\n\nISSUE:\n"
+        + issue
+        + "\n\nCANDIDATE PATCH:\n"
+        + shown
+    )
+
+
+def _final_patch(pre_review: ToolResult, reviewed: ToolResult) -> ToolResult:
+    """Keep the reviewed diff only when it is a valid, untruncated git diff."""
+    content = reviewed.content
+    if content and content.lstrip().startswith("diff --git ") and not reviewed.truncated:
+        return reviewed
+    return pre_review
 
 
 def _clone_at_commit(repository: str, commit: str, destination: Path) -> None:

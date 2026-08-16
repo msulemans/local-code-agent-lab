@@ -12,7 +12,10 @@ from localcode.real_benchmark_adapters import (
     JsonDatasetIssueResolver,
     LocalCodePatchProducer,
     OfficialSwebenchEvaluator,
+    _final_patch,
+    _review_issue_text,
 )
+from localcode.tools import ToolResult
 
 
 class RealBenchmarkAdapterTests(unittest.TestCase):
@@ -135,6 +138,33 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         # drift from earlier instances does not stop later ones (m042).
         self.assertEqual(preflight_calls["count"], 1)
         self.assertEqual(snapshot_calls["count"], 2)
+
+    def test_review_issue_text_embeds_issue_and_bounded_diff(self) -> None:
+        text = _review_issue_text(
+            "Fix the parser.",
+            "diff --git a/x.py b/x.py\n" + "z" * 100,
+            max_diff_chars=50,
+        )
+
+        self.assertIn("Fix the parser.", text)
+        self.assertIn("diff --git", text)
+        self.assertIn("[diff truncated]", text)
+        shown = text.split("CANDIDATE PATCH:\n", 1)[1]
+        self.assertLessEqual(len(shown), 50 + len("[diff truncated]\n"))
+
+    def test_final_patch_keeps_valid_reviewed_diff_and_falls_back_safely(self) -> None:
+        original = ToolResult(content="diff --git a/one.py b/one.py\n")
+        better = ToolResult(
+            content="diff --git a/one.py b/one.py\ndiff --git a/two.py b/two.py\n"
+        )
+
+        self.assertIs(_final_patch(original, better), better)
+        self.assertIs(_final_patch(original, ToolResult(content="")), original)
+        self.assertIs(_final_patch(original, ToolResult(content="no patch produced")), original)
+        self.assertIs(
+            _final_patch(original, ToolResult(content="diff --git a/x.py b/x.py\n", truncated=True)),
+            original,
+        )
 
 
 if __name__ == "__main__":
