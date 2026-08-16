@@ -159,6 +159,41 @@ class OllamaLoopBackendTests(unittest.TestCase):
         self.assertEqual(decision.tool, "read_file")
         self.assertEqual(decision.arguments_dict()["path"], "src/flask/blueprints.py")
 
+    def test_content_form_tool_alias_key_becomes_tool_decision(self) -> None:
+        # m032 showed the 14B naming the tool field `tool` instead of `name`;
+        # that is a transport alias, not a different intent.
+        emitted = json.dumps(
+            {"tool": "git_diff", "arguments": {"path": "src/flask/app.py", "staged": False}},
+            sort_keys=True,
+        )
+        client = FakeClient([chat_result(content=emitted)])
+        backend = OllamaLoopBackend(model="fake:latest", tool_document=self.document, client=client)
+
+        decision = self.validator.validate(backend.complete(self.request()))
+
+        self.assertEqual(decision.tool, "git_diff")
+        self.assertEqual(decision.arguments_dict()["path"], "src/flask/app.py")
+
+    def test_content_form_echoed_history_is_not_repaired_into_a_tool_call(self) -> None:
+        # m032 turn 5 echoed an entire history observation (extra keys) as
+        # content; that must stay a final decision, never a tool call.
+        emitted = json.dumps(
+            {
+                "arguments": {"max_bytes": 1024, "path": "src/flask/app.py", "staged": False},
+                "controller_guidance": "Review complete.",
+                "metadata": {"file_count": 0},
+                "observation": "",
+                "tool": "git_diff",
+            },
+            sort_keys=True,
+        )
+        client = FakeClient([chat_result(content=emitted)])
+        backend = OllamaLoopBackend(model="fake:latest", tool_document=self.document, client=client)
+
+        decision = self.validator.validate(backend.complete(self.request()))
+
+        self.assertIsInstance(decision, FinalDecision)
+
     def test_content_form_json_still_passes_strict_argument_schema(self) -> None:
         # Translation must not weaken validation: an invalid argument value is
         # rejected exactly as it would be for a native tool call.

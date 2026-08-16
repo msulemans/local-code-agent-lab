@@ -113,12 +113,13 @@ def content_form_tool_call(content: str) -> dict[str, Any] | None:
     """Return ``{"name", "arguments"}`` when content is exactly a JSON tool call.
 
     Ollama serves some Qwen checkpoints as plain JSON in ``content`` instead of
-    a native ``tool_calls`` entry (recorded in m004c streams), and the model may
-    wrap that JSON in a markdown code fence (observed in m031).  Both are
-    presentation/transport shapes, not model intent; the strict action
-    validator still enforces the tool name and argument schema.  Anything that
-    is not exactly one ``{"name", "arguments"}`` object is left untouched so
-    model narration is never repaired into a tool call.
+    a native ``tool_calls`` entry (recorded in m004c streams), the model may
+    wrap that JSON in a markdown code fence (m031), and it may name the tool
+    field ``tool`` instead of ``name`` (m032).  All are presentation/transport
+    shapes, not model intent; the strict action validator still enforces the
+    tool name and argument schema.  Anything that is not exactly one
+    ``{"name"|"tool", "arguments"}`` object is left untouched so model
+    narration is never repaired into a tool call.
     """
     text = content.strip()
     if not text:
@@ -136,7 +137,9 @@ def content_form_tool_call(content: str) -> dict[str, Any] | None:
     except json.JSONDecodeError:
         return None
     if not isinstance(value, dict) or set(value) != {"name", "arguments"}:
-        return None
+        if not isinstance(value, dict) or set(value) != {"tool", "arguments"}:
+            return None
+        value = {"name": value["tool"], "arguments": value["arguments"]}
     name = value["name"]
     arguments = value["arguments"]
     if not isinstance(name, str) or not isinstance(arguments, dict):
