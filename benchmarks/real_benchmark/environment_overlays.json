@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "overlays": [
+    {
+      "instance_id": "sphinx-doc__sphinx-7454",
+      "architecture": "darwin-arm64-via-linux-amd64-emulation",
+      "environment_image": "sweb.env.py.x86_64.764c21123474adcba1e003:latest",
+      "packages": {
+        "docutils": "0.16",
+        "roman": "4.2"
+      },
+      "reason": "The 2020 Sphinx checkout permits unbounded docutils>=0.12; a 2026 local build selected docutils 0.23, which removed the old roman module and changed node behavior.",
+      "gold_validation_run_id": "m047-sphinx-gold-env-pinned",
+      "gold_resolved": true,
+      "model_recheck_run_id": "m048-sphinx-model-env-pinned"
+    }
+  ]
+}

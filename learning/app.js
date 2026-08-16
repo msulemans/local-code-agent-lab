@@ -295,11 +295,11 @@ const milestones = [
   },
   {
     id: "009",
-    state: "First real issue resolved · 1/1 pilot",
+    state: "One solve · multi-repo execution validated",
     title: "Real SWE-bench evaluation boundary",
-    story: "The A2 producer runs the local 14B model in a disposable real Flask checkout. After symbol-anchored retrieval exposed the exact Blueprint constructor, m040 inserted the guard at construction time and the official SWE-bench evaluator resolved the issue.",
-    evidence: "m040: official evaluator resolved 1/1 attempted · 1 FAIL_TO_PASS + 59 PASS_TO_PASS tests passed · 1 valid patch · 4 tool calls · 190 unit tests pass with 7 environment skips",
-    decision: "This proves one real local-model repair, not a 20-issue score. Keep m040 as the first solved A2 pilot; next expand cautiously to a small multi-repository batch before the frozen 20.",
+    story: "A2 resolved the Flask pilot and now executes across Requests, Pylint, and Sphinx. D-042 removed a stale cross-instance resource baseline. A Sphinx gold control then exposed ARM-local dependency drift, so the evaluator image was pinned to docutils 0.16 and roman 4.2 before the saved model patch was scored again.",
+    evidence: "m040 resolved 1/1 · m043 completed both repositories without backend errors · m047 Sphinx gold resolved 1/1 · m048 model patch failed only its target test while 27 regression tests passed · 193 unit tests pass",
+    decision: "Keep the real score at one resolved pilot. Treat Pylint as a model-format failure and Sphinx as a genuine wrong-subsystem patch. Improve retrieval/call-site evidence before adding A3 review or attempting the frozen 20.",
   },
 ];
 
@@ -398,6 +398,13 @@ const failures = [
     symptom: "The model patched src/flask/blueprints.py, produced a valid diff, and preserved 59 existing tests, but the new empty-name test still failed.",
     diagnosis: "Generic issue-word matches anchored the excerpt at BlueprintSetupState before the later exact class Blueprint definition. The model therefore validated at registration instead of construction.",
     lesson: "Retrieval has two stages: rank the right file, then expose the right symbol-level region. File recall alone does not prove useful context or a correct patch.",
+  },
+  {
+    type: "benchmark",
+    title: "Even the gold patch failed",
+    symptom: "The official Sphinx gold patch scored unresolved because the container could not import roman, then failed an unrelated regression after roman was installed.",
+    diagnosis: "The 2020 checkout allowed an unbounded modern docutils version. ARM-local image construction installed docutils 0.23, which removed old modules and changed node behavior.",
+    lesson: "A gold control is an evaluator calibration test. Pin period-compatible dependencies before attributing an unresolved result to the agent, and run the saved model patch again without new inference.",
   },
 ];
 
