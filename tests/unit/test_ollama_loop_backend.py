@@ -54,7 +54,7 @@ class FailingClient:
 
 
 class FakeRegistry:
-    tool_names = ("apply_patch", "git_diff", "list_files", "read_file", "run_tests", "search_code")
+    tool_names = ("apply_patch", "git_diff", "list_files", "read_file", "run_tests", "search_code", "write_file")
 
     def __init__(self) -> None:
         self.executed: list[str] = []

@@ -8,12 +8,13 @@ from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
 
-from .tools import ToolError
+from .tools import ToolError, ToolResult
 from .tools.base import RepositoryPolicy
 
 
 MAX_WORKSPACE_FILES = 2_000
 MAX_WORKSPACE_BYTES = 64 * 1_024 * 1_024
+MAX_WRITE_BYTES = 1_048_576
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,6 +131,61 @@ def create_workspace(
         baseline_commit=baseline_commit,
         copied_files=copied_files,
         copied_bytes=copied_bytes,
+    )
+
+
+def write_file(
+    root: str | Path,
+    path: str,
+    content: str,
+    *,
+    max_bytes: int = MAX_WRITE_BYTES,
+) -> ToolResult:
+    """Atomically replace one existing tracked workspace file with new content.
+
+    Mirrors apply_patch's safety scope so small models that cannot construct a
+    line-accurate unified diff can still edit a file: only an existing,
+    tracked, UTF-8 file may be replaced; no file creation, deletion, rename, or
+    path escape is possible.  The write is atomic (temp file + rename), so a
+    failure never leaves a partial file, and the change appears in git_diff.
+    """
+
+    if not isinstance(path, str) or not path or "\x00" in path:
+        raise ToolError("invalid_path", "path must be non-empty text without NUL bytes")
+    if not isinstance(content, str):
+        raise ToolError("invalid_content", "content must be text")
+    if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 1 or max_bytes > MAX_WRITE_BYTES:
+        raise ToolError("invalid_argument", f"max_bytes must be an integer in 1..{MAX_WRITE_BYTES}")
+    encoded = content.encode("utf-8")
+    if len(encoded) > max_bytes:
+        raise ToolError("content_too_large", f"content exceeds {max_bytes} bytes")
+
+    policy = RepositoryPolicy.from_root(root)
+    relative, resolved = policy.resolve(path, kind="file")
+    if not resolved.is_file():
+        raise ToolError("path_does_not_exist", f"file does not exist: {relative.as_posix()}")
+    if resolved.stat().st_size > MAX_WRITE_BYTES:
+        raise ToolError("file_too_large", f"existing file exceeds one MiB: {relative.as_posix()}")
+    tracked = _run_git(policy.root, ["ls-files", "--", relative.as_posix()]).strip()
+    if not tracked:
+        raise ToolError("untracked_target", f"write_file refuses a file Git does not track: {relative.as_posix()}")
+
+    temporary = resolved.with_name(resolved.name + ".localcode-tmp")
+    try:
+        temporary.write_text(content, encoding="utf-8", newline="")
+        os.replace(temporary, resolved)
+    except OSError as exc:
+        raise ToolError("write_error", f"could not replace file: {relative.as_posix()}") from exc
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+    return ToolResult(
+        content=f"Replaced file {relative.as_posix()} ({len(encoded)} bytes)",
+        metadata=(
+            ("path", relative.as_posix()),
+            ("bytes", len(encoded)),
+        ),
     )
 
 

@@ -160,14 +160,14 @@ def _controller_instructions(history: tuple[str, ...]) -> str:
     """Return trusted phase guidance separate from untrusted tool output."""
     tools = []
     for entry in history:
-        for name in ("search_code", "read_file", "apply_patch", "run_tests", "git_diff"):
+        for name in ("search_code", "read_file", "apply_patch", "write_file", "run_tests", "git_diff"):
             if f'"tool":"{name}"' in entry and name not in tools:
                 tools.append(name)
-    if "apply_patch" not in tools and "read_file" in tools:
-        return "Trusted controller directive: use apply_patch now; do not search again."
-    if "apply_patch" not in tools and "search_code" in tools:
-        return "Trusted controller directive: use read_file on a relevant source path, then apply_patch; do not repeat search_code."
-    if "apply_patch" in tools and "run_tests" not in tools:
+    if "apply_patch" not in tools and "write_file" not in tools and "read_file" in tools:
+        return "Trusted controller directive: use write_file with the complete new file content (or apply_patch) now; do not search again."
+    if "apply_patch" not in tools and "write_file" not in tools and "search_code" in tools:
+        return "Trusted controller directive: use read_file on a relevant source path, then write_file or apply_patch; do not repeat search_code."
+    if ("apply_patch" in tools or "write_file" in tools) and "run_tests" not in tools:
         return "Trusted controller directive: run_tests now."
     if "run_tests" in tools and "git_diff" not in tools:
         return "Trusted controller directive: inspect git_diff, then finish."

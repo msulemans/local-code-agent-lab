@@ -76,6 +76,23 @@
     {
       "type": "function",
       "function": {
+        "name": "write_file",
+        "description": "Replace the complete contents of one existing tracked UTF-8 file in the disposable workspace. Prefer this over apply_patch when a line-accurate unified diff is hard to construct: read the file first, then supply the full new file content.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "content"],
+          "properties": {
+            "path": {"type": "string"},
+            "content": {"type": "string", "minLength": 1, "maxLength": 1048576},
+            "max_bytes": {"type": "integer", "minimum": 1, "maximum": 1048576, "default": 1048576}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "run_tests",
         "description": "Run one registered test command in the disposable sandbox and return bounded output plus exit evidence.",
         "parameters": {

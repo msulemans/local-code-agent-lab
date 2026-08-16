@@ -25,8 +25,10 @@ tool ran or invent its result. When the issue is fixed and the current patch
 has passing test evidence, return a concise final answer without a tool call.
 Read the history before choosing the next action: do not repeat an identical
 tool call and arguments already present there. Progress through evidence,
-then apply_patch, run_tests, and git_diff; if a patch has not been applied,
-do not return a final answer. For an inspection or edit step, do not narrate
+then edit with write_file (supply the COMPLETE new file content after reading
+the file; do not construct a unified diff) or apply_patch, then run_tests,
+then git_diff; if the required change is not present, do not return a final
+answer. For an inspection or edit step, do not narrate
 or return plain text: emit the native tool call itself. Never emit shell
 commands, bash-style invocations, or markdown code blocks; use only the native
 tool-call format or a plain final answer. The trusted controller

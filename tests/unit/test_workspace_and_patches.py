@@ -7,7 +7,7 @@ import unittest
 
 from localcode.patches import apply_patch
 from localcode.tools import ToolError, git_diff
-from localcode.workspace import create_workspace
+from localcode.workspace import create_workspace, write_file
 
 
 FIXTURE = Path("tests/fixtures/micro_repos/parser_none").resolve()
@@ -138,6 +138,34 @@ class WorkspaceAndPatchTests(unittest.TestCase):
 
             self.assertEqual(result.metadata_dict()["file_count"], 1)
             self.assertIn('return text.strip(" ")', git_diff(workspace.root).content)
+
+    def test_write_file_replaces_existing_tracked_file_and_shows_in_diff(self) -> None:
+        fixed = "def parse_value(text: str | None) -> str:\n    if text is None:\n        return \"\"\n    return text.strip()\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = create_workspace(FIXTURE, Path(temporary) / "workspace")
+
+            result = write_file(workspace.root, "src/tiny_parser.py", fixed)
+
+            self.assertEqual(result.metadata_dict()["path"], "src/tiny_parser.py")
+            self.assertEqual(
+                (workspace.root / "src/tiny_parser.py").read_text(encoding="utf-8"),
+                fixed,
+            )
+            diff = git_diff(workspace.root).content
+            self.assertIn("diff --git a/src/tiny_parser.py", diff)
+            self.assertIn('+    if text is None:', diff)
+
+    def test_write_file_rejects_missing_untracked_and_oversized_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = create_workspace(FIXTURE, Path(temporary) / "workspace")
+            with self.assertRaisesRegex(ToolError, "path does not exist"):
+                write_file(workspace.root, "src/nope.py", "x")
+            with self.assertRaisesRegex(ToolError, "refuses a file Git does not track"):
+                (workspace.root / "src").mkdir(parents=True, exist_ok=True)
+                (workspace.root / "src/new_file.py").write_text("x", encoding="utf-8")
+                write_file(workspace.root, "src/new_file.py", "x")
+            with self.assertRaisesRegex(ToolError, "content exceeds"):
+                write_file(workspace.root, "src/tiny_parser.py", "x" * 10, max_bytes=5)
 
 
 if __name__ == "__main__":

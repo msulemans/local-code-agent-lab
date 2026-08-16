@@ -8,7 +8,7 @@ from .actions import ValidatedAction
 from .patches import apply_patch
 from .test_runner import TestRunner
 from .tools import ToolResult, git_diff, list_files, read_file, search_code
-from .workspace import Workspace
+from .workspace import Workspace, write_file
 
 
 EngineeringTool = Callable[..., ToolResult]
@@ -27,6 +27,7 @@ class EngineeringToolRegistry:
             "read_file": self._read_file,
             "run_tests": self._run_tests,
             "search_code": self._search_code,
+            "write_file": self._write_file,
         }
 
     @property
@@ -41,6 +42,9 @@ class EngineeringToolRegistry:
 
     def _apply_patch(self, **arguments) -> ToolResult:
         return apply_patch(self.workspace.root, **arguments)
+
+    def _write_file(self, **arguments) -> ToolResult:
+        return write_file(self.workspace.root, **arguments)
 
     def _run_tests(self, **arguments) -> ToolResult:
         return self._test_runner.run(self.workspace, **arguments)
