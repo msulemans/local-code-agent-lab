@@ -153,8 +153,18 @@ def _apply_declared_defaults(
     result = dict(arguments)
     properties = function_schema.get("parameters", {}).get("properties", {})
     for name, rule in properties.items():
-        if name not in result and isinstance(rule, dict) and "default" in rule:
-            result[name] = rule["default"]
+        if not isinstance(rule, dict) or "default" not in rule:
+            continue
+        default = rule["default"]
+        if default is None:
+            continue
+        if name not in result:
+            result[name] = default
+        elif result[name] is None or result[name] == "":
+            # Models (e.g. gpt-oss) sometimes send an empty string or null
+            # for an optional field; that is semantically identical to
+            # omitting it, so use the declared default.
+            result[name] = default
     return result
 
 

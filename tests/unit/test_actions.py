@@ -36,6 +36,13 @@ class ActionValidatorTests(unittest.TestCase):
         with self.assertRaises(FrozenInstanceError):
             action.tool = "read_file"  # type: ignore[misc]
 
+    def test_empty_string_optional_path_uses_declared_default(self) -> None:
+        action = self.validator.validate(payload(arguments={"query": "parse(", "path": ""}))
+
+        # gpt-oss sends an empty string for optional fields; that is
+        # semantically identical to omitting the field (smoke-gptoss20b-v1).
+        self.assertEqual(action.arguments_dict()["path"], ".")
+
     def test_harmless_relative_path_syntax_is_canonicalized(self) -> None:
         action = self.validator.validate(payload(arguments={"query": "parse(", "path": "./src/"}))
 
