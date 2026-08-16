@@ -194,6 +194,53 @@ class WorkspaceAndPatchTests(unittest.TestCase):
                 (workspace.root / "src/new_file.py").write_text("x", encoding="utf-8")
                 edit_file(workspace.root, "src/new_file.py", "x", "y")
 
+    def test_edit_file_tolerates_wrong_indentation_and_reindents(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = create_workspace(FIXTURE, Path(temporary) / "workspace")
+            target = workspace.root / "src/tiny_parser.py"
+            target.write_text(
+                "class Mixin(object):\n"
+                "    @staticmethod\n"
+                "    def _encode(data):\n"
+                "        if isinstance(data, bytes):\n"
+                "            return data\n",
+                encoding="utf-8",
+            )
+
+            result = edit_file(
+                workspace.root,
+                "src/tiny_parser.py",
+                "    if isinstance(data, bytes):\n        return data",
+                "    if isinstance(data, bytes):\n"
+                "        return data\n"
+                "    return to_native_string(data)",
+            )
+            after = target.read_text(encoding="utf-8")
+
+        # A multi-line snippet with misremembered indentation (4/8 instead of
+        # 8/12) must match tolerantly and re-indent the replacement (m056).
+        self.assertEqual(result.metadata_dict()["match"], "indent_tolerant")
+        self.assertEqual(
+            after,
+            "class Mixin(object):\n"
+            "    @staticmethod\n"
+            "    def _encode(data):\n"
+            "        if isinstance(data, bytes):\n"
+            "            return data\n"
+            "        return to_native_string(data)\n",
+        )
+
+    def test_edit_file_indent_tolerant_match_must_stay_unique(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = create_workspace(FIXTURE, Path(temporary) / "workspace")
+            (workspace.root / "src/tiny_parser.py").write_text(
+                "def one():\n    value = parse()\n\ndef two():\n        value = parse()\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ToolError, "must match exactly once"):
+                edit_file(workspace.root, "src/tiny_parser.py", "value = parse()", "value = None")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -200,10 +200,13 @@ def edit_file(
     """Replace one exact, unique snippet inside an existing tracked file.
 
     This is the search-and-replace edit format that small models can use
-    reliably on large files: the model copies an exact snippet it read (no
-    line numbers, no unified-diff construction) and supplies its replacement.
-    The old snippet must occur exactly once; the write is atomic and the file
-    remains bounded.
+    reliably on large files: the model copies a snippet it read (no line
+    numbers, no unified-diff construction) and supplies its replacement.
+    The old snippet must occur exactly once. When it does not match exactly,
+    a unique match ignoring leading whitespace on each line is accepted and
+    the replacement is re-indented to the file's actual indentation, so a
+    model that misremembered the indentation can still edit (m050-m056).
+    The write is atomic and the file remains bounded.
     """
 
     if not isinstance(path, str) or not path or "\x00" in path:
@@ -230,12 +233,24 @@ def edit_file(
     if len(current.encode("utf-8")) > max_bytes:
         raise ToolError("file_too_large", f"file exceeds {max_bytes} bytes: {relative.as_posix()}")
     occurrences = current.count(old_string)
-    if occurrences != 1:
+    if occurrences == 0:
+        span = _unique_indent_tolerant_span(current, old_string)
+        if span is None:
+            raise ToolError(
+                "edit_not_unique",
+                f"old_string must match exactly once (or once ignoring indentation); found {occurrences}",
+            )
+        start, end = span
+        updated = current[:start] + _reindent(new_string, current[start:end]) + current[end:]
+        match_mode = "indent_tolerant"
+    elif occurrences == 1:
+        updated = current.replace(old_string, new_string)
+        match_mode = "exact"
+    else:
         raise ToolError(
             "edit_not_unique",
             f"old_string must match exactly once; found {occurrences}",
         )
-    updated = current.replace(old_string, new_string)
     if len(updated.encode("utf-8")) > max_bytes:
         raise ToolError("file_too_large", f"edited file exceeds {max_bytes} bytes: {relative.as_posix()}")
 
@@ -253,10 +268,69 @@ def edit_file(
         content=f"Edited file {relative.as_posix()}",
         metadata=(
             ("path", relative.as_posix()),
+            ("match", match_mode),
             ("old_length", len(old_string)),
             ("new_length", len(new_string)),
         ),
     )
+
+
+def _unique_indent_tolerant_span(text: str, snippet: str) -> tuple[int, int] | None:
+    """Find the snippet ignoring leading whitespace on every line.
+
+    Returns the character span of the unique whitespace-stripped match, or
+    None when the stripped snippet does not occur exactly once.
+    """
+    text_lines = text.splitlines()
+    snippet_lines = snippet.splitlines()
+    if not snippet_lines:
+        return None
+    normalized = [line.lstrip() for line in snippet_lines]
+    matches: list[tuple[int, int]] = []
+    for index in range(len(text_lines) - len(snippet_lines) + 1):
+        window = text_lines[index : index + len(snippet_lines)]
+        if [line.lstrip() for line in window] != normalized:
+            continue
+        matches.append((index, index + len(snippet_lines)))
+        if len(matches) > 1:
+            return None
+    if not matches:
+        return None
+    start_line, end_line = matches[0]
+    start = sum(len(line) + 1 for line in text_lines[:start_line])
+    end = start + sum(len(line) + 1 for line in text_lines[start_line:end_line])
+    if not snippet.endswith("\n") and end > start:
+        # The span must be exactly the snippet text: keep the newline that
+        # follows the matched lines in the file unless the snippet has one.
+        end -= 1
+    return start, end
+
+
+def _reindent(new_string: str, matched_region: str) -> str:
+    """Shift new_string's indentation to the matched region's indentation."""
+    region_baseline = _indent_width(matched_region.splitlines())
+    new_lines = new_string.splitlines()
+    snippet_baseline = _indent_width(new_lines)
+    delta = region_baseline - snippet_baseline
+    if delta == 0:
+        return new_string
+    trailing_newline = new_string.endswith("\n")
+    shifted = []
+    for line in new_lines:
+        if not line.strip():
+            shifted.append(line)
+            continue
+        current_indent = len(line) - len(line.lstrip())
+        shifted.append(" " * max(0, current_indent + delta) + line.lstrip())
+    result = "\n".join(shifted)
+    return result + "\n" if trailing_newline else result
+
+
+def _indent_width(lines: list[str]) -> int:
+    for line in lines:
+        if line.strip():
+            return len(line) - len(line.lstrip())
+    return 0
 
 
 def _run_git(root: Path, arguments: list[str], *, input_text: str | None = None) -> str:
