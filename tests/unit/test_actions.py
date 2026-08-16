@@ -43,6 +43,21 @@ class ActionValidatorTests(unittest.TestCase):
         # semantically identical to omitting the field (smoke-gptoss20b-v1).
         self.assertEqual(action.arguments_dict()["path"], ".")
 
+    def test_read_file_line_field_aliases_are_rewritten(self) -> None:
+        action = self.validator.validate(
+            payload(
+                tool="read_file",
+                arguments={"path": "src/parser.py", "line_start": 10, "line_end": 20},
+            )
+        )
+
+        # gpt-oss degraded into line_start/line_end after editing in m053;
+        # the aliases are unambiguous and rewrite to the canonical fields.
+        self.assertEqual(action.arguments_dict()["start_line"], 10)
+        self.assertEqual(action.arguments_dict()["end_line"], 20)
+        self.assertNotIn("line_start", action.arguments_dict())
+        self.assertNotIn("line_end", action.arguments_dict())
+
     def test_harmless_relative_path_syntax_is_canonicalized(self) -> None:
         action = self.validator.validate(payload(arguments={"query": "parse(", "path": "./src/"}))
 

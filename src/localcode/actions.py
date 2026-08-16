@@ -12,6 +12,13 @@ from .compatibility import arguments_match_schema, schema_map
 
 MAX_ACTION_PAYLOAD_CHARS = 16_384
 
+# Unambiguous field-name aliases models emit for tool arguments (D-046).
+# The canonical name stays authoritative: an alias is only rewritten when the
+# canonical field is absent, so conflicting pairs are still rejected.
+_ARGUMENT_ALIASES: dict[str, dict[str, str]] = {
+    "read_file": {"line_start": "start_line", "line_end": "end_line"},
+}
+
 
 class ActionValidationError(ValueError):
     """A safe explanation of why a model action cannot be executed."""
@@ -104,7 +111,7 @@ class ActionValidator:
         tool = action["tool"]
         if not isinstance(tool, str) or tool not in self._tools:
             raise ActionValidationError("unknown_tool", f"unknown tool: {tool!r}")
-        arguments = action["arguments"]
+        arguments = _apply_argument_aliases(action["arguments"], self._tools[tool])
         function_schema = self._tools[tool]
         if not arguments_match_schema(arguments, function_schema) or not _arguments_match_enums(
             arguments,
@@ -132,6 +139,22 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         if name in result:
             raise ActionValidationError("duplicate_field", f"duplicate JSON field: {name!r}")
         result[name] = value
+    return result
+
+
+def _apply_argument_aliases(
+    arguments: dict[str, Any],
+    function_schema: dict[str, Any],
+) -> dict[str, Any]:
+    """Rewrite declared field aliases before schema validation."""
+    name = function_schema.get("name")
+    aliases = _ARGUMENT_ALIASES.get(name) if isinstance(name, str) else None
+    if not aliases or not isinstance(arguments, dict):
+        return arguments
+    result = dict(arguments)
+    for alias, canonical in aliases.items():
+        if alias in result and canonical not in result:
+            result[canonical] = result.pop(alias)
     return result
 
 
