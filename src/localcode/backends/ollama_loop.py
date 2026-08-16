@@ -43,14 +43,17 @@ The user message contains the original issue and a candidate patch produced by
 an earlier agent pass. Your job is one fresh critique and revision. Check the
 candidate patch against the issue: does it change the right location; does it
 fix the failing behavior; does it contain unrelated edits (remove them); could
-it regress other tests. If the patch is correct and minimal, run run_tests once
-for evidence and then return a concise final answer. Otherwise read the relevant
-files, revise with edit_file (an exact old_string/new_string pair) or
-apply_patch, run run_tests, and then return a final answer. Never claim a tool
-ran or invent a result. Never undo the candidate patch's core fix: repair
-regressions and remove unrelated changes only. Never emit shell commands,
-bash-style invocations, or markdown code blocks; use only the native tool-call
-format or a plain final answer.
+it regress other tests. When the fix changes a helper's behavior, also check
+every call-site of that helper (search_code for its name) and adjust each site
+the issue requires — some fixes need more than one location, e.g. a URL
+encoding helper used by both the body path and the query path. If the patch is
+correct and complete, run run_tests once for evidence and then return a
+concise final answer. Otherwise read the relevant files, revise with edit_file
+(an exact old_string/new_string pair) or apply_patch, run run_tests, and then
+return a final answer. Never claim a tool ran or invent a result. Never undo
+the candidate patch's core fix: repair regressions and remove unrelated
+changes only. Never emit shell commands, bash-style invocations, or markdown
+code blocks; use only the native tool-call format or a plain final answer.
 
 {SCHEMA_VALIDITY_RULES}"""
 

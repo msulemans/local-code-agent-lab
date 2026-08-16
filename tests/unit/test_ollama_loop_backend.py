@@ -90,6 +90,7 @@ class OllamaLoopBackendTests(unittest.TestCase):
     def test_review_system_prompt_carries_rules_and_can_replace_the_loop_prompt(self) -> None:
         self.assertIn(SCHEMA_VALIDITY_RULES, REVIEW_SYSTEM_PROMPT)
         self.assertIn("review component", REVIEW_SYSTEM_PROMPT)
+        self.assertIn("call-site", REVIEW_SYSTEM_PROMPT)
 
         client = FakeClient([chat_result(content="Done")])
         backend = OllamaLoopBackend(
