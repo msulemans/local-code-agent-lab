@@ -35,6 +35,12 @@ def run_cli(
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--model", default=MODEL, help="Ollama tag to smoke; defaults to %(default)s")
+    parser.add_argument(
+        "--allow-retained-swap",
+        action="store_true",
+        default=False,
+        help="proceed with retained host swap (recorded evidence boundary tradeoff)",
+    )
     arguments = parser.parse_args(argv)
 
     tool_document = json.loads(TOOL_SCHEMAS.read_text(encoding="utf-8"))
@@ -60,6 +66,7 @@ def run_cli(
             if clock is not None
             else lambda: datetime.now().astimezone().isoformat(timespec="microseconds"),
             baseline_observer=recorder.record_baseline,
+            allow_retained_swap=arguments.allow_retained_swap,
         )
     except (SmokePreflightError, ModelBackendError, CompatibilityError) as exc:
         code = getattr(exc, "code", "backend_error")

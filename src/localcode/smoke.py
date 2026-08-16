@@ -38,6 +38,7 @@ def run_one_turn_smoke(
     client: OllamaClient | None = None,
     command_runner: CommandRunner | None = None,
     baseline_observer: BaselineObserver | None = None,
+    allow_retained_swap: bool = False,
 ) -> SmokeRun:
     """Capture a clean baseline, then permit exactly one Ollama-backed turn."""
 
@@ -47,6 +48,7 @@ def run_one_turn_smoke(
         swapusage_output=run_command(("sysctl", "vm.swapusage")),
         memory_pressure_output=run_command(("memory_pressure", "-Q")),
         running_models=ollama.running_models(),
+        allow_retained_swap=allow_retained_swap,
     )
     if baseline_observer is not None:
         baseline_observer(baseline)
