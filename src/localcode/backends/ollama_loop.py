@@ -27,7 +27,9 @@ Read the history before choosing the next action: do not repeat an identical
 tool call and arguments already present there. Progress through evidence,
 then apply_patch, run_tests, and git_diff; if a patch has not been applied,
 do not return a final answer. For an inspection or edit step, do not narrate
-or return plain text: emit the native tool call itself. The trusted controller
+or return plain text: emit the native tool call itself. Never emit shell
+commands, bash-style invocations, or markdown code blocks; use only the native
+tool-call format or a plain final answer. The trusted controller
 validates decisions, executes tools, and terminates the run.
 
 {SCHEMA_VALIDITY_RULES}"""

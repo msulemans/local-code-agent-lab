@@ -40,10 +40,11 @@ class LocalCodePatchProducer:
         model: str,
         tool_document: dict[str, Any],
         only_instance_id: str | None = None,
-        context_tokens: int = 16_384,
+        context_tokens: int = 32_768,
         max_output_tokens: int = 2_048,
         max_turns: int = 12,
         max_tool_calls: int = 12,
+        max_context_chars: int = 32_000,
     ) -> None:
         self.model = model
         self.tool_document = tool_document
@@ -52,6 +53,7 @@ class LocalCodePatchProducer:
         self.max_output_tokens = max_output_tokens
         self.max_turns = max_turns
         self.max_tool_calls = max_tool_calls
+        self.max_context_chars = max_context_chars
 
     def produce(self, configuration: RealBenchmarkConfiguration, issue: RealBenchmarkIssue):
         from .backends.ollama_loop import OllamaLoopBackend
@@ -121,7 +123,7 @@ class LocalCodePatchProducer:
                     recover_repeated_actions=True,
                     phase_tool_policy=True,
                     max_wall_seconds=600,
-                    max_context_chars=16_000,
+                    max_context_chars=self.max_context_chars,
                 ),
                 clock=lambda: time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                 monotonic=time.monotonic,

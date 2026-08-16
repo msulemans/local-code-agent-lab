@@ -113,6 +113,25 @@ option (b) or (c) as the recorded alternative.
   by default, disable with `--no-progress`) and a new run ID must be used for
   the next pilot. One new test; suite: 177 tests pass.
 
+### m023 trace diagnosis and context-budget fix 2026-08-16
+
+`m023-pilot-schema-v1` completed with the trace enabled. The model made five
+valid native tool calls (list_files, read_file, run_tests, git_diff) and one
+schema-rejected apply_patch (max_bytes 1048576 over the 65536 maximum), then
+hit `invalid_action_exhaustion`. The preserved trace shows the decisive
+failure: on the apply_patch turn the model's context was `"history":[]`,
+`"truncated":true` — the 16,000-char budget was too small to hold the Flask
+file listing plus the read_file content, so `_compile_payload` popped the
+entire history. The model explicitly said it could not see repository files and
+hallucinated diffs (wrong paths, fake index hashes, Blender file paths), then
+regressed to bash-style code blocks. Decision D-027 raises the producer
+context budget (32,768 tokens / 32,000 chars, tunable) and forbids
+shell/bash/code-block output in the loop prompt. Suite: 177 tests pass.
+
+Lesson: a model cannot patch what it cannot see; when a trace shows the model
+claiming it lacks file context, check the compiled context envelope before
+blaming model quality.
+
 ### Completed (earlier)
 
 - Registered exactly two Qwen coding instruct candidates, smallest first.
@@ -1559,6 +1578,7 @@ Status: repository and static learning UI publicly verified.
 | D-024 | Measure retrieval first with relevant-file recall | Retrieval must show deterministic evidence-selection value before being credited with solve-rate improvement | fixed for first Milestone 008 slice |
 | D-025 | Translate content-form JSON tool calls (exactly one `{"name","arguments"}` object) into tool decisions without weakening the strict validator | Real Qwen checkpoints emit tool intent as JSON text in `content`; misreading it as a final answer caused every pilot to end in `invalid_action_exhaustion` | fixed 2026-08-16 |
 | D-026 | Tighten both Ollama system prompts with explicit schema-validity rules (no nulls on string/integer/boolean fields except `glob`/`end_line`, no zero below minimums, exact types, required fields, omit unneeded optionals, final-answer fallback) | The m004c tool-schema score of 0/12 shows models emit nulls and zero bounds that the strict validator rejects; the registered prompt did not state these rules | fixed 2026-08-16 |
+| D-027 | Raise the real-producer context budget (context_tokens 16,384 to 32,768 and max_context_chars 16,000 to 32,000, now a tunable) and forbid shell/bash/code-block output in the loop prompt | The m023 trace showed `history:[]` and `truncated:true` on the apply_patch turn: the 16K-char budget dropped the read_file content entirely, so the model hallucinated diffs and emitted bash code blocks; a model cannot patch what it cannot see | fixed 2026-08-16 |
 
 ## Run ledger
 
@@ -1574,6 +1594,7 @@ Status: repository and static learning UI publicly verified.
 | `m020-postrestart-flask-a1-v1` | `qwen3.5:9b-q4_K_M` after restart | 0/20; `invalid_action_exhaustion` | `runs/real-benchmark/m020-*` |
 | `m021-deepseek-flask-a1-v1` | `deepseek-coder:6.7b` on `pallets__flask-5014` | 0/20; `backend_error` after 2.18 s, 0 tool calls | `runs/real-benchmark/m021-*` |
 | `m022-pilot-schema-v1` | `qwen3.5:9b-q4_K_M` on `pallets__flask-5014`; tightened prompts active | interrupted by Ctrl-C during the flask agent loop after ~2 min; no patch recorded; run dir immutable and not reusable | `runs/real-benchmark/m022-pilot-schema-v1/` (partial) |
+| `m023-pilot-schema-v1` | `qwen3.5:9b-q4_K_M` on `pallets__flask-5014`; tightened prompts; progress output | completed; 0/20; flask 5 tool calls then `invalid_action_exhaustion` in 83.8 s; raw trace preserved at `runs/trace-m023.jsonl` | root cause in trace: context truncation dropped all history before `apply_patch`, so the model worked without file content |
 
 Future entries must record: run ID, Git SHA, model ID and artifact hash,
 quantization, prompt version, configuration, task manifest hash, budgets, seed,
