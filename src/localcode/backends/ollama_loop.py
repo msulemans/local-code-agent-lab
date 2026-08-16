@@ -48,6 +48,7 @@ class OllamaLoopBackend:
         max_output_tokens: int = 512,
         seed: int = 42,
         allow_tool_subsets: bool = False,
+        keep_alive: int | str = 0,
     ) -> None:
         if not isinstance(model, str) or not model or any(character.isspace() for character in model):
             raise ValueError("model must be a non-empty Ollama tag without whitespace")
@@ -71,6 +72,7 @@ class OllamaLoopBackend:
         self._max_output_tokens = max_output_tokens
         self._seed = seed
         self._allow_tool_subsets = allow_tool_subsets
+        self._keep_alive = keep_alive
 
     def complete(self, request: LoopRequest) -> str:
         if request.protocol_version != "1":
@@ -93,7 +95,7 @@ class OllamaLoopBackend:
                     "tools": tools,
                     "stream": True,
                     "think": False,
-                    "keep_alive": 0,
+                    "keep_alive": self._keep_alive,
                     "options": {
                         "temperature": 0,
                         "seed": self._seed,

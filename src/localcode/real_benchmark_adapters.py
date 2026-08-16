@@ -46,6 +46,7 @@ class LocalCodePatchProducer:
         max_tool_calls: int = 12,
         max_context_chars: int = 32_000,
         allow_retained_swap: bool = False,
+        keep_alive: int = 300,
     ) -> None:
         self.model = model
         self.tool_document = tool_document
@@ -56,6 +57,7 @@ class LocalCodePatchProducer:
         self.max_tool_calls = max_tool_calls
         self.max_context_chars = max_context_chars
         self.allow_retained_swap = allow_retained_swap
+        self.keep_alive = keep_alive
 
     def produce(self, configuration: RealBenchmarkConfiguration, issue: RealBenchmarkIssue):
         from .backends.ollama_loop import OllamaLoopBackend
@@ -102,6 +104,7 @@ class LocalCodePatchProducer:
                     context_tokens=self.context_tokens,
                     max_output_tokens=self.max_output_tokens,
                     allow_tool_subsets=True,
+                    keep_alive=self.keep_alive,
                 ),
                 baseline=baseline,
                 command_runner=_run_host_command,

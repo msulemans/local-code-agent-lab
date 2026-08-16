@@ -229,6 +229,19 @@ class OllamaLoopBackendTests(unittest.TestCase):
         self.assertEqual(payload["keep_alive"], 0)
         self.assertFalse(payload["think"])
 
+    def test_loop_backend_honors_a_resident_keep_alive(self) -> None:
+        client = FakeClient([chat_result(content="Done")])
+        backend = OllamaLoopBackend(
+            model="fake:latest",
+            tool_document=self.document,
+            client=client,
+            keep_alive=300,
+        )
+
+        backend.complete(self.request())
+
+        self.assertEqual(client.payloads[0]["keep_alive"], 300)
+
     def test_surface_mismatch_and_transport_failure_are_bounded(self) -> None:
         client = FakeClient([chat_result()])
         backend = OllamaLoopBackend(model="fake:latest", tool_document=self.document, client=client)

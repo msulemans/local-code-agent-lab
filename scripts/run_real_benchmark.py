@@ -76,6 +76,12 @@ def main() -> int:
         default=32_000,
         help="character budget for the compiled context envelope sent to the model",
     )
+    parser.add_argument(
+        "--keep-alive",
+        type=int,
+        default=300,
+        help="seconds to keep the model resident between loop turns (0 unloads each turn)",
+    )
     arguments = parser.parse_args()
 
     progress_observer = (
@@ -108,6 +114,7 @@ def main() -> int:
             allow_retained_swap=arguments.allow_retained_swap,
             context_tokens=arguments.context_tokens,
             max_context_chars=arguments.max_context_chars,
+            keep_alive=arguments.keep_alive,
         )
     else:
         producer = DatasetControlPatchProducer(
