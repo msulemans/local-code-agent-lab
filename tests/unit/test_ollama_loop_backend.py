@@ -144,6 +144,21 @@ class OllamaLoopBackendTests(unittest.TestCase):
         self.assertEqual(decision.tool, "search_code")
         self.assertEqual(decision.arguments_dict()["query"], "parse_value")
 
+    def test_content_form_json_wrapped_in_markdown_fence_becomes_tool_decision(self) -> None:
+        # m031 showed the 14B wrapping its content-form tool call in a markdown
+        # code fence; the fence is presentation, not intent.
+        emitted = "```json\n" + json.dumps(
+            {"name": "read_file", "arguments": {"path": "src/flask/blueprints.py", "start_line": 117}},
+            sort_keys=True,
+        ) + "\n```"
+        client = FakeClient([chat_result(content=emitted)])
+        backend = OllamaLoopBackend(model="fake:latest", tool_document=self.document, client=client)
+
+        decision = self.validator.validate(backend.complete(self.request()))
+
+        self.assertEqual(decision.tool, "read_file")
+        self.assertEqual(decision.arguments_dict()["path"], "src/flask/blueprints.py")
+
     def test_content_form_json_still_passes_strict_argument_schema(self) -> None:
         # Translation must not weaken validation: an invalid argument value is
         # rejected exactly as it would be for a native tool call.

@@ -113,13 +113,22 @@ def content_form_tool_call(content: str) -> dict[str, Any] | None:
     """Return ``{"name", "arguments"}`` when content is exactly a JSON tool call.
 
     Ollama serves some Qwen checkpoints as plain JSON in ``content`` instead of
-    a native ``tool_calls`` entry (recorded in m004c streams).  This translates
-    that exact transport shape; the strict action validator still enforces the
-    tool name and argument schema.  Anything that is not exactly one
-    ``{"name", "arguments"}`` object is left untouched so model narration is
-    never repaired into a tool call.
+    a native ``tool_calls`` entry (recorded in m004c streams), and the model may
+    wrap that JSON in a markdown code fence (observed in m031).  Both are
+    presentation/transport shapes, not model intent; the strict action
+    validator still enforces the tool name and argument schema.  Anything that
+    is not exactly one ``{"name", "arguments"}`` object is left untouched so
+    model narration is never repaired into a tool call.
     """
     text = content.strip()
+    if not text:
+        return None
+    # Strip one surrounding markdown code fence (```json ... ``` or ``` ... ```).
+    if text.startswith("```"):
+        first_newline = text.find("\n")
+        closing = text.rfind("```")
+        if first_newline != -1 and closing > first_newline:
+            text = text[first_newline + 1 : closing].strip()
     if not text:
         return None
     try:
