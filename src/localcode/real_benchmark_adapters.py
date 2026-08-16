@@ -8,6 +8,7 @@ package enter the process.
 from __future__ import annotations
 
 import json
+import os
 import platform
 from pathlib import Path
 import subprocess
@@ -26,6 +27,18 @@ from .real_benchmark import (
     RealBenchmarkManifest,
 )
 from .tools import ToolResult
+
+
+def _evaluator_environment() -> dict[str, str]:
+    """Ensure the evaluator subprocess can import localcode modules."""
+
+    environment = dict(os.environ)
+    source_root = str(Path(__file__).resolve().parent.parent)
+    existing = environment.get("PYTHONPATH")
+    environment["PYTHONPATH"] = (
+        source_root if not existing else f"{source_root}{os.pathsep}{existing}"
+    )
+    return environment
 
 
 class LocalCodePatchProducer:
@@ -108,6 +121,19 @@ class LocalCodePatchProducer:
                 allow_retained_swap=self.allow_retained_swap,
             )
             self._preflight_ok = True
+        loop_backend = OllamaLoopBackend(
+            model=self.model,
+            tool_document=self.tool_document,
+            client=client,
+            context_tokens=self.context_tokens,
+            max_output_tokens=self.max_output_tokens,
+            allow_tool_subsets=True,
+            keep_alive=self.keep_alive,
+            think=self.think,
+        )
+        # Load the model before capturing the per-turn swap baseline so the
+        # one-time cold-load cost cannot trip the per-turn growth guard (m059).
+        loop_backend.warm_up()
         resources = parse_host_resource_snapshot(
             swapusage_output=_run_host_command(("sysctl", "vm.swapusage")),
             memory_pressure_output=_run_host_command(("memory_pressure", "-Q")),
@@ -131,16 +157,6 @@ class LocalCodePatchProducer:
                 skip_symlinks=True,
             )
             validator = DecisionValidator.from_tool_document(self.tool_document)
-            loop_backend = OllamaLoopBackend(
-                model=self.model,
-                tool_document=self.tool_document,
-                client=client,
-                context_tokens=self.context_tokens,
-                max_output_tokens=self.max_output_tokens,
-                allow_tool_subsets=True,
-                keep_alive=self.keep_alive,
-                think=self.think,
-            )
             backend = ResourceGuardedLoopBackend(
                 loop_backend,
                 baseline=baseline,
@@ -509,7 +525,10 @@ class OfficialSwebenchEvaluator(Evaluator):
         command = [
             self.python_executable,
             "-m",
-            "swebench.harness.run_evaluation",
+            # localcode.swebench_eval installs the documented host tarpit
+            # override (m058 gold control: 10.255.255.1 is refused on this
+            # host, not blackholed), then delegates to the official harness.
+            "localcode.swebench_eval",
             "--dataset_name",
             self.dataset_name,
             "--split",
@@ -536,6 +555,7 @@ class OfficialSwebenchEvaluator(Evaluator):
                 capture_output=True,
                 text=True,
                 check=False,
+                env=_evaluator_environment(),
             )
         except OSError as exc:
             raise RealBenchmarkError("could not start the official SWE-bench evaluator") from exc

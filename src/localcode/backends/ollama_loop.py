@@ -160,6 +160,35 @@ class OllamaLoopBackend:
 
         return self._generated_tokens
 
+    def warm_up(self) -> None:
+        """Resident-load the model so the per-turn swap baseline is captured
+        after the one-time cold-load cost instead of before it.
+
+        On a host that retains swap, a cold 13 GB model load can grow swap by
+        more than the per-turn guard's budget in the very first decision turn.
+        That guard exists to catch runaway growth during turns, not the
+        one-time load, so the harness warms the model first and only then
+        captures the baseline the guard measures against (m059).
+        """
+
+        try:
+            self._client.stream_chat(
+                {
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": "ok"}],
+                    "stream": True,
+                    "think": self._think,
+                    "keep_alive": self._keep_alive,
+                    "options": {
+                        "temperature": 0,
+                        "seed": self._seed,
+                        "num_predict": 1,
+                    },
+                }
+            )
+        except CompatibilityError as exc:
+            raise BackendError(str(exc)) from exc
+
 
 def _canonical_tools(document: dict[str, Any]) -> list[dict[str, Any]]:
     tools = document.get("tools")

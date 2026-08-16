@@ -328,6 +328,39 @@ class OllamaLoopBackendTests(unittest.TestCase):
         self.assertEqual(client.payloads[0]["think"], "medium")
         self.assertEqual(backend.generated_tokens, 2)
 
+    def test_warm_up_loads_the_model_without_counting_decision_tokens(self) -> None:
+        client = FakeClient([chat_result(content="Done")])
+        backend = OllamaLoopBackend(
+            model="gpt-oss:20b",
+            tool_document=self.document,
+            client=client,
+            think="medium",
+            keep_alive=300,
+        )
+
+        backend.warm_up()
+
+        self.assertEqual(len(client.payloads), 1)
+        payload = client.payloads[0]
+        # A resident-load probe: no tools, tiny budget, same model settings.
+        self.assertEqual(payload["model"], "gpt-oss:20b")
+        self.assertNotIn("tools", payload)
+        self.assertEqual(payload["think"], "medium")
+        self.assertEqual(payload["keep_alive"], 300)
+        self.assertEqual(payload["options"]["num_predict"], 1)
+        # The probe is harness overhead, not a decision, so tokens stay clean.
+        self.assertEqual(backend.generated_tokens, 0)
+
+    def test_warm_up_surfaces_transport_failure_as_a_backend_error(self) -> None:
+        backend = OllamaLoopBackend(
+            model="gpt-oss:20b",
+            tool_document=self.document,
+            client=FailingClient(),
+        )
+
+        with self.assertRaisesRegex(BackendError, "local transport failed"):
+            backend.warm_up()
+
     def test_invalid_reasoning_mode_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "think"):
             OllamaLoopBackend(

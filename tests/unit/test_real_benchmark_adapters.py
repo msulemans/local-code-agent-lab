@@ -17,6 +17,8 @@ from localcode.real_benchmark_adapters import (
 )
 from localcode.tools import ToolResult
 
+SCHEMAS = Path("benchmarks/micro_agent/tool_schemas.json")
+
 
 class RealBenchmarkAdapterTests(unittest.TestCase):
     def _dataset(self, directory: Path) -> Path:
@@ -83,6 +85,62 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
 
         self.assertEqual(evaluator.namespace, "custom-images")
 
+    def test_evaluator_runs_through_the_tarpit_override_entry_point(self) -> None:
+        from localcode.real_benchmark import RealBenchmarkManifest
+
+        manifest = RealBenchmarkManifest(
+            subset_id="pinned20-v1",
+            dataset_name="snapshot.jsonl",
+            dataset_split="test",
+            dataset_revision="rev-1",
+            selection_seed=7,
+            max_per_repository=1,
+            compatibility_filters=(),
+            fairness_controls=(),
+            configurations=(),
+            instances=(
+                RealBenchmarkInstance(
+                    "owner__repo-1", "owner/repo", "1234567890abcdef1234567890abcdef12345678"
+                ),
+            ),
+        )
+        configuration = RealBenchmarkConfiguration(
+            "A2", "Retrieval agent", "+ ranked repository context", "retrieval_agent", "implemented"
+        )
+        predictions = Path("runs/x/A2/predictions.jsonl")
+        output = Path("runs/x")
+        captured = {}
+
+        class FakeCompletion:
+            returncode = 0
+            stdout = ""
+            stderr = ""
+
+        def fake_run(command, **kwargs):
+            captured["command"] = command
+            captured["env"] = kwargs.get("env")
+            return FakeCompletion()
+
+        with (
+            patch("localcode.real_benchmark_adapters.subprocess.run", side_effect=fake_run),
+            patch(
+                "localcode.real_benchmark_adapters._load_evaluation_results",
+                return_value=(),
+            ),
+        ):
+            evaluator = OfficialSwebenchEvaluator(dataset_name="snapshot.jsonl")
+            evaluator.evaluate(manifest, configuration, predictions, output)
+
+        # The documented host tarpit override is the module that runs, and the
+        # subprocess must be able to import localcode regardless of caller env.
+        self.assertIn("-m", captured["command"])
+        self.assertEqual(
+            captured["command"][captured["command"].index("-m") + 1],
+            "localcode.swebench_eval",
+        )
+        self.assertIn("PYTHONPATH", captured["env"])
+        self.assertIn("src", captured["env"]["PYTHONPATH"])
+
     @patch("localcode.real_benchmark_adapters._unload_ollama_model")
     def test_local_producer_unloads_a_model_that_was_used(self, unload) -> None:
         producer = LocalCodePatchProducer(model="gpt-oss:20b", tool_document={})
@@ -127,7 +185,11 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
                 side_effect=RealBenchmarkError("no network"),
             ),
         ):
-            producer = LocalCodePatchProducer(model="m", tool_document={}, allow_retained_swap=True)
+            producer = LocalCodePatchProducer(
+                model="m",
+                tool_document=json.loads(SCHEMAS.read_text(encoding="utf-8")),
+                allow_retained_swap=True,
+            )
             with self.assertRaises(RealBenchmarkError):
                 producer.produce(configuration, issue)
             with self.assertRaises(RealBenchmarkError):
@@ -171,7 +233,7 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         ):
             producer = LocalCodePatchProducer(
                 model="m",
-                tool_document={},
+                tool_document=json.loads(SCHEMAS.read_text(encoding="utf-8")),
                 allow_retained_swap=True,
                 observer_factory=factory,
             )
