@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 import os
 from pathlib import Path
@@ -102,6 +102,16 @@ class TestRunner:
             raise ToolError("workspace_identity_mismatch", "workspace baseline commit changed")
 
         command = self._commands[command_name]
+        if command.name == "python-unittest":
+            # Flat-layout repositories (e.g. requests) keep tests at the repo
+            # root instead of under tests/; point discovery at the layout that
+            # actually exists so run_tests gives the agent useful feedback.
+            discovery_dir = "tests" if (root / "tests").is_dir() else "."
+            arguments = list(command.arguments)
+            for index, argument in enumerate(arguments):
+                if argument == "-s" and index + 1 < len(arguments):
+                    arguments[index + 1] = discovery_dir
+            command = replace(command, arguments=tuple(arguments))
         executable = Path(command.arguments[0]).resolve(strict=True)
         python_root = executable.parent.parent
         with tempfile.TemporaryDirectory(prefix="localcode-test-") as temporary:
@@ -115,11 +125,16 @@ class TestRunner:
                 "LANG": "C.UTF-8",
             }
             if command.pythonpath is not None:
-                pythonpath = (root / command.pythonpath).resolve(strict=True)
+                candidate = (root / command.pythonpath).resolve()
                 try:
-                    pythonpath.relative_to(root)
+                    candidate.relative_to(root)
                 except ValueError as exc:
                     raise ToolError("invalid_test_command", "PYTHONPATH must stay in the workspace") from exc
+                # A src/ pythonpath is a convention, not a contract. Real
+                # repositories use flat layouts (e.g. requests keeps the
+                # package at the repo root); fall back to the root instead
+                # of crashing on a missing src directory.
+                pythonpath = candidate if candidate.is_dir() else root.resolve(strict=True)
                 environment["PYTHONPATH"] = str(pythonpath)
 
             return _execute_bounded(

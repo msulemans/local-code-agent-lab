@@ -102,6 +102,30 @@ class RetrievalTests(unittest.TestCase):
         self.assertIn("symbol", pack.excerpts[0].reason)
         self.assertIn("class Blueprint:", pack.excerpts[0].content)
 
+    def test_flat_layout_python_modules_classify_and_rank_as_source(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="localcode-retrieval-flat-") as temporary:
+            root = Path(temporary)
+            (root / "requests").mkdir()
+            (root / "requests/models.py").write_text(
+                "def to_native_string(value):\n    return value\n", encoding="utf-8"
+            )
+            (root / "test_requests.py").write_text(
+                "def test_binary_put():\n    pass\n", encoding="utf-8"
+            )
+            files = build_repository_map(root).by_path()
+            pack = select_retrieval_evidence(
+                root,
+                "Request with binary payload fails due to calling to_native_string",
+                max_files=2,
+                max_total_chars=2_000,
+            )
+
+        # Flat-layout repositories (requests, django, xarray, ...) keep the
+        # package at the repo root; modules must rank as source, not other.
+        self.assertEqual(files["requests/models.py"].kind, "source")
+        self.assertEqual(files["test_requests.py"].kind, "test")
+        self.assertIn("requests/models.py", pack.selected_paths)
+
     def test_registered_micro_suite_relevant_file_recall_under_fixed_budget(self) -> None:
         suite = load_micro_suite(MANIFEST, SCHEMAS, Path("."))
         recalled = 0

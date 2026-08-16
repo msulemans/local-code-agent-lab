@@ -396,6 +396,11 @@ def _file_kind(path: PurePosixPath) -> str:
         return "test"
     if parts and parts[0] == "src":
         return "source"
+    if path.suffix.lower() == ".py":
+        # Flat-layout repositories (e.g. requests, django, xarray) keep the
+        # package at the repo root instead of under src/; a Python module is
+        # source unless it is a test or issue document.
+        return "source"
     return "other"
 
 

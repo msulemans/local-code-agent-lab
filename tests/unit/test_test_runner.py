@@ -136,6 +136,27 @@ class TestRunnerTests(unittest.TestCase):
         self.assertNotIn("spawned\n", results["spawn"].content)
         self.assertEqual(after, original)
 
+    def test_flat_layout_without_src_directory_runs_tests(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source_root = root / "source"
+            source_root.mkdir()
+            (source_root / "pkg.py").write_text("def value():\n    return 1\n", encoding="utf-8")
+            (source_root / "test_flat.py").write_text(
+                "from pkg import value\n\n"
+                "import unittest\n\n"
+                "class FlatTests(unittest.TestCase):\n"
+                "    def test_value(self):\n        self.assertEqual(value(), 1)\n",
+                encoding="utf-8",
+            )
+            workspace = create_workspace(source_root, root / "workspace")
+            result = self.run_or_skip(TestRunner(), workspace, "python-unittest")
+
+        # A flat-layout repo must not crash on a missing src/ directory; the
+        # package root and test discovery fall back to the repo root (m041).
+        self.assertEqual(result.metadata_dict()["exit_code"], 0)
+        self.assertIn("OK", result.content)
+
 
 if __name__ == "__main__":
     unittest.main()

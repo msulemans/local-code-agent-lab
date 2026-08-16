@@ -10,6 +10,7 @@ from localcode.real_benchmark import RealBenchmarkConfiguration, RealBenchmarkEr
 from localcode.real_benchmark_adapters import (
     DatasetControlPatchProducer,
     JsonDatasetIssueResolver,
+    LocalCodePatchProducer,
     OfficialSwebenchEvaluator,
 )
 
@@ -78,6 +79,42 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         )
 
         self.assertEqual(evaluator.namespace, "custom-images")
+
+    def test_preflight_runs_once_across_instances_in_one_run(self) -> None:
+        issue = RealBenchmarkIssue(
+            "owner__repo-1",
+            "owner/repo",
+            "1234567890abcdef1234567890abcdef12345678",
+            "Fix the parser.",
+        )
+        configuration = RealBenchmarkConfiguration(
+            "A2", "Retrieval agent", "+ ranked repository context", "retrieval_agent", "implemented"
+        )
+        calls = {"count": 0}
+
+        def fake_validate(**kwargs):
+            calls["count"] += 1
+            return object()
+
+        with (
+            patch("localcode.preflight.validate_smoke_baseline", side_effect=fake_validate),
+            patch("localcode.smoke._run_host_command", return_value=""),
+            patch("localcode.compatibility.OllamaClient"),
+            patch(
+                "localcode.real_benchmark_adapters._clone_at_commit",
+                side_effect=RealBenchmarkError("no network"),
+            ),
+        ):
+            producer = LocalCodePatchProducer(model="m", tool_document={}, allow_retained_swap=True)
+            with self.assertRaises(RealBenchmarkError):
+                producer.produce(configuration, issue)
+            with self.assertRaises(RealBenchmarkError):
+                producer.produce(configuration, issue)
+
+        # A multi-instance run keeps the model resident between instances, so
+        # the empty-ollama preflight must be checked once per run, not per
+        # instance (m041).
+        self.assertEqual(calls["count"], 1)
 
 
 if __name__ == "__main__":
