@@ -80,6 +80,15 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
 
         self.assertEqual(evaluator.namespace, "custom-images")
 
+    @patch("localcode.real_benchmark_adapters._unload_ollama_model")
+    def test_local_producer_unloads_a_model_that_was_used(self, unload) -> None:
+        producer = LocalCodePatchProducer(model="gpt-oss:20b", tool_document={})
+        producer._client = object()
+
+        producer.finish()
+
+        unload.assert_called_once_with("gpt-oss:20b")
+
     def test_preflight_runs_once_but_resource_baseline_refreshes_per_instance(self) -> None:
         issue = RealBenchmarkIssue(
             "owner__repo-1",

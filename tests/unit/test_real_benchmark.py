@@ -136,6 +136,14 @@ class FakePatchProducer:
         )
 
 
+class FinalizingPatchProducer(FakePatchProducer):
+    def __init__(self) -> None:
+        self.finished = False
+
+    def finish(self) -> None:
+        self.finished = True
+
+
 class FakeEvaluator:
     def evaluate(
         self,
@@ -270,6 +278,23 @@ class RealBenchmarkTests(unittest.TestCase):
             self.assertEqual(len(lines), 80)
             self.assertTrue(lines[0].startswith("B0 example__repo-001 status="))
             self.assertIn("wall=", lines[0])
+
+    def test_prepare_finalizes_the_patch_producer_before_evaluation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest_path = Path(temporary) / "manifest.json"
+            manifest_path.write_text(json.dumps(manifest_document()), encoding="utf-8")
+            manifest = load_real_benchmark_manifest(manifest_path)
+            producer = FinalizingPatchProducer()
+
+            prepare_real_benchmark_run(
+                manifest,
+                run_id="realbench-finalize",
+                runs_root=Path(temporary) / "runs",
+                issue_resolver=FakeIssueResolver(),
+                patch_producer=producer,
+            )
+
+            self.assertTrue(producer.finished)
 
     def test_run_real_benchmark_aggregates_resolved_counts_and_failures(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

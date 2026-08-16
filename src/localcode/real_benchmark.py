@@ -129,6 +129,9 @@ class PatchAttempt:
     tokens_used: int = 0
     tool_calls: int = 0
     wall_seconds: float = 0.0
+    termination_reason: str | None = None
+    invalid_actions: int = 0
+    tests_executed: int = 0
 
     @property
     def valid_patch(self) -> bool:
@@ -145,6 +148,9 @@ class PatchAttempt:
             "tokens_used": self.tokens_used,
             "tool_calls": self.tool_calls,
             "wall_seconds": self.wall_seconds,
+            "termination_reason": self.termination_reason,
+            "invalid_actions": self.invalid_actions,
+            "tests_executed": self.tests_executed,
             "valid_patch": self.valid_patch,
         }
 
@@ -268,6 +274,9 @@ class RealBenchmarkCaseResult:
     tokens_used: int
     tool_calls: int
     wall_seconds: float
+    termination_reason: str | None
+    invalid_actions: int
+    tests_executed: int
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -283,6 +292,9 @@ class RealBenchmarkCaseResult:
             "tokens_used": self.tokens_used,
             "tool_calls": self.tool_calls,
             "wall_seconds": self.wall_seconds,
+            "termination_reason": self.termination_reason,
+            "invalid_actions": self.invalid_actions,
+            "tests_executed": self.tests_executed,
         }
 
 
@@ -511,17 +523,22 @@ def prepare_real_benchmark_run(
     resolved_issues = tuple(_resolve_issue(instance, issue_resolver) for instance in manifest.instances)
     _write_json(run_directory / "manifest_snapshot.json", manifest.to_dict())
 
-    configuration_runs = tuple(
-        _prepare_configuration(
-            manifest=manifest,
-            configuration=configuration,
-            issues=resolved_issues,
-            patch_producer=patch_producer,
-            output_directory=run_directory / configuration.configuration_id,
-            progress_observer=progress_observer,
+    try:
+        configuration_runs = tuple(
+            _prepare_configuration(
+                manifest=manifest,
+                configuration=configuration,
+                issues=resolved_issues,
+                patch_producer=patch_producer,
+                output_directory=run_directory / configuration.configuration_id,
+                progress_observer=progress_observer,
+            )
+            for configuration in manifest.configurations
         )
-        for configuration in manifest.configurations
-    )
+    finally:
+        finish = getattr(patch_producer, "finish", None)
+        if callable(finish):
+            finish()
 
     prepared = PreparedRealBenchmarkRun(
         run_id=safe_run_id,
@@ -792,6 +809,9 @@ def _case_result(
         tokens_used=attempt.tokens_used,
         tool_calls=attempt.tool_calls,
         wall_seconds=attempt.wall_seconds,
+        termination_reason=attempt.termination_reason,
+        invalid_actions=attempt.invalid_actions,
+        tests_executed=attempt.tests_executed,
     )
 
 
@@ -918,6 +938,18 @@ def _validate_attempt(
         or float(attempt.wall_seconds) < 0
     ):
         raise RealBenchmarkError("patch attempt wall_seconds is invalid")
+    if attempt.termination_reason is not None and (
+        not isinstance(attempt.termination_reason, str)
+        or not attempt.termination_reason
+        or len(attempt.termination_reason) > 100
+    ):
+        raise RealBenchmarkError("patch attempt termination_reason is invalid")
+    for name, value in (
+        ("invalid_actions", attempt.invalid_actions),
+        ("tests_executed", attempt.tests_executed),
+    ):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise RealBenchmarkError(f"patch attempt {name} is invalid")
     return PatchAttempt(
         instance_id=attempt.instance_id,
         model_name_or_path=attempt.model_name_or_path,
@@ -928,6 +960,9 @@ def _validate_attempt(
         tokens_used=attempt.tokens_used,
         tool_calls=attempt.tool_calls,
         wall_seconds=round(float(attempt.wall_seconds), 6),
+        termination_reason=attempt.termination_reason,
+        invalid_actions=attempt.invalid_actions,
+        tests_executed=attempt.tests_executed,
     )
 
 

@@ -292,6 +292,29 @@ class OllamaLoopBackendTests(unittest.TestCase):
 
         self.assertEqual(client.payloads[0]["keep_alive"], 300)
 
+    def test_gpt_oss_reasoning_mode_and_generated_tokens_are_recorded(self) -> None:
+        client = FakeClient([chat_result(content="Done"), chat_result(content="Done again")])
+        backend = OllamaLoopBackend(
+            model="gpt-oss:20b",
+            tool_document=self.document,
+            client=client,
+            think="medium",
+        )
+
+        backend.complete(self.request())
+        backend.complete(self.request())
+
+        self.assertEqual(client.payloads[0]["think"], "medium")
+        self.assertEqual(backend.generated_tokens, 2)
+
+    def test_invalid_reasoning_mode_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "think"):
+            OllamaLoopBackend(
+                model="fake:latest",
+                tool_document=self.document,
+                think="maximum",
+            )
+
     def test_surface_mismatch_and_transport_failure_are_bounded(self) -> None:
         client = FakeClient([chat_result()])
         backend = OllamaLoopBackend(model="fake:latest", tool_document=self.document, client=client)

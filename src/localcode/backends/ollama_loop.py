@@ -52,6 +52,7 @@ class OllamaLoopBackend:
         seed: int = 42,
         allow_tool_subsets: bool = False,
         keep_alive: int | str = 0,
+        think: bool | str = False,
     ) -> None:
         if not isinstance(model, str) or not model or any(character.isspace() for character in model):
             raise ValueError("model must be a non-empty Ollama tag without whitespace")
@@ -65,6 +66,8 @@ class OllamaLoopBackend:
             raise ValueError("max_output_tokens must be a positive integer")
         if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
             raise ValueError("seed must be a non-negative integer")
+        if think not in (False, "low", "medium", "high"):
+            raise ValueError("think must be false, low, medium, or high")
 
         tools_by_name = schema_map(tool_document)
         self.model = model
@@ -76,6 +79,8 @@ class OllamaLoopBackend:
         self._seed = seed
         self._allow_tool_subsets = allow_tool_subsets
         self._keep_alive = keep_alive
+        self._think = think
+        self._generated_tokens = 0
 
     def complete(self, request: LoopRequest) -> str:
         if request.protocol_version != "1":
@@ -97,7 +102,7 @@ class OllamaLoopBackend:
                     ],
                     "tools": tools,
                     "stream": True,
-                    "think": False,
+                    "think": self._think,
                     "keep_alive": self._keep_alive,
                     "options": {
                         "temperature": 0,
@@ -109,6 +114,7 @@ class OllamaLoopBackend:
             )
         except CompatibilityError as exc:
             raise BackendError(str(exc)) from exc
+        self._generated_tokens += result.eval_count
         payload = _loop_protocol_payload(result)
         trace_path = os.environ.get("LOCALCODE_TRACE_PATH")
         if trace_path:
@@ -121,6 +127,12 @@ class OllamaLoopBackend:
                     "payload": payload,
                 }, sort_keys=True) + "\n")
         return payload
+
+    @property
+    def generated_tokens(self) -> int:
+        """Return Ollama output tokens generated across this backend's turns."""
+
+        return self._generated_tokens
 
 
 def _canonical_tools(document: dict[str, Any]) -> list[dict[str, Any]]:

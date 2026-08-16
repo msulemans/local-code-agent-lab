@@ -93,6 +93,12 @@ def main() -> int:
         default=300,
         help="seconds to keep the model resident between loop turns (0 unloads each turn)",
     )
+    parser.add_argument(
+        "--thinking",
+        choices=("off", "low", "medium", "high"),
+        default="off",
+        help="Ollama reasoning mode; use medium for gpt-oss",
+    )
     arguments = parser.parse_args()
 
     progress_observer = (
@@ -138,6 +144,7 @@ def main() -> int:
             context_tokens=arguments.context_tokens,
             max_context_chars=arguments.max_context_chars,
             keep_alive=arguments.keep_alive,
+            think=False if arguments.thinking == "off" else arguments.thinking,
         )
     else:
         producer = DatasetControlPatchProducer(

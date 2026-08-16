@@ -14,15 +14,17 @@ SCHEMA_VALIDITY_RULES = """Argument rules enforced by the strict validator:
 - Never pass null for a string, integer, or boolean field. Only glob and
   end_line may be null.
 - Never pass zero or a value below the schema minimum. max_results,
-  start_line, max_lines, max_bytes, max_files, max_changed_lines,
-  timeout_seconds, and max_output_bytes all require at least 1.
+  start_line, and max_lines all require at least 1.
 - Use exact types: strings as text, integers without quotes, booleans as
   true or false. Pass integers as JSON numbers, never quoted strings:
   "max_results": 30 is valid; "max_results": "30" is rejected.
 - Always include required fields: query for search_code, path for read_file,
   patch for apply_patch, command_name for run_tests. command_name must be
-  exactly python-unittest.
+  exactly python-unittest. For run_tests, supply only command_name; the
+  trusted controller owns timeout and output limits.
 - Omit optional fields you do not need so their defaults apply.
+- Tool safety limits such as file size, patch size, changed-file count,
+  timeout, and output size are owned by the trusted controller, not the model.
 - If you cannot form a schema-valid call, return a final answer explaining
   the boundary instead of emitting an invalid call."""
 

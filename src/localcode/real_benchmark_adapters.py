@@ -48,6 +48,7 @@ class LocalCodePatchProducer:
         max_context_chars: int = 32_000,
         allow_retained_swap: bool = False,
         keep_alive: int = 300,
+        think: bool | str = False,
     ) -> None:
         self.model = model
         self.tool_document = tool_document
@@ -59,7 +60,15 @@ class LocalCodePatchProducer:
         self.max_context_chars = max_context_chars
         self.allow_retained_swap = allow_retained_swap
         self.keep_alive = keep_alive
+        self.think = think
         self._preflight_ok = False
+        self._client = None
+
+    def finish(self) -> None:
+        """Release Ollama memory before the external Docker evaluator starts."""
+
+        if self._client is not None:
+            _unload_ollama_model(self.model)
 
     def produce(self, configuration: RealBenchmarkConfiguration, issue: RealBenchmarkIssue):
         from .backends.ollama_loop import OllamaLoopBackend
@@ -77,7 +86,9 @@ class LocalCodePatchProducer:
         if self.only_instance_id is not None and issue.instance_id != self.only_instance_id:
             return _empty_attempt(issue, self.model, "producer scope excludes this instance")
         started = time.monotonic()
-        client = OllamaClient()
+        if self._client is None:
+            self._client = OllamaClient()
+        client = self._client
         # The empty-ollama preflight runs once per producer, not once per
         # instance: a multi-instance run legitimately keeps the model resident
         # between instances (m041). The resource baseline for the per-turn
@@ -114,16 +125,18 @@ class LocalCodePatchProducer:
                 skip_symlinks=True,
             )
             validator = DecisionValidator.from_tool_document(self.tool_document)
+            loop_backend = OllamaLoopBackend(
+                model=self.model,
+                tool_document=self.tool_document,
+                client=client,
+                context_tokens=self.context_tokens,
+                max_output_tokens=self.max_output_tokens,
+                allow_tool_subsets=True,
+                keep_alive=self.keep_alive,
+                think=self.think,
+            )
             backend = ResourceGuardedLoopBackend(
-                OllamaLoopBackend(
-                    model=self.model,
-                    tool_document=self.tool_document,
-                    client=client,
-                    context_tokens=self.context_tokens,
-                    max_output_tokens=self.max_output_tokens,
-                    allow_tool_subsets=True,
-                    keep_alive=self.keep_alive,
-                ),
+                loop_backend,
                 baseline=baseline,
                 command_runner=_run_host_command,
                 observer=lambda _snapshot: None,
@@ -155,12 +168,19 @@ class LocalCodePatchProducer:
                     require_patch=True,
                     # The official evaluator, not the host, owns real test truth.
                     require_passing_tests=False,
+                    # Still require one real local execution before exporting a
+                    # patch, so schema mistakes cannot silently skip review.
+                    require_test_execution=True,
                 ),
                 context_compiler=compiler,
             ).run(run_id=f"real-{issue.instance_id}", issue=issue.problem_statement)
             diff = git_diff(workspace.root)
         patch = diff.content if not diff.truncated else ""
-        produced = bool(patch) and patch.lstrip().startswith("diff --git ")
+        produced = (
+            bool(patch)
+            and patch.lstrip().startswith("diff --git ")
+            and result.tests_executed > 0
+        )
         termination = result.termination_reason.value
         return PatchAttempt(
             instance_id=issue.instance_id,
@@ -168,9 +188,17 @@ class LocalCodePatchProducer:
             patch=patch if produced else "",
             status="produced" if produced else "no_patch",
             failure_category=None if produced else "LOOP_CONTROL",
-            reason=None if produced else f"agent terminated with {termination}",
+            reason=(
+                None
+                if produced
+                else f"agent terminated with {termination}; executed tests={result.tests_executed}"
+            ),
+            tokens_used=loop_backend.generated_tokens,
             tool_calls=result.tool_calls_used,
             wall_seconds=round(time.monotonic() - started, 6),
+            termination_reason=termination,
+            invalid_actions=result.invalid_actions_used,
+            tests_executed=result.tests_executed,
         )
 
 
@@ -192,6 +220,21 @@ def _clone_at_commit(repository: str, commit: str, destination: Path) -> None:
         )
     except (OSError, subprocess.SubprocessError) as exc:
         raise RealBenchmarkError(f"could not clone {repository} at {commit}") from exc
+
+
+def _unload_ollama_model(model: str) -> None:
+    """Release the resident model before Docker evaluation begins."""
+
+    try:
+        subprocess.run(
+            ["ollama", "stop", model],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise RealBenchmarkError(f"could not unload Ollama model {model!r}") from exc
 
 
 def _empty_attempt(issue: RealBenchmarkIssue, model: str, reason: str):

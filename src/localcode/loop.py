@@ -55,9 +55,17 @@ class LoopBudgets:
 class CompletionRequirements:
     require_patch: bool = False
     require_passing_tests: bool = False
+    require_test_execution: bool = False
 
     def __post_init__(self) -> None:
-        if not isinstance(self.require_patch, bool) or not isinstance(self.require_passing_tests, bool):
+        if not all(
+            isinstance(value, bool)
+            for value in (
+                self.require_patch,
+                self.require_passing_tests,
+                self.require_test_execution,
+            )
+        ):
             raise ValueError("completion requirements must be booleans")
 
 
@@ -106,6 +114,12 @@ class LoopResult:
     tool_calls_used: int
     invalid_actions_used: int
 
+    @property
+    def tests_executed(self) -> int:
+        """Count completed test observations, excluding rejected/tool-error calls."""
+
+        return sum("exit_code" in observation.metadata_dict() for observation in self.observations)
+
 
 class ReadOnlyAgentLoop:
     """Execute bounded validated decisions through a supplied capability registry."""
@@ -150,6 +164,7 @@ class ReadOnlyAgentLoop:
         invalid_actions_used = 0
         patch_applied = False
         tests_passed = False
+        tests_executed = 0
         started = self._monotonic()
 
         self._append_event(
@@ -264,6 +279,8 @@ class ReadOnlyAgentLoop:
                     missing.append("applied patch")
                 if self._completion.require_passing_tests and not tests_passed:
                     missing.append("passing test command")
+                elif self._completion.require_test_execution and tests_executed == 0:
+                    missing.append("executed test command")
                 if missing:
                     invalid_actions_used += 1
                     message = "final answer rejected; missing " + " and ".join(missing)
@@ -405,6 +422,7 @@ class ReadOnlyAgentLoop:
                     tests_passed = False
                     action_counts.clear()
                 elif decision.tool == "run_tests":
+                    tests_executed += 1
                     tests_passed = observation.metadata_dict().get("exit_code") == 0
             self._append_observation(observations, observation)
             tool_history.append(decision.tool)
@@ -616,11 +634,18 @@ def _phase_tools(all_tools: tuple[str, ...], history: list[str]) -> tuple[str, .
     if last in {"list_files", "search_code"}:
         return ("read_file",)
     if last == "read_file":
-        return ("apply_patch", "edit_file", "write_file")
+        return ("apply_patch", "edit_file", "read_file", "write_file")
     if last in {"apply_patch", "edit_file", "write_file"}:
         return ("run_tests",)
     if last == "run_tests":
-        return ("apply_patch", "edit_file", "write_file", "git_diff")
+        return (
+            "apply_patch",
+            "edit_file",
+            "git_diff",
+            "read_file",
+            "search_code",
+            "write_file",
+        )
     if last == "git_diff":
         return ()
     return all_tools

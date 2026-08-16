@@ -41,6 +41,16 @@ class FakeBackend:
         return self.responses.pop(0)
 
 
+class RecordingBackend(FakeBackend):
+    def __init__(self, responses: list[str]) -> None:
+        super().__init__(responses)
+        self.requests = []
+
+    def complete(self, request) -> str:
+        self.requests.append(request)
+        return super().complete(request)
+
+
 class FakeEngineeringRegistry:
     tool_names = ("apply_patch", "edit_file", "git_diff", "list_files", "read_file", "run_tests", "search_code", "write_file")
 
@@ -110,6 +120,77 @@ class EngineeringLoopTests(unittest.TestCase):
             registry.executed,
             ["apply_patch", "run_tests", "apply_patch", "run_tests"],
         )
+
+    def test_phase_policy_allows_multiple_distinct_reads_before_editing(self) -> None:
+        backend = RecordingBackend(
+            [
+                tool("search_code", {"query": "parse"}),
+                tool("read_file", {"path": "src/parser.py"}),
+                tool("read_file", {"path": "tests/test_parser.py"}),
+            ]
+        )
+        registry = FakeEngineeringRegistry([])
+
+        AgentLoop(
+            backend,
+            DecisionValidator.from_path(SCHEMAS),
+            registry,
+            LoopBudgets(max_turns=3, max_tool_calls=3, phase_tool_policy=True),
+            clock=lambda: NOW,
+            monotonic=lambda: 0.0,
+        ).run(run_id="multi-read", issue="Fix parser")
+
+        self.assertEqual(backend.requests[1].allowed_tools, ("read_file",))
+        self.assertIn("read_file", backend.requests[2].allowed_tools)
+        self.assertEqual(registry.executed, ["search_code", "read_file", "read_file"])
+
+    def test_test_execution_requirement_accepts_observed_failure_for_external_review(self) -> None:
+        registry = FakeEngineeringRegistry([1])
+        result = AgentLoop(
+            FakeBackend(
+                [
+                    tool("apply_patch", {"patch": "patch-one"}),
+                    final(),
+                    tool("run_tests", {"command_name": "python-unittest"}),
+                    final(),
+                ]
+            ),
+            DecisionValidator.from_path(SCHEMAS),
+            registry,
+            LoopBudgets(max_turns=4, max_tool_calls=2),
+            clock=lambda: NOW,
+            monotonic=lambda: 0.0,
+            completion_requirements=CompletionRequirements(
+                require_patch=True,
+                require_test_execution=True,
+            ),
+        ).run(run_id="test-observed", issue="Fix parser")
+
+        self.assertEqual(result.termination_reason, TerminationReason.FINAL_ANSWER)
+        self.assertEqual(result.tests_executed, 1)
+        self.assertEqual(result.invalid_actions_used, 1)
+
+    def test_phase_policy_allows_failure_investigation_after_tests(self) -> None:
+        backend = RecordingBackend(
+            [
+                tool("apply_patch", {"patch": "patch-one"}),
+                tool("run_tests", {"command_name": "python-unittest"}),
+                tool("read_file", {"path": "tests/test_parser.py"}),
+            ]
+        )
+        registry = FakeEngineeringRegistry([1])
+
+        AgentLoop(
+            backend,
+            DecisionValidator.from_path(SCHEMAS),
+            registry,
+            LoopBudgets(max_turns=3, max_tool_calls=3, phase_tool_policy=True),
+            clock=lambda: NOW,
+            monotonic=lambda: 0.0,
+        ).run(run_id="post-test-read", issue="Fix parser")
+
+        self.assertIn("read_file", backend.requests[2].allowed_tools)
+        self.assertEqual(registry.executed, ["apply_patch", "run_tests", "read_file"])
 
 
 if __name__ == "__main__":

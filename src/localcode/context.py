@@ -164,7 +164,7 @@ def _controller_instructions(history: tuple[str, ...]) -> str:
             if f'"tool":"{name}"' in entry and name not in tools:
                 tools.append(name)
     if "apply_patch" not in tools and "edit_file" not in tools and "write_file" not in tools and "read_file" in tools:
-        return "Trusted controller directive: use edit_file with an exact old_string/new_string snippet (or apply_patch) now; do not search again."
+        return "Trusted controller directive: read another concrete source or test file if needed; otherwise use edit_file with an exact old_string/new_string snippet (or apply_patch). Do not search again."
     if "apply_patch" not in tools and "edit_file" not in tools and "write_file" not in tools and "search_code" in tools:
         return "Trusted controller directive: use read_file on a relevant source path, then edit_file or apply_patch; do not repeat search_code."
     if ("apply_patch" in tools or "edit_file" in tools or "write_file" in tools) and "run_tests" not in tools:

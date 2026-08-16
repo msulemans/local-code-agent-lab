@@ -39,4 +39,5 @@ data/processed/*
 # External benchmark outputs are reproducible local evidence.
 evaluation_results/
 localcode__*.json
+*.localcode-*.json
 logs/

@@ -80,6 +80,27 @@ class EngineeringRegistryTests(unittest.TestCase):
         with self.assertRaises(ActionValidationError):
             validator.validate(decision("run_tests", {"command_name": "terminal"}))
 
+        with self.assertRaises(ActionValidationError):
+            validator.validate(
+                decision(
+                    "run_tests",
+                    {"command_name": "python-unittest", "max_output_bytes": 1_048_576},
+                )
+            )
+
+        with self.assertRaises(ActionValidationError):
+            validator.validate(
+                decision(
+                    "edit_file",
+                    {
+                        "path": "src/tiny_parser.py",
+                        "old_string": "return text.strip()",
+                        "new_string": "return text",
+                        "max_bytes": 200,
+                    },
+                )
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
