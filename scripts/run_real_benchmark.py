@@ -64,6 +64,18 @@ def main() -> int:
         default=False,
         help="deliberately proceed with retained host swap (recorded evidence boundary tradeoff)",
     )
+    parser.add_argument(
+        "--context-tokens",
+        type=int,
+        default=32_768,
+        help="Ollama num_ctx for the loop (KV-cache memory scales with this)",
+    )
+    parser.add_argument(
+        "--max-context-chars",
+        type=int,
+        default=32_000,
+        help="character budget for the compiled context envelope sent to the model",
+    )
     arguments = parser.parse_args()
 
     progress_observer = (
@@ -94,6 +106,8 @@ def main() -> int:
             tool_document=tool_document,
             only_instance_id=arguments.control_id,
             allow_retained_swap=arguments.allow_retained_swap,
+            context_tokens=arguments.context_tokens,
+            max_context_chars=arguments.max_context_chars,
         )
     else:
         producer = DatasetControlPatchProducer(
