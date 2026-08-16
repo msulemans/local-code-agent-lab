@@ -34,6 +34,7 @@ def run_cli(
 ) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", required=True)
+    parser.add_argument("--model", default=MODEL, help="Ollama tag to smoke; defaults to %(default)s")
     arguments = parser.parse_args(argv)
 
     tool_document = json.loads(TOOL_SCHEMAS.read_text(encoding="utf-8"))
@@ -41,7 +42,7 @@ def run_cli(
         recorder = SmokeRecorder.create(
             runs_root=runs_root,
             run_id=arguments.run_id,
-            model=MODEL,
+            model=arguments.model,
             issue=ISSUE,
         )
     except SmokeRecordError as exc:
@@ -52,7 +53,7 @@ def run_cli(
         smoke = smoke_runner(
             run_id=arguments.run_id,
             issue=ISSUE,
-            model=MODEL,
+            model=arguments.model,
             repository_root=FIXTURE_ROOT,
             tool_document=tool_document,
             clock=clock
