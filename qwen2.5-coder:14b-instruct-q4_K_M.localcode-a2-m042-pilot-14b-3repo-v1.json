@@ -1,0 +1,28 @@
+{
+    "total_instances": 3,
+    "submitted_instances": 3,
+    "completed_instances": 1,
+    "resolved_instances": 0,
+    "unresolved_instances": 1,
+    "empty_patch_instances": 2,
+    "error_instances": 0,
+    "completed_ids": [
+        "psf__requests-2931"
+    ],
+    "incomplete_ids": [],
+    "empty_patch_ids": [
+        "pylint-dev__pylint-4661",
+        "sphinx-doc__sphinx-7454"
+    ],
+    "submitted_ids": [
+        "psf__requests-2931",
+        "pylint-dev__pylint-4661",
+        "sphinx-doc__sphinx-7454"
+    ],
+    "resolved_ids": [],
+    "unresolved_ids": [
+        "psf__requests-2931"
+    ],
+    "error_ids": [],
+    "schema_version": 2
+}
