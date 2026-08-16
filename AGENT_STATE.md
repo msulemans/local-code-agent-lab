@@ -101,6 +101,18 @@ each prompt. Suite: 176 tests pass. The next allowed action is a fresh non-gold
 pilot; if strict-schema failures persist after the tightened prompt, evaluate
 option (b) or (c) as the recorded alternative.
 
+### Smoke proof and progress output 2026-08-16
+
+- One-turn smoke `smoke-qwen35-schema-v1` passed: the real `qwen3.5:9b-q4_K_M`
+  produced a schema-valid `search_code` call that was accepted and executed
+  (baseline: 0 swap, 68% free, no loaded models). This is the first real-model
+  validated tool call through the runtime.
+- The first re-run (`m022-pilot-schema-v1`) was Ctrl-C'd during the silent
+  flask agent loop, so the runner now accepts a per-instance
+  `progress_observer` (CLI prints `PROGRESS <config> <instance> status=...`
+  by default, disable with `--no-progress`) and a new run ID must be used for
+  the next pilot. One new test; suite: 177 tests pass.
+
 ### Completed (earlier)
 
 - Registered exactly two Qwen coding instruct candidates, smallest first.
@@ -1561,6 +1573,7 @@ Status: repository and static learning UI publicly verified.
 | `m019-agent-flask-qwen35-phase-v1` | `qwen3.5:9b-q4_K_M` on `pallets__flask-5014` | 0/20; 5 tool calls, 152.9 s, `invalid_action_exhaustion` | `runs/real-benchmark/m019-*` |
 | `m020-postrestart-flask-a1-v1` | `qwen3.5:9b-q4_K_M` after restart | 0/20; `invalid_action_exhaustion` | `runs/real-benchmark/m020-*` |
 | `m021-deepseek-flask-a1-v1` | `deepseek-coder:6.7b` on `pallets__flask-5014` | 0/20; `backend_error` after 2.18 s, 0 tool calls | `runs/real-benchmark/m021-*` |
+| `m022-pilot-schema-v1` | `qwen3.5:9b-q4_K_M` on `pallets__flask-5014`; tightened prompts active | interrupted by Ctrl-C during the flask agent loop after ~2 min; no patch recorded; run dir immutable and not reusable | `runs/real-benchmark/m022-pilot-schema-v1/` (partial) |
 
 Future entries must record: run ID, Git SHA, model ID and artifact hash,
 quantization, prompt version, configuration, task manifest hash, budgets, seed,

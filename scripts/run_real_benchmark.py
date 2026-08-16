@@ -51,7 +51,18 @@ def main() -> int:
     )
     parser.add_argument("--configuration-id", choices=("B0", "A1", "A2", "A3"), default=None,
                         help="measure only this configuration for a control run")
+    parser.add_argument(
+        "--no-progress",
+        action="store_false",
+        dest="progress",
+        default=True,
+        help="disable per-instance progress lines during preparation",
+    )
     arguments = parser.parse_args()
+
+    progress_observer = (
+        (lambda line: print(f"PROGRESS {line}", flush=True)) if arguments.progress else None
+    )
 
     manifest = load_real_benchmark_manifest(arguments.manifest)
     if arguments.configuration_id is not None:
@@ -92,6 +103,7 @@ def main() -> int:
             runs_root=arguments.runs_root,
             issue_resolver=resolver,
             patch_producer=producer,
+            progress_observer=progress_observer,
         )
         print(json.dumps(prepared.to_dict(), indent=2, sort_keys=True))
         return 0
@@ -111,6 +123,7 @@ def main() -> int:
         issue_resolver=resolver,
         patch_producer=producer,
         evaluator=evaluator,
+        progress_observer=progress_observer,
     )
     for configuration in result.configurations:
         print(

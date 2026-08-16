@@ -7,7 +7,7 @@ import json
 from math import isfinite
 from pathlib import Path
 import re
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$")
@@ -494,6 +494,7 @@ def prepare_real_benchmark_run(
     runs_root: str | Path,
     issue_resolver: RealIssueResolver,
     patch_producer: PatchProducer,
+    progress_observer: Callable[[str], None] | None = None,
 ) -> PreparedRealBenchmarkRun:
     """Resolve issues, generate prediction JSONL files, and persist immutable evidence."""
 
@@ -517,6 +518,7 @@ def prepare_real_benchmark_run(
             issues=resolved_issues,
             patch_producer=patch_producer,
             output_directory=run_directory / configuration.configuration_id,
+            progress_observer=progress_observer,
         )
         for configuration in manifest.configurations
     )
@@ -540,6 +542,7 @@ def run_real_benchmark(
     issue_resolver: RealIssueResolver,
     patch_producer: PatchProducer,
     evaluator: Evaluator,
+    progress_observer: Callable[[str], None] | None = None,
 ) -> RealBenchmarkRun:
     """Prepare predictions and then evaluate each configuration through an external harness."""
 
@@ -549,6 +552,7 @@ def run_real_benchmark(
         runs_root=runs_root,
         issue_resolver=issue_resolver,
         patch_producer=patch_producer,
+        progress_observer=progress_observer,
     )
     configurations = tuple(
         _evaluate_configuration(manifest, prepared_configuration, evaluator)
@@ -580,6 +584,7 @@ def _prepare_configuration(
     issues: tuple[RealBenchmarkIssue, ...],
     patch_producer: PatchProducer,
     output_directory: Path,
+    progress_observer: Callable[[str], None] | None = None,
 ) -> PreparedConfigurationRun:
     if configuration.availability != "implemented":
         return PreparedConfigurationRun(
@@ -612,6 +617,13 @@ def _prepare_configuration(
             )
         attempt = _validate_attempt(produced_attempt, instance=instance)
         attempts.append(attempt)
+        if progress_observer is not None:
+            progress_observer(
+                f"{configuration.configuration_id} {instance.instance_id} "
+                f"status={attempt.status} "
+                f"wall={round(attempt.wall_seconds, 1)}s "
+                f"reason={attempt.reason if attempt.reason else 'ok'}"
+            )
         predictions.append(
             PredictionRecord(
                 instance_id=instance.instance_id,

@@ -245,6 +245,27 @@ class RealBenchmarkTests(unittest.TestCase):
             no_patch = next(row for row in predictions if row["instance_id"] == "example__repo-020")
             self.assertEqual(no_patch["model_patch"], "")
 
+    def test_prepare_reports_one_progress_line_per_instance(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest_path = Path(temporary) / "manifest.json"
+            manifest_path.write_text(json.dumps(manifest_document()), encoding="utf-8")
+            manifest = load_real_benchmark_manifest(manifest_path)
+
+            lines: list[str] = []
+            prepare_real_benchmark_run(
+                manifest,
+                run_id="realbench-v3",
+                runs_root=Path(temporary) / "runs",
+                issue_resolver=FakeIssueResolver(),
+                patch_producer=FakePatchProducer(),
+                progress_observer=lines.append,
+            )
+
+            # Four implemented configurations x 20 instances = 80 lines.
+            self.assertEqual(len(lines), 80)
+            self.assertTrue(lines[0].startswith("B0 example__repo-001 status="))
+            self.assertIn("wall=", lines[0])
+
     def test_run_real_benchmark_aggregates_resolved_counts_and_failures(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             manifest_path = Path(temporary) / "manifest.json"
