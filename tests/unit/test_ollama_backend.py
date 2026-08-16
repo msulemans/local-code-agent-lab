@@ -6,6 +6,7 @@ import unittest
 
 from localcode.actions import ActionValidationError, ActionValidator
 from localcode.backends import BackendError, OllamaBackend
+from localcode.backends.ollama import ONE_TURN_SYSTEM_PROMPT, SCHEMA_VALIDITY_RULES
 from localcode.compatibility import ChatResult
 from localcode.controller import OneTurnController, OneTurnRequest
 from localcode.events import EventType
@@ -57,6 +58,11 @@ class OllamaBackendTests(unittest.TestCase):
             issue="Parser crashes when given None.",
             allowed_tools=self.allowed_tools if tools is None else tools,
         )
+
+    def test_one_turn_system_prompt_carries_schema_validity_rules(self) -> None:
+        self.assertIn(SCHEMA_VALIDITY_RULES, ONE_TURN_SYSTEM_PROMPT)
+        self.assertIn("Never pass null", ONE_TURN_SYSTEM_PROMPT)
+        self.assertIn("python-unittest", ONE_TURN_SYSTEM_PROMPT)
 
     def test_native_call_becomes_a_valid_protocol_envelope_without_argument_repair(self) -> None:
         client = FakeClient(chat_result(calls=(native_call("search_code", {"query": "parse", "max_results": 7}),)))

@@ -88,6 +88,19 @@ arguments, (b) relax or normalize specific schema defaults without weakening
 safety, or (c) record strict-schema failures as model evidence and try another
 candidate. This must be a deliberate decision before a fresh pilot.
 
+### Option (a) implemented 2026-08-16
+
+Decision D-026: a shared `SCHEMA_VALIDITY_RULES` block is now embedded in both
+`ONE_TURN_SYSTEM_PROMPT` and `LOOP_SYSTEM_PROMPT`. It states the exact rules the
+validator enforces: no `null` on string/integer/boolean fields (only `glob`
+and `end_line` may be null), no zero below the schema minimums, exact types,
+required fields per tool (`query`, `path`, `patch`, `command_name` =
+`python-unittest`), omit unneeded optionals, and a final-answer fallback when a
+schema-valid call cannot be formed. Two guard tests assert the rules remain in
+each prompt. Suite: 176 tests pass. The next allowed action is a fresh non-gold
+pilot; if strict-schema failures persist after the tightened prompt, evaluate
+option (b) or (c) as the recorded alternative.
+
 ### Completed (earlier)
 
 - Registered exactly two Qwen coding instruct candidates, smallest first.
@@ -1533,6 +1546,7 @@ Status: repository and static learning UI publicly verified.
 | D-023 | Keep the terminal UI as an observer over immutable loop facts | Headless and TUI runs must measure the same runtime, patch, and termination behavior | fixed for TUI shell |
 | D-024 | Measure retrieval first with relevant-file recall | Retrieval must show deterministic evidence-selection value before being credited with solve-rate improvement | fixed for first Milestone 008 slice |
 | D-025 | Translate content-form JSON tool calls (exactly one `{"name","arguments"}` object) into tool decisions without weakening the strict validator | Real Qwen checkpoints emit tool intent as JSON text in `content`; misreading it as a final answer caused every pilot to end in `invalid_action_exhaustion` | fixed 2026-08-16 |
+| D-026 | Tighten both Ollama system prompts with explicit schema-validity rules (no nulls on string/integer/boolean fields except `glob`/`end_line`, no zero below minimums, exact types, required fields, omit unneeded optionals, final-answer fallback) | The m004c tool-schema score of 0/12 shows models emit nulls and zero bounds that the strict validator rejects; the registered prompt did not state these rules | fixed 2026-08-16 |
 
 ## Run ledger
 

@@ -5,8 +5,8 @@ from pathlib import Path
 import unittest
 
 from localcode.actions import ActionValidationError
-from localcode.backends.ollama import BackendError
-from localcode.backends.ollama_loop import OllamaLoopBackend
+from localcode.backends.ollama import BackendError, SCHEMA_VALIDITY_RULES
+from localcode.backends.ollama_loop import LOOP_SYSTEM_PROMPT, OllamaLoopBackend
 from localcode.compatibility import ChatResult, CompatibilityError
 from localcode.decisions import DecisionValidator, FinalDecision
 from localcode.loop import AgentLoop, CompletionRequirements, LoopBudgets, LoopRequest, TerminationReason
@@ -81,6 +81,11 @@ class OllamaLoopBackendTests(unittest.TestCase):
             turn_index=0,
             budgets_remaining=(("turns", 3),),
         )
+
+    def test_loop_system_prompt_carries_schema_validity_rules(self) -> None:
+        self.assertIn(SCHEMA_VALIDITY_RULES, LOOP_SYSTEM_PROMPT)
+        self.assertIn("Never pass zero", LOOP_SYSTEM_PROMPT)
+        self.assertIn("python-unittest", LOOP_SYSTEM_PROMPT)
 
     def test_native_tool_call_becomes_exact_loop_decision(self) -> None:
         client = FakeClient(
