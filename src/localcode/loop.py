@@ -25,6 +25,7 @@ class LoopBudgets:
     max_context_chars: int = 12_000
     recover_repeated_actions: bool = False
     phase_tool_policy: bool = False
+    auto_test_after_edit: bool = False
 
     def __post_init__(self) -> None:
         integer_fields = (
@@ -43,6 +44,8 @@ class LoopBudgets:
             raise ValueError("recover_repeated_actions must be a boolean")
         if not isinstance(self.phase_tool_policy, bool):
             raise ValueError("phase_tool_policy must be a boolean")
+        if not isinstance(self.auto_test_after_edit, bool):
+            raise ValueError("auto_test_after_edit must be a boolean")
         if (
             isinstance(self.max_wall_seconds, bool)
             or not isinstance(self.max_wall_seconds, (int, float))
@@ -453,6 +456,80 @@ class ReadOnlyAgentLoop:
                 tool_calls_used,
                 invalid_actions_used,
             )
+
+            if (
+                self._budgets.auto_test_after_edit
+                and decision.tool in ("apply_patch", "edit_file", "write_file")
+                and event_type == EventType.TOOL_RESULT
+                and "run_tests" in self._validator.tool_names
+            ):
+                # Deterministic verification: after every successful edit the
+                # controller runs the registered tests itself, so a model that
+                # churns on read/edit re-checks cannot exhaust the budget
+                # without ever seeing test output (m050-m055).
+                auto_action = ValidatedAction(
+                    protocol_version="1",
+                    thought_summary="automatic verification after edit",
+                    tool="run_tests",
+                    arguments=(("command_name", "python-unittest"),),
+                )
+                try:
+                    auto_observation = self._registry.execute(auto_action)
+                except ToolError as exc:
+                    auto_observation = _error_observation("tool_error", exc.code, str(exc))
+                    auto_event_type = EventType.TOOL_ERROR
+                    auto_summary = auto_observation.content
+                else:
+                    tests_executed += 1
+                    tests_passed = auto_observation.metadata_dict().get("exit_code") == 0
+                    auto_event_type = EventType.TOOL_RESULT
+                    auto_summary = "Automatic verification after edit completed."
+                tool_calls_used += 1
+                self._append_observation(observations, auto_observation)
+                tool_history.append("run_tests")
+                history.append(
+                    json.dumps(
+                        {
+                            "tool": "run_tests",
+                            "arguments": {"command_name": "python-unittest"},
+                            "observation": auto_observation.content,
+                            "metadata": auto_observation.metadata_dict(),
+                            "controller_guidance": "Automatic test run after edit; revise with edit_file or apply_patch if failing, otherwise review with git_diff and finish.",
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                )
+                self._append_event(
+                    events,
+                    run_id,
+                    auto_event_type,
+                    "verifying",
+                    auto_summary,
+                    turns_used,
+                    tool_calls_used,
+                    invalid_actions_used,
+                )
+                if tool_calls_used >= self._budgets.max_tool_calls:
+                    return self._terminate(
+                        events,
+                        observations,
+                        run_id,
+                        TerminationReason.TOOL_EXHAUSTION,
+                        turns_used,
+                        tool_calls_used,
+                        invalid_actions_used,
+                    )
+                if self._expired(started):
+                    return self._terminate(
+                        events,
+                        observations,
+                        run_id,
+                        TerminationReason.WALL_CLOCK_TIMEOUT,
+                        turns_used,
+                        tool_calls_used,
+                        invalid_actions_used,
+                    )
 
         return self._terminate(
             events,

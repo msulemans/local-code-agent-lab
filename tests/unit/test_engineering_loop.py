@@ -99,6 +99,29 @@ class EngineeringLoopTests(unittest.TestCase):
         self.assertEqual(registry.executed, ["apply_patch", "run_tests"])
         self.assertEqual(result.observations[0].metadata_dict()["code"], "incomplete_work")
 
+    def test_auto_test_after_edit_runs_registered_tests_without_a_model_call(self) -> None:
+        registry = FakeEngineeringRegistry([0])
+
+        result = AgentLoop(
+            FakeBackend([tool("apply_patch", {"patch": "patch-one"}), final()]),
+            DecisionValidator.from_path(SCHEMAS),
+            registry,
+            LoopBudgets(max_turns=2, max_tool_calls=8, auto_test_after_edit=True),
+            clock=lambda: NOW,
+            monotonic=lambda: 0.0,
+            completion_requirements=CompletionRequirements(
+                require_patch=True,
+                require_passing_tests=True,
+            ),
+        ).run(run_id="auto-test", issue="Fix parser")
+
+        # The controller runs the tests itself after the edit (m050-m055:
+        # models churn on read/edit re-checks and die one call short of
+        # run_tests), so the final answer is verified without a model test call.
+        self.assertEqual(result.termination_reason, TerminationReason.FINAL_ANSWER)
+        self.assertEqual(registry.executed, ["apply_patch", "run_tests"])
+        self.assertEqual(result.tests_executed, 1)
+
     def test_new_patch_invalidates_old_test_success_and_allows_retest(self) -> None:
         registry = FakeEngineeringRegistry([0, 0])
 
