@@ -60,6 +60,14 @@ events, selected file excerpts, test failures, and remaining budgets. It owns:
 
 Repository files and issue text are data, not trusted instructions.
 
+### `RetrievalPlanner`
+
+Builds a deterministic repository map and selects bounded source/test excerpts
+before the next model request. It may score paths, symbols, tests, callers, and
+content proximity, but it must not generate patches, inspect gold/evaluator
+material, or change tool/edit budgets. Its first development metric is
+relevant-file recall under a fixed evidence budget.
+
 ### `ActionValidator`
 
 Parses a versioned JSON action envelope, rejects unknown fields/tools, checks
@@ -137,6 +145,12 @@ is allowed in Version 1.
 
 The TUI subscribes to structured events. It can render phase, file, test result,
 elapsed time, and diff statistics, but cannot call tools directly.
+
+The brought-forward shell implements that boundary with `LoopObserver` and
+`TerminalEventStream`. The loop records immutable `Event` and `ToolResult`
+values first, then notifies the observer. Observer exceptions are isolated, and
+the shipped terminal stream queues rendering work outside the loop path. The
+terminal renderer is therefore a view over the run, not a second controller.
 
 ## Security model
 

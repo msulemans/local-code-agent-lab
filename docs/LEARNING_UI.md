@@ -18,17 +18,23 @@ Open `http://127.0.0.1:4173` and stop the server with `Ctrl-C`.
 
 1. **Anatomy** assigns responsibility to issue, controller, context compiler,
    model, validator, tools, event store, and evaluator.
-2. **Tool contracts** simulate the four implemented read-only tools and their
-   rejection/truncation behavior without touching the filesystem.
+2. **Tool contracts** simulate the six implemented workspace tools and their
+   rejection/truncation behavior without touching the filesystem or starting a
+   subprocess.
 3. **Agent loop** connects each state transition to a structured event and
-   distinguishes the implemented one-turn proof from the planned multi-turn,
-   edit, test, and review capabilities.
+   distinguishes the implemented inspect/edit/test/diff and fake Ollama
+   transport paths from real-model execution while showing where the
+   deterministic A3 reviewer inspects diff and test evidence.
 4. **Milestone ledger** separates verified work from the next plan.
-5. **Benchmark science** compares B0/A1/A2/A3 while teaching fairness and
+5. **Benchmark science** compares B0/A1/A2/A3, now using the observed
+   micro-suite result `7 → 8 → 8 → 8`, while teaching fairness and
    evaluator-only boundaries.
 6. **Failure laboratory** preserves real project failures as reusable diagnosis.
 7. **Practice** provides explain-back cards and an eight-question assessment.
 8. **Glossary** makes agent, repository, and SWE-bench terminology searchable.
+9. **Real benchmark lesson** explains the pinned 20-instance manifest, official
+   JSONL boundary, and gold/empty controls. It deliberately distinguishes
+   harness proof from real model solve-rate evidence.
 
 Learning completion, deep-note preference, last section, and best quiz score are
 stored in browser local storage under `localcode-learning-state-v1`. This is a

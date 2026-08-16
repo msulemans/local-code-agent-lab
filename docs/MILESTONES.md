@@ -88,6 +88,11 @@ Gate: retrieval improves a registered development metric such as relevant-file
 recall under a fixed context budget. If it does not, keep the simple agent and
 record the negative result.
 
+Current first slice: deterministic repository map, source/test excerpt ranking,
+and relevant changed-file recall metric. The registered micro-suite development
+metric is 9/9 expected changed paths recalled under a fixed 3-file budget. This
+does not yet prove solve-rate improvement.
+
 ## 009 — Benchmark harness proof
 
 Pin the SWE-bench package, dataset revision, 20-instance manifest, and container
@@ -125,8 +130,9 @@ learner can complete one micro issue and explain the architecture.
 
 The static HTML learning field manual was brought forward after Milestone 003
 at the learner's request. It teaches the current architecture and progress but
-does not replace this milestone's future terminal UI, live runtime event stream,
-or headless-versus-TUI equivalence gate.
+does not replace this milestone's larger failure explorer, run comparison,
+glossary, or reproduction guide. A small terminal shell and
+headless-versus-TUI equivalence test were brought forward during Milestone 007.
 
 ## Proposed 3–5 day prototype sprint
 

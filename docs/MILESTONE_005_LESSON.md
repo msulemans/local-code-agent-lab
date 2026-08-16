@@ -59,6 +59,27 @@ The registered command is `scripts/smoke_one_turn_ollama.py`, but it must not
 be run merely because it exists. The learner must first choose a clean restart
 and capture the required unloaded-host baseline.
 
+## The smoke evidence recorder
+
+`src/localcode/smoke_records.py` reserves one unique ignored directory under
+`runs/one-turn-smoke/` before preflight. The run ID is restricted to a safe
+lowercase alphabet, and an existing directory is never reused.
+
+The recorder enforces explicit transitions:
+
+```text
+created -> blocked_preflight
+created -> baseline_accepted -> backend_error
+                             -> completed
+                             -> completed_without_tool_result
+```
+
+It writes `run.json.tmp` first and atomically replaces `run.json`, preventing a
+partially written JSON document from becoming the official record. Events must
+belong to the same run and use contiguous sequence numbers from zero. CLI tests
+exercise preflight failure, backend failure after baseline acceptance, rejected
+action, successful tool result, and duplicate run refusal with fake dependencies.
+
 ## The action envelope
 
 ```json
@@ -140,7 +161,9 @@ Then run the complete offline proof:
 PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v
 ```
 
-The current expected result is `Ran 69 tests` followed by `OK`.
+After the first Milestone 008 retrieval slice, the current project suite is
+`Ran 140 tests`. In the Codex sandbox it passes with the known nested macOS
+sandbox canary skips; in normal Terminal, those canaries should execute.
 
 ## Read the implementation in this order
 
@@ -155,6 +178,8 @@ The current expected result is `Ran 69 tests` followed by `OK`.
 9. `src/localcode/preflight.py` — the clean-host evidence gate.
 10. `src/localcode/smoke.py` — preflight followed by exactly one real-model turn.
 11. `tests/unit/test_smoke.py` — proof that blocked baselines cannot infer.
+12. `src/localcode/smoke_records.py` — immutable-directory run evidence.
+13. `tests/unit/test_smoke_cli.py` — executable command-level outcome claims.
 
 ## Explain-back check
 
@@ -177,16 +202,16 @@ We are working only on LocalCode Milestone 005 in
 /Users/suleman/non-icloud/Personal/learning-labs/local-code-agent-lab.
 
 Read AGENT_STATE.md, docs/MILESTONES.md, and docs/MILESTONE_005_LESSON.md first.
-The offline one-turn controller is implemented and 69 unit tests pass. Qwen3.5
+The offline one-turn controller, bounded loop, and first guarded edit/test path
+are implemented, and the current project suite contains 140 unit tests. Qwen3.5
 9B is downloaded and verified but must not be run until the learner chooses a
 restart and a clean unloaded-host baseline is captured. Do not weaken that
-gate. Do not start the multi-turn loop, editing, test execution, SWE-bench, or
-download another model.
+gate. Do not run Qwen, SWE-bench, or download another model.
 
 When helping me learn, explain one concept at a time, ask me to predict the
 result before revealing it, and ground every claim in a named file or test.
-Allowed work now: inspect the protocol, run fake-backend demos, add bounded
-fake-backend tests, or improve the Milestone 005 lesson without model inference.
+Allowed work now: inspect the protocol, run fake-backend demos, expand the
+Milestone 007 micro suite, or improve lessons without model inference.
 ```
 
 ## Remaining gate

@@ -40,15 +40,15 @@
         </div>
         <dl class="status-ledger" aria-label="Current LocalCode project status">
           <div><dt>Runtime</dt><dd>Python 3.11</dd></div>
-          <div><dt>Offline proof</dt><dd>005 one-turn controller</dd></div>
-          <div><dt>Available</dt><dd>4 read-only tools</dd></div>
+          <div><dt>Offline proof</dt><dd>007 guarded edit/test loop + TUI shell</dd></div>
+          <div><dt>Available</dt><dd>6 bounded tools</dd></div>
           <div><dt>Model</dt><dd>Qwen3.5 9B verified, unrun</dd></div>
         </dl>
       </div>
 
       <aside class="flight-recorder" aria-label="Interactive agent event trace">
         <div class="recorder-header">
-          <span>RUN TRACE · READ-ONLY PROOF</span>
+          <span>RUN TRACE · GUARDED FIX PROOF</span>
           <strong><i></i> LIVE</strong>
         </div>
         <div class="trace-track" aria-hidden="true"><span></span></div>
@@ -56,7 +56,9 @@
           <li class="active"><span>01</span><div><small>ISSUE</small><strong>Parser crashes on None</strong></div></li>
           <li><span>02</span><div><small>ACTION</small><strong>search_code("parse_value")</strong></div></li>
           <li><span>03</span><div><small>OBSERVATION</small><strong>src/tiny_parser.py:2</strong></div></li>
-          <li class="waiting"><span>04</span><div><small>NEXT CAPABILITY</small><strong>Editing is not built yet</strong></div></li>
+          <li><span>04</span><div><small>PATCH</small><strong>apply_patch +2 -0</strong></div></li>
+          <li><span>05</span><div><small>TEST</small><strong>python-unittest · exit 0</strong></div></li>
+          <li class="waiting"><span>06</span><div><small>FINAL</small><strong>Sandboxed proof and diff ready</strong></div></li>
         </ol>
         <p>The trace separates what the model proposes from what the runtime actually allowed and observed.</p>
       </aside>
@@ -95,11 +97,11 @@
       <div class="section-heading compact">
         <p class="eyebrow">Lesson 02 · Tool contracts</p>
         <h2>Give the model eyes before hands.</h2>
-        <p>The browser simulation below mirrors the contracts implemented in Milestone 003. It does not touch your filesystem.</p>
+        <p>The browser simulation below mirrors the six capabilities now bound to a disposable engineering workspace. It does not touch your filesystem or run tests.</p>
       </div>
 
       <div class="tool-console">
-        <div class="tool-tabs" id="toolTabs" role="tablist" aria-label="Read-only tools"></div>
+        <div class="tool-tabs" id="toolTabs" role="tablist" aria-label="Workspace tools"></div>
         <div class="tool-command">
           <div>
             <span id="toolMode">SAFE REQUEST</span>
@@ -131,7 +133,7 @@
         <article><span class="boundary-symbol">•••</span><h3>Secret path</h3><p><code>.env</code>, keys, credentials, model artifacts, and VCS internals never become observations.</p></article>
         <article><span class="boundary-symbol">…</span><h3>Truncation</h3><p>A bounded result may be incomplete. The agent must narrow its next action instead of pretending it saw everything.</p></article>
       </div>
-      <p class="deep-note">Read-only is a permission category, not a safety proof. A read can leak credentials, consume memory, inject hostile repository text into context, or cause an external Git helper to execute. Each tool therefore needs a semantic contract beyond “it does not write.”</p>
+      <p class="deep-note">A capability label is not a safety proof. Reads can leak data or inject hostile text; patches can exceed their intended scope; tests can become process, filesystem, or network escapes. Every tool therefore needs its own semantic contract and limits.</p>
       <button class="lesson-complete" type="button" data-complete="tools"><span>+</span> Mark lesson complete</button>
     </section>
 
@@ -139,7 +141,7 @@
       <div class="section-heading">
         <p class="eyebrow">Lesson 03 · Agent loop</p>
         <h2>Watch evidence change the next decision.</h2>
-        <p>Step through LocalCode’s architecture. One validated read-only turn is now implemented; multiple turns, editing, tests, and review remain planned capabilities.</p>
+        <p>Step through LocalCode’s architecture. The runtime can inspect, patch, run one named sandboxed test command, inspect the diff, retry, and terminate. The multi-turn Ollama transport contract passes with fake responses, and the experiment layer now includes a deterministic reviewer. Real Qwen execution is still blocked by host swap pressure.</p>
       </div>
 
       <div class="loop-workbench">
@@ -185,9 +187,9 @@
         <div class="configuration-selector" id="configurationSelector" role="tablist" aria-label="Benchmark configurations"></div>
         <article class="configuration-detail" id="configurationDetail"></article>
         <div class="score-hypothesis">
-          <span>REGISTERED HYPOTHESIS · NOT A PROMISE</span>
+          <span>OBSERVED MICRO-SUITE RESULT</span>
           <div class="score-bars" id="scoreBars"></div>
-          <p>If the real result is <code>0 → 1 → 2 → 2</code>, that is still valid evidence. We never swap hard tasks to manufacture the hoped-for curve.</p>
+          <p>The measured ladder was <code>7 → 8 → 8 → 8</code>. The only paired gain was <code>ratio-retry</code> from B0 to A1; A1→A2 and A2→A3 were solved-both across all eight cases.</p>
         </div>
       </div>
 
@@ -257,12 +259,12 @@
     </section>
 
     <section class="next-mission">
-      <div><span>CURRENT RUNTIME MILESTONE</span><strong>005</strong></div>
+      <div><span>CURRENT RUNTIME MILESTONE</span><strong>008</strong></div>
       <div>
-        <h2>One safe action, with a guarded path to the real model.</h2>
-        <p>The fake backend crosses the same strict validator and tool registry a local model will use. The smoke preflight now blocks inference unless swap is zero and Ollama has no loaded model. The actual Qwen3.5 result still waits for a clean restart chosen by the learner.</p>
-        <code>capture baseline → permit or stop → validate exactly → execute at most one read-only tool</code>
-        <p>Hands-on guide: <code>docs/MILESTONE_005_LESSON.md</code></p>
+        <h2>The first retrieval context treatment.</h2>
+        <p>Trusted Python now maps a repository, ranks source/test excerpts, excludes the issue file from selected evidence, measures relevant changed-file recall, and can inject the bounded pack into the loop through an explicit context compiler. The current retrieval evidence is 9/9 expected changed paths recalled, while the observed micro-suite solve ladder stayed flat at A1 8/8 and A2 8/8.</p>
+        <code>issue → repo map → ranked excerpts → loop context</code>
+        <p>Hands-on guide: <code>docs/MILESTONE_008_LESSON.md</code></p>
       </div>
       <a href="#top">Return to briefing ↑</a>
     </section>

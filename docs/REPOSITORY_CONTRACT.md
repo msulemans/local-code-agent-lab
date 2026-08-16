@@ -1,14 +1,15 @@
 # Repository contract
 
-This milestone establishes boundaries, not an agent.
+This repository now contains a bounded offline coding-agent runtime. The trust
+boundaries below remain the foundation for every newer capability.
 
 ## Trusted and untrusted areas
 
 | Path | Role | Trust rule |
 |---|---|---|
 | `src/localcode/` | LocalCode runtime source | Trusted implementation, reviewed and tested here |
-| `tests/unit/` | Deterministic contract tests | Trusted tests; no network, model, shell, or repository execution |
-| `tests/fixtures/micro_repos/` | Repositories the future agent will inspect | Untrusted data even though we authored the first fixture |
+| `tests/unit/` | Deterministic contract tests | Trusted tests; model calls are fake and process behavior is explicitly constrained |
+| `tests/fixtures/micro_repos/` | Repositories the agent inspects and repairs | Untrusted data even though we authored the fixtures; source copies must remain unchanged |
 | `configs/` | Versioned runtime configuration | Trusted only after strict parsing and validation |
 | `runs/` | Immutable local event traces and artifacts | Ignored; never used as source instructions |
 | `models/`, `checkpoints/`, `adapters/` | Local weight artifacts | Ignored; identity and hashes belong in manifests |
@@ -18,24 +19,38 @@ Repository files and issue descriptions presented to the future model are
 untrusted content. They may describe actions, but they cannot grant permission
 or change runtime policy.
 
-## What exists after Milestone 002
+## What exists now
 
 - a strict standard-library JSON configuration loader;
 - a versioned immutable event value object with JSON round-tripping;
-- one deliberately failing parser fixture for future tool tests; and
-- unit tests for the configuration and event contracts.
+- four bounded read-only repository tools;
+- a strict action and loop-decision protocol;
+- a finite multi-turn controller with explicit budgets and termination reasons;
+- disposable Git workspaces that copy only allowed regular files;
+- strict unified-diff application to existing tracked UTF-8 files;
+- one named Python test command with timeout, output, environment, process, and
+  macOS sandbox limits;
+- a six-tool engineering registry and completion rules requiring a current
+  passing test result; and
+- eight complete deterministic repairs driven by fake model decisions,
+  including failed-test observation, patch revision, and multi-file editing.
 
-## What deliberately does not exist
+## What deliberately does not exist yet
 
-- model loading or inference;
-- file search, reading, editing, Git, test, or terminal tools;
-- subprocess or network execution;
-- an agent controller or retry loop;
+- a passing real-model integration run;
+- an unrestricted terminal or arbitrary model-selected command;
+- network access from repository tests;
+- file creation, deletion, rename, mode change, or binary patch support;
+- a fresh independent reviewer;
 - a benchmark adapter; or
-- a terminal UI.
+- real-model benchmark scoring.
 
-Keeping these absent makes failures local: if this milestone fails, the cause
-is basic repository/schema design rather than model behavior.
+Keeping these absent preserves attribution: offline controller and safety
+failures remain distinct from local-model quality and benchmark resolution.
+
+The terminal UI shell is present, but it is not a capability boundary. It
+subscribes to structured events and observations only. It must not dispatch
+tools, retry actions, approve completion, or alter benchmark evidence.
 
 ## Verification
 

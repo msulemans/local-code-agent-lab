@@ -25,8 +25,8 @@ const anatomy = [
     id: "controller",
     label: "Run controller",
     role: "Trusted state machine",
-    summary: "The current controller accepts exactly one model response and dispatches at most one validated read-only tool. Later milestones add budgets, repeated-action detection, multiple turns, and termination rules. It—not the model—decides what actually runs.",
-    owns: "Today: one backend call, validation, one tool dispatch, and events. Later: the full loop.",
+    summary: "The current controller validates multiple decisions, dispatches one bounded tool per turn, tracks budgets and repeated actions, and enforces completion evidence. It—not the model—decides what actually runs.",
+    owns: "State, budgets, validated dispatch, current patch/test evidence, events, and termination.",
     never: "Inventing repository evidence or letting the loop run forever.",
     example: "INSPECTING → EDITING → VERIFYING → COMPLETED",
   },
@@ -76,6 +76,15 @@ const anatomy = [
     example: "schema_version + run_id + sequence + observation + budgets",
   },
   {
+    id: "tui",
+    label: "Terminal UI",
+    role: "Presentation-only event view",
+    summary: "The terminal UI subscribes to immutable events and observations and renders progress for a human. It does not validate actions, execute tools, decide retries, or declare success.",
+    owns: "Readable phase labels, bounded previews, diff/test stats, and final run display.",
+    never: "Tool dispatch, patch decisions, policy, hidden reasoning, or benchmark scoring.",
+    example: "LoopObserver.on_event(event) → display line",
+  },
+  {
     id: "evaluator",
     label: "Evaluator",
     role: "Independent judge",
@@ -116,8 +125,24 @@ const tools = [
     title: "Inspect the tracked patch",
     description: "Returns a staged or unstaged tracked diff after filtering changed filenames. External diff and text-conversion helpers are disabled.",
     call: 'git_diff(path=".", staged=false, max_bytes=65536)',
-    output: "[empty]\nThe lab has no tracked baseline commit yet.\nTemporary committed fixtures prove safe diff behavior.",
+    output: "diff --git a/src/tiny_parser.py b/src/tiny_parser.py\n+    if text is None:\n+        return \"\"",
     limits: [["Output", "≤ 65,536 bytes"], ["Timeout", "10 seconds"], ["Untracked", "Not included"]],
+  },
+  {
+    id: "apply_patch",
+    title: "Change tracked text safely",
+    description: "Validates one strict unified diff and applies it only to existing tracked UTF-8 files in a disposable workspace. It rejects creation, deletion, rename, binary, secret, symlink, and oversized changes.",
+    call: 'apply_patch(patch="diff --git ...")',
+    output: "Applied patch to src/tiny_parser.py\nfile_count=1 · added_lines=2 · removed_lines=0",
+    limits: [["Patch", "≤ 65,536 bytes"], ["Files", "≤ 8"], ["Changed lines", "≤ 400"]],
+  },
+  {
+    id: "run_tests",
+    title: "Execute one registered test",
+    description: "Maps a trusted command name to an exact argument tuple and runs it with timeout, output, process-group, environment, filesystem, and network constraints.",
+    call: 'run_tests(command_name="python-unittest", timeout_seconds=30)',
+    output: "Ran 3 tests in 0.001s\nOK\nexit_code=0 · sandboxed=true",
+    limits: [["Commands", "Registered names only"], ["Timeout", "≤ 120 seconds"], ["Output", "≤ 65,536 bytes"]],
   },
 ];
 
@@ -160,38 +185,38 @@ const loopSteps = [
   {
     state: "EDITING",
     title: "Apply a guarded patch",
-    body: "A future apply_patch tool will validate a unified diff, reject path escape and excessive scope, and apply only inside a disposable workspace.",
+    body: "apply_patch validates a strict unified diff, rejects path escape and excessive scope, and changes only tracked UTF-8 files inside a disposable Git workspace.",
     hypothesis: "Return an empty string when text is None; preserve strip otherwise.",
     next: "Compile or run the narrowest relevant test.",
-    capability: "planned",
-    event: { event_type: "planned_action", state: "editing", summary: "apply_patch is not implemented in Milestone 003.", budgets_remaining: { steps: 8, tokens: 2980 } },
+    capability: "available",
+    event: { event_type: "tool_result", state: "editing", summary: "Guarded patch applied to one tracked file; +2 -0.", budgets_remaining: { steps: 8, tokens: 2980 } },
   },
   {
     state: "VERIFYING",
     title: "Run targeted tests",
-    body: "A constrained test tool will use an approved command, timeout, isolated process, and bounded output. Exit code and exact command become evidence.",
+    body: "run_tests selects a registered command name, then enforces a timeout, process-group kill, bounded output, minimal environment, and a macOS sandbox that denies network, child processes, workspace writes, and reads outside approved roots.",
     hypothesis: "The None regression should pass without harming trimming.",
     next: "Interpret the failure or broaden verification.",
-    capability: "planned",
-    event: { event_type: "planned_action", state: "verifying", summary: "run_tests is not implemented in Milestone 003.", budgets_remaining: { steps: 6, tokens: 2350 } },
+    capability: "available",
+    event: { event_type: "tool_result", state: "verifying", summary: "python-unittest exited 0 inside the registered sandbox.", budgets_remaining: { steps: 6, tokens: 2350 } },
   },
   {
     state: "REVIEWING",
     title: "Review the patch",
-    body: "A fresh reviewer sees the issue, current diff, and test evidence. It may accept, request one bounded revision, or reject.",
+    body: "git_diff exposes the bounded working-tree patch. The experiment layer now adds a deterministic fresh reviewer that sees issue, diff, and test evidence and may accept, request one bounded revision, or reject.",
     hypothesis: "The patch is narrow, tested, and matches the issue.",
-    next: "Return a final diff or one revision request.",
-    capability: "planned",
-    event: { event_type: "planned_action", state: "reviewing", summary: "Reviewer treatment is reserved for the final benchmark configuration.", budgets_remaining: { steps: 3, tokens: 1180 } },
+    next: "Return a final diff or, in A3, obey one bounded revision request.",
+    capability: "available",
+    event: { event_type: "tool_result", state: "reviewing", summary: "Tool git_diff completed; A3 review may inspect diff and test evidence.", budgets_remaining: { steps: 3, tokens: 1180 } },
   },
   {
     state: "COMPLETED",
     title: "Hand off evidence",
-    body: "The final answer reports changed files, exact tests, limitations, and a reviewable Git diff. The independent evaluator—not the agent—decides benchmark resolution.",
+    body: "Trusted completion rules reject a final answer until a patch exists and the current patch has a passing registered test result. A later patch invalidates that result and requires another test run.",
     hypothesis: "The requested behavior is implemented under the recorded test contract.",
     next: "Submit only the patch to the evaluator.",
-    capability: "planned",
-    event: { event_type: "run_completed", state: "completed", summary: "Patch ready for independent evaluation.", budgets_remaining: { steps: 2, tokens: 640 } },
+    capability: "available",
+    event: { event_type: "final_answer", state: "completed", summary: "Current patch has passing test evidence; diff ready for evaluation.", budgets_remaining: { steps: 2, tokens: 640 } },
   },
 ];
 
@@ -232,17 +257,57 @@ const milestones = [
     id: "005",
     state: "Offline gate passed",
     title: "Protocol and one-turn controller",
-    story: "A fake Ollama-shaped response now crosses the local backend adapter, strict validator, exact registry, and one real read-only fixture tool. A separate preflight blocks inference unless swap is zero and Ollama has no loaded model.",
-    evidence: "69 tests passed · complete fake-Ollama bridge · blocked baselines make zero chat requests · deterministic trace",
+    story: "A fake Ollama-shaped response now crosses the local backend adapter, strict validator, exact registry, and one real read-only fixture tool. Preflight blocks unsafe inference, while an atomic recorder preserves every CLI outcome in a unique run directory.",
+    evidence: "82 tests passed · blocked baselines make zero chat requests · five CLI outcomes recorded · deterministic trace",
     decision: "The guarded smoke command exists, but keep the real Qwen3.5 run deferred until a clean restart. Do not mistake fake-client proof for model compatibility.",
+  },
+  {
+    id: "006",
+    state: "Offline gate passed",
+    title: "Bounded read-only agent loop",
+    story: "The controller can now search, read, observe, and ask for another turn until it returns a final answer or trusted Python reaches an explicit termination condition.",
+    evidence: "94 tests passed · 7 termination reasons · bounded JSON context · repeated action blocked before re-execution",
+    decision: "Continue separating offline loop correctness from real-model compatibility. Editing and repository test execution remain unavailable until Milestone 007.",
+  },
+  {
+    id: "007",
+    state: "Offline gate passed · real smoke ready",
+    title: "Guarded editing and sandboxed tests",
+    story: "Eight deterministic fake coding backends drive the complete runtime through inspection, patching, sandboxed tests, diff review, live TUI rendering, and final answers. The repair-level Ollama harness now adds a clean-host gate, resource checks around every inference, trusted final-diff capture, and immutable run evidence.",
+    evidence: "162 unit tests passed with 7 sandbox skips · micro suite 8/8 retained · headless/TUI equivalence proved · fake Ollama repairs a disposable copy · source fixtures unchanged",
+    decision: "The machinery and TUI shell are ready, but 3612.62 MiB of current retained swap blocks Qwen before chat. Continue offline work; run the model only from a zero-swap baseline.",
+  },
+  {
+    id: "007T",
+    state: "Brought-forward shell passed",
+    title: "Terminal UI shell",
+    story: "LocalCode now exposes a LoopObserver hook and a dependency-free terminal renderer. The live stream receives events and observations from the same loop as headless mode, then displays phase, patch, test, diff, and completion evidence.",
+    evidence: "observer isolation tests · live terminal renderer tests · exact headless/TUI result and diff equality",
+    decision: "Use the shell for learning and demos. Milestone 012's larger failure explorer, run comparison, and reproduction guide remain later work.",
+  },
+  {
+    id: "008",
+    state: "First slice passed",
+    title: "Retrieval treatment",
+    story: "Trusted Python now builds a deterministic repository map, ranks source/test excerpts, excludes the issue file from selected evidence, measures relevant changed-file recall, and can inject the bounded pack into the loop through an explicit retrieval context compiler.",
+    evidence: "4 retrieval tests + 3 context tests passed · 9/9 expected changed paths recalled · parser context 1947 chars · A1 8/8 and A2 8/8 on the micro suite",
+    decision: "Retrieval is implemented and compared, but on the current eight-case micro suite it matched the simple agent rather than increasing solved count.",
+  },
+  {
+    id: "009",
+    state: "Harness controls passed · agent producer pending",
+    title: "Real SWE-bench evaluation boundary",
+    story: "LocalCode now freezes 20 real SWE-bench Verified IDs, exact base commits, a repository cap, fairness controls, official prediction JSONL, and an evaluator adapter. The gold control resolves a pinned Flask issue under Docker; the empty control resolves none.",
+    evidence: "20 pinned instances · empty control 0/20 for B0/A1/A2/A3 · gold Flask B0 1/1 · 166+ unit tests plus adapter coverage",
+    decision: "Do not claim real B0/A1/A2/A3 solve rates yet. The next engineering step is a patch producer that runs the LocalCode loop against disposable real repositories and feeds its diffs into this evaluator.",
   },
 ];
 
 const configurations = [
-  { id: "B0", label: "Single-shot base", score: 0, change: "No tools or retry", body: "The fixed local model sees the issue and a bounded repository map, then gets one chance to return a patch. This is the untreated control." },
-  { id: "A1", label: "Simple agent", score: 3, change: "+ tool loop", body: "The same model can list, search, read, edit, test, observe failures, and retry under a fixed total budget." },
-  { id: "A2", label: "Retrieval agent", score: 7, change: "+ ranked context", body: "A1 gains deliberate repository mapping, symbol/caller/test proximity, deduplication, and context allocation. The model and total budget stay fixed." },
-  { id: "A3", label: "Agent + review", score: 9, change: "+ fresh critique", body: "A2 gains a fresh reviewer that sees issue, diff, and test evidence. It may request at most one bounded revision." },
+  { id: "B0", label: "Single-shot base", score: 7, change: "No tools or retry", body: "The fixed local model sees the issue and a bounded repository map, then gets one chance to return a patch. On the current micro suite this solved 7/8 and missed only ratio-retry." },
+  { id: "A1", label: "Simple agent", score: 8, change: "+ tool loop", body: "The same model can list, search, read, edit, test, observe failures, and retry under a fixed total budget. The added loop recovered the ratio-retry case and reached 8/8." },
+  { id: "A2", label: "Retrieval agent", score: 8, change: "+ ranked context", body: "A1 gains deliberate repository mapping, symbol/caller/test proximity, deduplication, and context allocation. On the current eight-case suite this matched A1 at 8/8." },
+  { id: "A3", label: "Agent + review", score: 8, change: "+ fresh critique", body: "A2 gains a fresh reviewer that sees issue, diff, and test evidence. On the current suite every A3 review accepted the A2 result, so solved count remained 8/8." },
 ];
 
 const fairnessControls = [
@@ -257,6 +322,13 @@ const fairnessControls = [
 ];
 
 const failures = [
+  {
+    type: "experiment",
+    title: "The model is unloaded, but swap is still dirty",
+    symptom: "ollama ps is empty while vm.swapusage still reports 3612.62 MiB used.",
+    diagnosis: "Stopping Ollama unloads the process; it does not guarantee that macOS immediately discards swapped pages. A later run could inherit that history.",
+    lesson: "An empty process list and healthy-looking free memory are separate signals. The real repair gate requires zero initial swap, then measures growth around every inference.",
+  },
   {
     type: "protocol",
     title: "Model text is not automatically a tool call",
@@ -280,10 +352,24 @@ const failures = [
   },
   {
     type: "security",
+    title: "A UI can accidentally become a second controller",
+    symptom: "A terminal panel wants to mark success, retry a failed action, or call a tool directly because it has better-looking state.",
+    diagnosis: "Presentation logic then changes agent behavior, so headless and TUI runs no longer prove the same system.",
+    lesson: "The TUI must consume immutable events and observations only. The loop remains the single owner of validation, dispatch, budgets, retries, and completion.",
+  },
+  {
+    type: "security",
     title: "Read-only can still disclose credentials",
     symptom: "A generic file reader could return .env, private keys, Git internals, or credential directories.",
     diagnosis: "“Does not write” says nothing about confidentiality, context poisoning, or excessive output.",
     lesson: "Every semantic tool needs path exclusions, size limits, symlink rules, and explicit failure codes.",
+  },
+  {
+    type: "reasoning",
+    title: "Retrieval looked like solving because it knew expected paths",
+    symptom: "A retrieval test reports all expected changed files, so it is tempting to claim the agent improved.",
+    diagnosis: "Expected paths are evaluator-side development labels used only to measure recall. They are not supplied to the model context.",
+    lesson: "Report relevant-file recall as a retrieval metric. Do not report it as a patch success, Qwen capability, or benchmark resolution.",
   },
   {
     type: "reasoning",
@@ -317,9 +403,12 @@ const flashcards = [
   ["What does truncated=true mean?", "The returned observation is incomplete because a safety or context limit was reached. The agent should narrow its next request rather than infer that unseen evidence does not exist."],
   ["Why is a passing targeted test not automatically enough?", "It proves only that command under that environment. The required broader evaluator may contain regression or issue-specific tests that still fail."],
   ["What is retrieval in this project?", "A controlled method for choosing the most relevant repository map, symbols, callers, tests, and excerpts under a fixed context budget. It is not simply adding more files."],
+  ["What does relevant-file recall measure?", "Whether the retrieval pack included the files that the trusted development manifest says should change, under a fixed evidence budget. It does not say the model can produce the patch."],
+  ["What is a retrieval context treatment?", "A configured context compiler that adds bounded retrieved evidence to the same loop while preserving the model, tools, budgets, and edit policy for comparison."],
   ["Who decides whether a SWE-bench issue is resolved?", "The independent SWE-bench evaluator after applying the final model patch and running required tests in its container—not the agent’s final message."],
   ["Why compare B0, A1, A2, and A3 on the same issues?", "Holding model, tasks, and budgets fixed lets us attribute paired outcome changes to the loop, retrieval, or review rather than to an easier subset or more compute."],
   ["What makes this more than an API wrapper?", "We own the controller, tool schemas, validation, context assembly, safety policy, event history, budgets, retry logic, evaluation integration, and UI. The model backend supplies only local token generation."],
+  ["Why is the terminal UI just an observer?", "A UI should explain the run, not change it. If presentation code can call tools, retry actions, or decide success, the headless result and TUI result no longer measure the same runtime."],
 ];
 
 const quiz = [
@@ -342,10 +431,10 @@ const quiz = [
     why: "The model proposes; the validator and policy decide whether execution is permitted.",
   },
   {
-    q: "What has LocalCode actually implemented in the offline part of Milestone 005?",
-    options: ["A full autonomous agent", "A strict one-turn controller over four bounded read-only tools", "Editing and test retries", "SWE-bench resolution"],
+    q: "What does LocalCode's Milestone 005 proof establish?",
+    options: ["A full autonomous agent", "A strict one-turn controller over four bounded read-only tools", "A Qwen repair score", "SWE-bench resolution"],
     answer: 1,
-    why: "The validator, exact registry, one backend call, one tool call, observations, and deterministic events are real. Multi-turn retries, editing, test execution, and the Qwen3.5 smoke remain pending.",
+    why: "That proof owns one validated proposal and at most one read-only tool call. Later milestones add loops and editing, but they do not retroactively turn the one-turn proof into real-Qwen evidence.",
   },
   {
     q: "Why is qwen2.5-coder:1.5b-base not selected automatically?",
@@ -371,6 +460,18 @@ const quiz = [
     answer: 2,
     why: "Gold and evaluator-only test material must remain outside agent context or the benchmark is contaminated.",
   },
+  {
+    q: "Why must the TUI consume events instead of calling tools directly?",
+    options: ["It makes colors easier", "It keeps presentation from changing agent semantics", "Only browsers can call tools", "It hides failed actions"],
+    answer: 1,
+    why: "The loop owns validation, dispatch, retries, budgets, and completion. The UI can render the trace, but it must not become a second controller.",
+  },
+  {
+    q: "Milestone 008 reports 9/9 relevant-file recall. What may we claim?",
+    options: ["Qwen solved 9 files", "Retrieval selected expected changed files under the fixed micro-suite budget", "SWE-bench is ready", "The reviewer is implemented"],
+    answer: 1,
+    why: "Expected paths are trusted development labels for measuring evidence selection. They are not a model patch, solve score, or benchmark result.",
+  },
 ];
 
 const glossary = [
@@ -394,6 +495,7 @@ const glossary = [
   ["Model backend", "The replaceable local inference adapter responsible for tokenization and generation—not tools, policy, retries, or evaluation."],
   ["Mixture of experts", "A model architecture that stores many parameter groups but activates only some per token. Low active parameters can reduce compute, but all quantized weights still consume storage and memory."],
   ["Observation", "A bounded factual result returned after an allowed action, such as file lines, search matches, a test result, or a diff."],
+  ["Observer", "Presentation or logging code that receives immutable events and observations after trusted runtime code has recorded them."],
   ["Patch", "The proposed file changes produced by the agent. An evaluator can apply the patch without receiving the agent’s private trace."],
   ["Prompt injection", "Untrusted text that tries to override higher-priority runtime instructions or persuade the agent to perform unsafe actions."],
   ["Quantization", "Representing model weights with fewer bits to reduce memory and often increase local inference speed, with possible quality tradeoffs."],
@@ -401,6 +503,7 @@ const glossary = [
   ["Repository policy", "The shared rules for allowed paths, excluded secrets/artifacts, symlinks, sizes, and output bounds."],
   ["Resolved", "The benchmark evaluator’s verdict that a submitted patch satisfies the required issue tests without prohibited regressions."],
   ["Retrieval", "Selecting the most useful repository evidence under a fixed context budget using maps, symbols, callers, tests, and ranking."],
+  ["Relevant-file recall", "A retrieval development metric: expected changed files selected divided by expected changed files, under a fixed evidence budget."],
   ["Reviewer", "A fresh critique pass that sees the issue, current patch, and test evidence and may accept, reject, or request one bounded revision."],
   ["Run trace", "The ordered collection of structured events and artifact references that explains what the agent observed and did."],
   ["Sandbox", "A restricted execution boundary that limits filesystem, devices, network, credentials, or processes. Its visibility may differ from the host."],
@@ -409,7 +512,8 @@ const glossary = [
   ["Termination condition", "An explicit rule that stops a run for success, safe failure, blocked evaluation, repeated behavior, or exhausted budget."],
   ["Test patch", "Evaluator-only tests added to check the requested behavior. It must not be exposed to the scored agent."],
   ["Tool", "A narrow runtime capability with named arguments, validation, limits, execution semantics, and a bounded result."],
-  ["ToolResult", "LocalCode’s immutable read-only observation containing text content, a truncation flag, and scalar metadata."],
+  ["ToolResult", "LocalCode’s immutable bounded observation containing text content, a truncation flag, and scalar metadata."],
+  ["TUI", "A terminal user interface. In LocalCode it is a live view over the same event stream used by headless mode, not a place where tools or success rules live."],
   ["Truncation", "A structural signal that an observation stopped at a configured file, byte, line, result, or context limit."],
   ["Workspace", "A disposable repository copy or worktree where a run may safely inspect and later modify files without touching the user’s primary checkout."],
 ];
@@ -665,7 +769,7 @@ function selectConfiguration(id) {
 selectConfiguration("B0");
 
 document.querySelector("#scoreBars").innerHTML = configurations.map((configuration) => `
-  <div class="score-bar"><div><i style="--height:${Math.max(3, configuration.score * 9)}%"></i><strong>${configuration.score}/20</strong></div><span>${configuration.id} · ${configuration.label}</span></div>`).join("");
+  <div class="score-bar"><div><i style="--height:${Math.max(3, (configuration.score / 8) * 100)}%"></i><strong>${configuration.score}/8</strong></div><span>${configuration.id} · ${configuration.label}</span></div>`).join("");
 
 const fairnessChecklist = document.querySelector("#fairnessChecklist");
 fairnessChecklist.innerHTML = fairnessControls.map((control, index) => `<label><input type="checkbox" data-control="${index}"><span>${control}</span></label>`).join("");

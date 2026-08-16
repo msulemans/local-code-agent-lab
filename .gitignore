@@ -6,6 +6,7 @@
 *.key
 
 .venv/
+.venv-*/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -37,4 +38,5 @@ data/processed/*
 
 # External benchmark outputs are reproducible local evidence.
 evaluation_results/
+localcode__*.json
 logs/
