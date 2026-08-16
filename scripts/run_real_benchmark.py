@@ -7,6 +7,7 @@ import argparse
 from dataclasses import replace
 import json
 from pathlib import Path
+import sys
 
 from localcode.real_benchmark import (
     EvaluationInstanceResult,
@@ -26,6 +27,14 @@ from localcode.real_benchmark_adapters import (
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "benchmarks/real_benchmark/manifest_v1.json"
+
+
+def _tui_factory(configuration, issue, phase: str):
+    """Build one threaded terminal renderer per loop phase (presentation only)."""
+    from localcode.tui import TerminalEventStream, TerminalRenderer
+
+    renderer = TerminalRenderer(sys.stdout)
+    return TerminalEventStream(renderer)
 
 
 def main() -> int:
@@ -99,6 +108,12 @@ def main() -> int:
         default="off",
         help="Ollama reasoning mode; use medium for gpt-oss",
     )
+    parser.add_argument(
+        "--tui",
+        action="store_true",
+        default=False,
+        help="render each agent and review phase live through the terminal UI",
+    )
     arguments = parser.parse_args()
 
     progress_observer = (
@@ -145,6 +160,7 @@ def main() -> int:
             max_context_chars=arguments.max_context_chars,
             keep_alive=arguments.keep_alive,
             think=False if arguments.thinking == "off" else arguments.thinking,
+            observer_factory=_tui_factory if arguments.tui else None,
         )
     else:
         producer = DatasetControlPatchProducer(

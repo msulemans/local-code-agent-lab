@@ -139,6 +139,48 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         self.assertEqual(preflight_calls["count"], 1)
         self.assertEqual(snapshot_calls["count"], 2)
 
+    def test_producer_invokes_observer_factory_for_the_agent_phase(self) -> None:
+        issue = RealBenchmarkIssue(
+            "owner__repo-1",
+            "owner/repo",
+            "1234567890abcdef1234567890abcdef12345678",
+            "Fix the parser.",
+        )
+        configuration = RealBenchmarkConfiguration(
+            "A2", "Retrieval agent", "+ ranked repository context", "retrieval_agent", "implemented"
+        )
+        phases = []
+
+        def factory(_configuration, issue_arg, phase):
+            phases.append((phase, issue_arg.instance_id))
+            return None
+
+        class FakeResources:
+            swap_used_bytes = 0
+            memory_free_percent = 80
+
+        with (
+            patch("localcode.preflight.validate_smoke_baseline", return_value=None),
+            patch("localcode.preflight.parse_host_resource_snapshot", return_value=FakeResources()),
+            patch("localcode.smoke._run_host_command", return_value=""),
+            patch("localcode.compatibility.OllamaClient"),
+            patch(
+                "localcode.real_benchmark_adapters._clone_at_commit",
+                side_effect=RealBenchmarkError("no network"),
+            ),
+        ):
+            producer = LocalCodePatchProducer(
+                model="m",
+                tool_document={},
+                allow_retained_swap=True,
+                observer_factory=factory,
+            )
+            with self.assertRaises(RealBenchmarkError):
+                producer.produce(configuration, issue)
+
+        # The --tui stream is requested per instance before any setup work.
+        self.assertEqual(phases, [("agent", "owner__repo-1")])
+
     def test_review_issue_text_embeds_issue_and_bounded_diff(self) -> None:
         text = _review_issue_text(
             "Fix the parser.",

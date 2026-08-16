@@ -13,7 +13,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import time
-from typing import Any
+from typing import Any, Callable
 
 from .real_benchmark import (
     EvaluationInstanceResult,
@@ -50,6 +50,7 @@ class LocalCodePatchProducer:
         allow_retained_swap: bool = False,
         keep_alive: int = 300,
         think: bool | str = False,
+        observer_factory: Callable[[RealBenchmarkConfiguration, RealBenchmarkIssue, str], object | None] | None = None,
     ) -> None:
         self.model = model
         self.tool_document = tool_document
@@ -62,6 +63,7 @@ class LocalCodePatchProducer:
         self.allow_retained_swap = allow_retained_swap
         self.keep_alive = keep_alive
         self.think = think
+        self.observer_factory = observer_factory
         self._preflight_ok = False
         self._client = None
 
@@ -86,6 +88,9 @@ class LocalCodePatchProducer:
 
         if self.only_instance_id is not None and issue.instance_id != self.only_instance_id:
             return _empty_attempt(issue, self.model, "producer scope excludes this instance")
+        agent_observer = (
+            self.observer_factory(configuration, issue, "agent") if self.observer_factory else None
+        )
         started = time.monotonic()
         if self._client is None:
             self._client = OllamaClient()
@@ -147,6 +152,11 @@ class LocalCodePatchProducer:
                 compiler = RetrievalContextCompiler(workspace.root, max_files=6)
             else:
                 compiler = SimpleContextCompiler()
+            if agent_observer is not None and hasattr(agent_observer, "start"):
+                agent_observer.start(
+                    run_id=f"real-{issue.instance_id}",
+                    issue=issue.problem_statement,
+                )
             result = AgentLoop(
                 backend,
                 validator,
@@ -175,8 +185,11 @@ class LocalCodePatchProducer:
                     require_test_execution=True,
                 ),
                 context_compiler=compiler,
+                observer=agent_observer,
             ).run(run_id=f"real-{issue.instance_id}", issue=issue.problem_statement)
             diff = git_diff(workspace.root)
+            if agent_observer is not None and hasattr(agent_observer, "finish"):
+                agent_observer.finish(result, final_diff=diff.content or "")
             review_tokens = 0
             review_tool_calls = 0
             if (
@@ -202,8 +215,18 @@ class LocalCodePatchProducer:
                     command_runner=_run_host_command,
                     observer=lambda _snapshot: None,
                 )
+                review_observer = (
+                    self.observer_factory(configuration, issue, "review")
+                    if self.observer_factory
+                    else None
+                )
                 review_result = None
                 try:
+                    if review_observer is not None and hasattr(review_observer, "start"):
+                        review_observer.start(
+                            run_id=f"real-{issue.instance_id}-review",
+                            issue=issue.problem_statement,
+                        )
                     review_result = AgentLoop(
                         review_guarded,
                         validator,
@@ -227,6 +250,7 @@ class LocalCodePatchProducer:
                             require_test_execution=True,
                         ),
                         context_compiler=compiler,
+                        observer=review_observer,
                     ).run(
                         run_id=f"real-{issue.instance_id}-review",
                         issue=_review_issue_text(issue.problem_statement, diff.content),
@@ -238,6 +262,9 @@ class LocalCodePatchProducer:
                     review_tokens = review_backend.generated_tokens
                     review_tool_calls = review_result.tool_calls_used
                     diff = _final_patch(diff, git_diff(workspace.root))
+                if review_observer is not None and hasattr(review_observer, "finish"):
+                    if review_result is not None:
+                        review_observer.finish(review_result, final_diff=diff.content or "")
         patch = diff.content if not diff.truncated else ""
         produced = (
             bool(patch)
