@@ -65,6 +65,43 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(set(pack.selected_paths), {"src/app.py", "tests/test_app.py"})
         self.assertLessEqual(len(pack.to_context()), 2_000)
 
+    def test_symbol_definition_and_named_test_beat_frequent_usage(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="localcode-retrieval-symbol-") as temporary:
+            root = Path(temporary)
+            (root / "src/flask").mkdir(parents=True)
+            (root / "tests").mkdir()
+            (root / "src/flask/app.py").write_text(
+                "\n".join(f"blueprint_{index} = Blueprint('name')" for index in range(80)) + "\n",
+                encoding="utf-8",
+            )
+            (root / "src/flask/blueprints.py").write_text(
+                "class BlueprintSetupState:\n"
+                "    def register_blueprint(self, blueprint):\n"
+                "        return blueprint.name\n"
+                + "\n".join(f"setup_{index} = BlueprintSetupState" for index in range(50))
+                + "\n\nclass Blueprint:\n"
+                "    def __init__(self, name):\n"
+                "        self.name = name\n",
+                encoding="utf-8",
+            )
+            (root / "tests/test_blueprints.py").write_text(
+                "def test_empty_blueprint_name():\n"
+                "    assert Blueprint('')\n",
+                encoding="utf-8",
+            )
+
+            pack = select_retrieval_evidence(
+                root,
+                "Require a non-empty name for Blueprints",
+                max_files=3,
+                max_total_chars=3_000,
+            )
+
+        self.assertEqual(pack.selected_paths[0], "src/flask/blueprints.py")
+        self.assertIn("tests/test_blueprints.py", pack.selected_paths)
+        self.assertIn("symbol", pack.excerpts[0].reason)
+        self.assertIn("class Blueprint:", pack.excerpts[0].content)
+
     def test_registered_micro_suite_relevant_file_recall_under_fixed_budget(self) -> None:
         suite = load_micro_suite(MANIFEST, SCHEMAS, Path("."))
         recalled = 0

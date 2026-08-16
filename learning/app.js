@@ -295,11 +295,11 @@ const milestones = [
   },
   {
     id: "009",
-    state: "Harness controls passed · agent producer pending",
+    state: "First real issue resolved · 1/1 pilot",
     title: "Real SWE-bench evaluation boundary",
-    story: "LocalCode now freezes 20 real SWE-bench Verified IDs, exact base commits, a repository cap, fairness controls, official prediction JSONL, and an evaluator adapter. The gold control resolves a pinned Flask issue under Docker; the empty control resolves none.",
-    evidence: "20 pinned instances · empty control 0/20 for B0/A1/A2/A3 · gold Flask B0 1/1 · 166+ unit tests plus adapter coverage",
-    decision: "Do not claim real B0/A1/A2/A3 solve rates yet. The next engineering step is a patch producer that runs the LocalCode loop against disposable real repositories and feeds its diffs into this evaluator.",
+    story: "The A2 producer runs the local 14B model in a disposable real Flask checkout. After symbol-anchored retrieval exposed the exact Blueprint constructor, m040 inserted the guard at construction time and the official SWE-bench evaluator resolved the issue.",
+    evidence: "m040: official evaluator resolved 1/1 attempted · 1 FAIL_TO_PASS + 59 PASS_TO_PASS tests passed · 1 valid patch · 4 tool calls · 190 unit tests pass with 7 environment skips",
+    decision: "This proves one real local-model repair, not a 20-issue score. Keep m040 as the first solved A2 pilot; next expand cautiously to a small multi-repository batch before the frozen 20.",
   },
 ];
 
@@ -392,6 +392,13 @@ const failures = [
     diagnosis: "Docker had only 7.75 GiB RAM, existing images/cache already occupied substantial storage, and ARM evaluation remains experimental.",
     lesson: "Benchmark readiness includes container architecture, memory, image budget, gold controls, and evaluator fidelity—not one host metric.",
   },
+  {
+    type: "reasoning",
+    title: "The right file still showed the wrong lifecycle point",
+    symptom: "The model patched src/flask/blueprints.py, produced a valid diff, and preserved 59 existing tests, but the new empty-name test still failed.",
+    diagnosis: "Generic issue-word matches anchored the excerpt at BlueprintSetupState before the later exact class Blueprint definition. The model therefore validated at registration instead of construction.",
+    lesson: "Retrieval has two stages: rank the right file, then expose the right symbol-level region. File recall alone does not prove useful context or a correct patch.",
+  },
 ];
 
 const flashcards = [
@@ -406,6 +413,7 @@ const flashcards = [
   ["What does relevant-file recall measure?", "Whether the retrieval pack included the files that the trusted development manifest says should change, under a fixed evidence budget. It does not say the model can produce the patch."],
   ["What is a retrieval context treatment?", "A configured context compiler that adds bounded retrieved evidence to the same loop while preserving the model, tools, budgets, and edit policy for comparison."],
   ["Who decides whether a SWE-bench issue is resolved?", "The independent SWE-bench evaluator after applying the final model patch and running required tests in its container—not the agent’s final message."],
+  ["Why can retrieval find the right file but still fail?", "File ranking and excerpt anchoring are separate. The selected file may contain several similarly named classes or lifecycle stages, so the context should prioritize the exact issue-named symbol definition."],
   ["Why compare B0, A1, A2, and A3 on the same issues?", "Holding model, tasks, and budgets fixed lets us attribute paired outcome changes to the loop, retrieval, or review rather than to an easier subset or more compute."],
   ["What makes this more than an API wrapper?", "We own the controller, tool schemas, validation, context assembly, safety policy, event history, budgets, retry logic, evaluation integration, and UI. The model backend supplies only local token generation."],
   ["Why is the terminal UI just an observer?", "A UI should explain the run, not change it. If presentation code can call tools, retry actions, or decide success, the headless result and TUI result no longer measure the same runtime."],

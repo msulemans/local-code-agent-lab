@@ -4,9 +4,14 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from localcode.real_benchmark import RealBenchmarkConfiguration, RealBenchmarkError, RealBenchmarkIssue, RealBenchmarkInstance
-from localcode.real_benchmark_adapters import DatasetControlPatchProducer, JsonDatasetIssueResolver
+from localcode.real_benchmark_adapters import (
+    DatasetControlPatchProducer,
+    JsonDatasetIssueResolver,
+    OfficialSwebenchEvaluator,
+)
 
 
 class RealBenchmarkAdapterTests(unittest.TestCase):
@@ -54,6 +59,25 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
             resolver = JsonDatasetIssueResolver(self._dataset(Path(temporary)))
             with self.assertRaises(RealBenchmarkError):
                 resolver.resolve(RealBenchmarkInstance("owner__repo-2", "owner/repo", "1234567"))
+
+    @patch("localcode.real_benchmark_adapters.platform.machine", return_value="arm64")
+    @patch("localcode.real_benchmark_adapters.platform.system", return_value="Darwin")
+    def test_evaluator_builds_locally_by_default_on_apple_arm(
+        self,
+        _system: object,
+        _machine: object,
+    ) -> None:
+        evaluator = OfficialSwebenchEvaluator(dataset_name="snapshot.jsonl")
+
+        self.assertEqual(evaluator.namespace, "none")
+
+    def test_evaluator_namespace_can_be_selected_explicitly(self) -> None:
+        evaluator = OfficialSwebenchEvaluator(
+            dataset_name="snapshot.jsonl",
+            namespace="custom-images",
+        )
+
+        self.assertEqual(evaluator.namespace, "custom-images")
 
 
 if __name__ == "__main__":

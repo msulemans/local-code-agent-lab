@@ -8,6 +8,7 @@ package enter the process.
 from __future__ import annotations
 
 import json
+import platform
 from pathlib import Path
 import subprocess
 import tempfile
@@ -279,6 +280,14 @@ class DatasetControlPatchProducer:
         )
 
 
+def _default_evaluator_namespace() -> str:
+    """Build locally when prebuilt SWE-bench images do not match Apple ARM."""
+
+    if platform.system() == "Darwin" and platform.machine().lower() in {"arm64", "aarch64"}:
+        return "none"
+    return "swebench"
+
+
 class OfficialSwebenchEvaluator(Evaluator):
     """Run the official SWE-bench harness and read its instance results."""
 
@@ -292,6 +301,7 @@ class OfficialSwebenchEvaluator(Evaluator):
         max_workers: int = 1,
         cache_level: str = "base",
         clean: bool = False,
+        namespace: str | None = None,
     ) -> None:
         if not dataset_name or not isinstance(dataset_name, str):
             raise ValueError("dataset_name must be a non-empty string")
@@ -299,6 +309,12 @@ class OfficialSwebenchEvaluator(Evaluator):
             raise ValueError("max_workers must be a positive integer")
         if cache_level not in {"none", "base", "env", "instance"}:
             raise ValueError("cache_level must be one of none, base, env, instance")
+        if namespace is not None and (
+            not isinstance(namespace, str)
+            or not namespace
+            or any(character.isspace() for character in namespace)
+        ):
+            raise ValueError("namespace must be a non-empty value without whitespace")
         self.dataset_name = dataset_name
         self.split = split
         self.evaluation_root = Path(evaluation_root)
@@ -306,6 +322,7 @@ class OfficialSwebenchEvaluator(Evaluator):
         self.max_workers = max_workers
         self.cache_level = cache_level
         self.clean = clean
+        self.namespace = namespace if namespace is not None else _default_evaluator_namespace()
 
     def evaluate(
         self,
@@ -335,6 +352,8 @@ class OfficialSwebenchEvaluator(Evaluator):
             self.cache_level,
             "--clean",
             "True" if self.clean else "False",
+            "--namespace",
+            self.namespace,
         ]
         try:
             completed = subprocess.run(

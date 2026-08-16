@@ -242,22 +242,33 @@ def _rank_file(
     text: str,
     issue_terms: tuple[str, ...],
 ) -> tuple[int, str, tuple[int, ...]]:
-    path_terms = set(_tokens(file.path))
-    symbol_terms = set(_tokens(" ".join(file.symbols)))
-    matching_lines: list[int] = []
+    issue_keys = _term_keys(issue_terms)
+    path_terms = _term_keys(_tokens(file.path))
+    filename_terms = _term_keys(_tokens(PurePosixPath(file.path).stem))
+    symbol_terms = _term_keys(_tokens(" ".join(file.symbols)))
+    # Put exact issue-named definitions before generic mentions. Otherwise a
+    # file such as blueprints.py can be selected correctly while its excerpt
+    # starts at BlueprintSetupState instead of the later Blueprint class.
+    symbol_matching_lines = _matching_symbol_lines(text, issue_keys)
+    matching_lines: list[int] = list(symbol_matching_lines)
     content_score = 0
-    lowered_terms = set(issue_terms)
     for line_number, line in enumerate(text.splitlines(), start=1):
-        line_terms = set(_tokens(line))
-        overlap = lowered_terms & line_terms
+        line_terms = _term_keys(_tokens(line))
+        overlap = issue_keys & line_terms
         if not overlap:
             continue
-        matching_lines.append(line_number)
-        content_score += min(6, len(overlap) * 2)
+        if line_number not in symbol_matching_lines:
+            matching_lines.append(line_number)
+        # Repeated usages should help locate relevant code, but must not
+        # outrank the file that defines the issue-named symbol.
+        content_score = min(24, content_score + min(6, len(overlap) * 2))
 
-    path_hits = len(lowered_terms & path_terms)
-    symbol_hits = len(lowered_terms & symbol_terms)
-    score = content_score + path_hits * 5 + symbol_hits * 8
+    path_hits = len(issue_keys & path_terms)
+    filename_hits = len(issue_keys & filename_terms)
+    # A matching symbol is a strong definition signal. Do not multiply that
+    # bonus by every issue word embedded in a long test-function name.
+    symbol_hits = min(1, len(issue_keys & symbol_terms))
+    score = content_score + path_hits * 12 + filename_hits * 12 + symbol_hits * 30
     if file.kind == "source":
         score += 6
     elif file.kind == "test":
@@ -265,6 +276,8 @@ def _rank_file(
     reasons = []
     if path_hits:
         reasons.append("path")
+    if filename_hits:
+        reasons.append("filename")
     if symbol_hits:
         reasons.append("symbol")
     if matching_lines:
@@ -272,6 +285,16 @@ def _rank_file(
     if file.kind in {"source", "test"}:
         reasons.append(file.kind)
     return score, "+".join(reasons) if reasons else "fallback", tuple(matching_lines)
+
+
+def _term_keys(terms: tuple[str, ...]) -> set[str]:
+    """Normalize simple English plurals for filename/symbol matching."""
+    keys: set[str] = set()
+    for term in terms:
+        keys.add(term)
+        if len(term) > 3 and term.endswith("s") and not term.endswith("ss"):
+            keys.add(term[:-1])
+    return keys
 
 
 def _fallback_rank(file: RepositoryFile, text: str) -> tuple[int, str, tuple[int, ...]]:
@@ -346,6 +369,20 @@ def _symbol_lines(text: str) -> tuple[int, ...]:
     lines = []
     for line_number, line in enumerate(text.splitlines(), start=1):
         if _PY_SYMBOL.match(line) is not None:
+            lines.append(line_number)
+    return tuple(lines)
+
+
+def _matching_symbol_lines(text: str, issue_keys: set[str]) -> tuple[int, ...]:
+    """Return definitions whose exact symbol name occurs in the issue."""
+
+    lines = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        match = _PY_SYMBOL.match(line)
+        if match is None:
+            continue
+        symbol_keys = _term_keys(_tokens(match.group(1)))
+        if issue_keys & symbol_keys:
             lines.append(line_number)
     return tuple(lines)
 
