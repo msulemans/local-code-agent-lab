@@ -25,8 +25,9 @@ tool ran or invent its result. When the issue is fixed and the current patch
 has passing test evidence, return a concise final answer without a tool call.
 Read the history before choosing the next action: do not repeat an identical
 tool call and arguments already present there. Progress through evidence,
-then edit with write_file (supply the COMPLETE new file content after reading
-the file; do not construct a unified diff) or apply_patch, then run_tests,
+then edit with edit_file (copy an exact old_string snippet you read and
+supply its new_string replacement; do not construct a unified diff and do not
+rewrite whole files), or apply_patch, then run_tests,
 then git_diff; if the required change is not present, do not return a final
 answer. For an inspection or edit step, do not narrate
 or return plain text: emit the native tool call itself. Never emit shell

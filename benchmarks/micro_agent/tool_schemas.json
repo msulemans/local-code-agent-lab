@@ -76,6 +76,24 @@
     {
       "type": "function",
       "function": {
+        "name": "edit_file",
+        "description": "Replace one exact, unique snippet inside an existing tracked UTF-8 file. Copy old_string exactly as read (it must appear once), and supply the replacement text. Prefer this over write_file for large files and over apply_patch when a unified diff is hard to construct.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "old_string", "new_string"],
+          "properties": {
+            "path": {"type": "string"},
+            "old_string": {"type": "string", "minLength": 1, "maxLength": 65536},
+            "new_string": {"type": "string", "maxLength": 65536},
+            "max_bytes": {"type": "integer", "minimum": 1, "maximum": 1048576, "default": 1048576}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "write_file",
         "description": "Replace the complete contents of one existing tracked UTF-8 file in the disposable workspace. Prefer this over apply_patch when a line-accurate unified diff is hard to construct: read the file first, then supply the full new file content.",
         "parameters": {

@@ -42,7 +42,7 @@ class FakeBackend:
 
 
 class FakeEngineeringRegistry:
-    tool_names = ("apply_patch", "git_diff", "list_files", "read_file", "run_tests", "search_code", "write_file")
+    tool_names = ("apply_patch", "edit_file", "git_diff", "list_files", "read_file", "run_tests", "search_code", "write_file")
 
     def __init__(self, test_exits: list[int]) -> None:
         self.test_exits = list(test_exits)

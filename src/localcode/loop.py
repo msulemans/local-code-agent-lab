@@ -598,11 +598,11 @@ def _controller_guidance(tool: str, *, patch_applied: bool, tests_passed: bool) 
     if tool == "search_code":
         return "Search completed; inspect the most relevant file with read_file, then edit. Do not repeat this search."
     if tool == "read_file":
-        return "Evidence is available; use write_file with the complete new file content (or apply_patch) next unless another concrete file is required."
-    if tool in ("apply_patch", "write_file"):
+        return "Evidence is available; use edit_file with an exact old_string/new_string snippet (or apply_patch) next unless another concrete file is required."
+    if tool in ("apply_patch", "edit_file", "write_file"):
         return "Change written; run the registered tests next."
     if tool == "run_tests":
-        return "Tests observed; revise with write_file or apply_patch if failing, otherwise review with git_diff."
+        return "Tests observed; revise with edit_file or apply_patch if failing, otherwise review with git_diff."
     if tool == "git_diff":
         return "Review complete; provide a final answer only when the required patch is present."
     return "Continue to the next bounded repair phase."
@@ -616,11 +616,11 @@ def _phase_tools(all_tools: tuple[str, ...], history: list[str]) -> tuple[str, .
     if last in {"list_files", "search_code"}:
         return ("read_file",)
     if last == "read_file":
-        return ("apply_patch", "write_file")
-    if last in {"apply_patch", "write_file"}:
+        return ("apply_patch", "edit_file", "write_file")
+    if last in {"apply_patch", "edit_file", "write_file"}:
         return ("run_tests",)
     if last == "run_tests":
-        return ("apply_patch", "write_file", "git_diff")
+        return ("apply_patch", "edit_file", "write_file", "git_diff")
     if last == "git_diff":
         return ()
     return all_tools

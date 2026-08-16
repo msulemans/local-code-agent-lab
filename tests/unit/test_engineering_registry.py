@@ -52,7 +52,7 @@ class FakeTestRunner:
 
 
 class EngineeringRegistryTests(unittest.TestCase):
-    def test_exact_seven_tool_surface_applies_patch_tests_and_reads_diff(self) -> None:
+    def test_exact_eight_tool_surface_applies_patch_tests_and_reads_diff(self) -> None:
         validator = DecisionValidator.from_path(SCHEMAS)
         fake_tests = FakeTestRunner()
         with tempfile.TemporaryDirectory() as temporary:
@@ -67,7 +67,7 @@ class EngineeringRegistryTests(unittest.TestCase):
 
         self.assertEqual(
             registry.tool_names,
-            ("apply_patch", "git_diff", "list_files", "read_file", "run_tests", "search_code", "write_file"),
+            ("apply_patch", "edit_file", "git_diff", "list_files", "read_file", "run_tests", "search_code", "write_file"),
         )
         self.assertIn("src/tiny_parser.py", patch_result.content)
         self.assertEqual(test_result.metadata_dict()["exit_code"], 0)

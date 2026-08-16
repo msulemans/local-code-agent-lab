@@ -7,7 +7,7 @@ import unittest
 
 from localcode.patches import apply_patch
 from localcode.tools import ToolError, git_diff
-from localcode.workspace import create_workspace, write_file
+from localcode.workspace import create_workspace, edit_file, write_file
 
 
 FIXTURE = Path("tests/fixtures/micro_repos/parser_none").resolve()
@@ -166,6 +166,33 @@ class WorkspaceAndPatchTests(unittest.TestCase):
                 write_file(workspace.root, "src/new_file.py", "x")
             with self.assertRaisesRegex(ToolError, "content exceeds"):
                 write_file(workspace.root, "src/tiny_parser.py", "x" * 10, max_bytes=5)
+
+    def test_edit_file_replaces_one_unique_snippet_without_line_numbers(self) -> None:
+        old_snippet = "    return text.strip()"
+        new_snippet = "    if text is None:\n        return \"\"\n    return text.strip()"
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = create_workspace(FIXTURE, Path(temporary) / "workspace")
+
+            result = edit_file(workspace.root, "src/tiny_parser.py", old_snippet, new_snippet)
+
+            self.assertEqual(result.metadata_dict()["path"], "src/tiny_parser.py")
+            self.assertIn(
+                "if text is None",
+                (workspace.root / "src/tiny_parser.py").read_text(encoding="utf-8"),
+            )
+            self.assertIn("diff --git a/src/tiny_parser.py", git_diff(workspace.root).content)
+
+    def test_edit_file_requires_a_unique_match_and_tracked_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = create_workspace(FIXTURE, Path(temporary) / "workspace")
+            with self.assertRaisesRegex(ToolError, "must match exactly once"):
+                edit_file(workspace.root, "src/tiny_parser.py", "text", "x")
+            with self.assertRaisesRegex(ToolError, "must match exactly once"):
+                edit_file(workspace.root, "src/tiny_parser.py", "does not exist", "x")
+            with self.assertRaisesRegex(ToolError, "refuses a file Git does not track"):
+                (workspace.root / "src").mkdir(parents=True, exist_ok=True)
+                (workspace.root / "src/new_file.py").write_text("x", encoding="utf-8")
+                edit_file(workspace.root, "src/new_file.py", "x", "y")
 
 
 if __name__ == "__main__":

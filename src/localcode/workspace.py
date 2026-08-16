@@ -189,6 +189,76 @@ def write_file(
     )
 
 
+def edit_file(
+    root: str | Path,
+    path: str,
+    old_string: str,
+    new_string: str,
+    *,
+    max_bytes: int = MAX_WRITE_BYTES,
+) -> ToolResult:
+    """Replace one exact, unique snippet inside an existing tracked file.
+
+    This is the search-and-replace edit format that small models can use
+    reliably on large files: the model copies an exact snippet it read (no
+    line numbers, no unified-diff construction) and supplies its replacement.
+    The old snippet must occur exactly once; the write is atomic and the file
+    remains bounded.
+    """
+
+    if not isinstance(path, str) or not path or "\x00" in path:
+        raise ToolError("invalid_path", "path must be non-empty text without NUL bytes")
+    if not isinstance(old_string, str) or not old_string:
+        raise ToolError("invalid_old_string", "old_string must be non-empty text")
+    if not isinstance(new_string, str):
+        raise ToolError("invalid_new_string", "new_string must be text")
+    if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or max_bytes < 1 or max_bytes > MAX_WRITE_BYTES:
+        raise ToolError("invalid_argument", f"max_bytes must be an integer in 1..{MAX_WRITE_BYTES}")
+
+    policy = RepositoryPolicy.from_root(root)
+    relative, resolved = policy.resolve(path, kind="file")
+    if not resolved.is_file():
+        raise ToolError("path_does_not_exist", f"file does not exist: {relative.as_posix()}")
+    tracked = _run_git(policy.root, ["ls-files", "--", relative.as_posix()]).strip()
+    if not tracked:
+        raise ToolError("untracked_target", f"edit_file refuses a file Git does not track: {relative.as_posix()}")
+
+    try:
+        current = resolved.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise ToolError("binary_file", f"editable file is not UTF-8 text: {relative.as_posix()}") from exc
+    if len(current.encode("utf-8")) > max_bytes:
+        raise ToolError("file_too_large", f"file exceeds {max_bytes} bytes: {relative.as_posix()}")
+    occurrences = current.count(old_string)
+    if occurrences != 1:
+        raise ToolError(
+            "edit_not_unique",
+            f"old_string must match exactly once; found {occurrences}",
+        )
+    updated = current.replace(old_string, new_string)
+    if len(updated.encode("utf-8")) > max_bytes:
+        raise ToolError("file_too_large", f"edited file exceeds {max_bytes} bytes: {relative.as_posix()}")
+
+    temporary = resolved.with_name(resolved.name + ".localcode-tmp")
+    try:
+        temporary.write_text(updated, encoding="utf-8", newline="")
+        os.replace(temporary, resolved)
+    except OSError as exc:
+        raise ToolError("write_error", f"could not edit file: {relative.as_posix()}") from exc
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+    return ToolResult(
+        content=f"Edited file {relative.as_posix()}",
+        metadata=(
+            ("path", relative.as_posix()),
+            ("old_length", len(old_string)),
+            ("new_length", len(new_string)),
+        ),
+    )
+
+
 def _run_git(root: Path, arguments: list[str], *, input_text: str | None = None) -> str:
     environment = os.environ.copy()
     environment["GIT_CONFIG_NOSYSTEM"] = "1"
