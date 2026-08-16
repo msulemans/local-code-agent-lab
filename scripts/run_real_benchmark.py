@@ -38,6 +38,11 @@ def main() -> int:
     parser.add_argument("--python", default="python3.11", dest="python_executable")
     parser.add_argument("--max-workers", type=int, default=1)
     parser.add_argument("--cache-level", choices=("none", "base", "env", "instance"), default="base")
+    parser.add_argument(
+        "--namespace",
+        default=None,
+        help="SWE-bench image namespace (auto: local builds on Apple ARM)",
+    )
     parser.add_argument("--model-name", default="localcode/empty-control")
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--dataset-name", default=None)
@@ -51,6 +56,12 @@ def main() -> int:
     )
     parser.add_argument("--configuration-id", choices=("B0", "A1", "A2", "A3"), default=None,
                         help="measure only this configuration for a control run")
+    parser.add_argument(
+        "--instances",
+        default=None,
+        help="comma-separated subset of pinned instance IDs to run (pilot only; the "
+        "frozen-20 fairness claim holds only when this is omitted)",
+    )
     parser.add_argument(
         "--no-progress",
         action="store_false",
@@ -104,6 +115,18 @@ def main() -> int:
                 for configuration in manifest.configurations
             ),
         )
+    if arguments.instances:
+        wanted = {token.strip() for token in arguments.instances.split(",") if token.strip()}
+        known = {instance.instance_id for instance in manifest.instances}
+        missing = sorted(wanted - known)
+        if missing:
+            parser.error(f"--instances references IDs outside the pinned manifest: {missing}")
+        manifest = replace(
+            manifest,
+            instances=tuple(
+                instance for instance in manifest.instances if instance.instance_id in wanted
+            ),
+        )
     resolver = JsonDatasetIssueResolver(arguments.dataset)
     if arguments.producer == "ollama":
         tool_document = json.loads(Path(arguments.tool_schemas).read_text(encoding="utf-8"))
@@ -143,6 +166,7 @@ def main() -> int:
         python_executable=arguments.python_executable,
         max_workers=arguments.max_workers,
         cache_level=arguments.cache_level,
+        namespace=arguments.namespace,
     )
     result = run_real_benchmark(
         manifest,
