@@ -8,12 +8,19 @@ from localcode.context import (
     ContextRequest,
     RetrievalContextCompiler,
     SimpleContextCompiler,
+    _retrieval_payload,
     compile_single_shot_context,
     compile_simple_context,
 )
 from localcode.decisions import DecisionValidator
 from localcode.loop import LoopBudgets, ReadOnlyAgentLoop
 from localcode.registry import ToolRegistry
+from localcode.retrieval import (
+    EvidenceExcerpt,
+    RepositoryFile,
+    RepositoryMap,
+    RetrievalPack,
+)
 
 
 ROOT = Path("tests/fixtures/micro_repos/parser_none")
@@ -77,6 +84,42 @@ class ContextCompilerTests(unittest.TestCase):
         self.assertNotIn("ISSUE.md", payload["retrieved_evidence"]["selected_paths"])
         self.assertNotIn("expected_changed_paths", payload)
         self.assertLessEqual(len(json.dumps(payload, separators=(",", ":"))), 4_000)
+
+    def test_retrieval_payload_bounds_the_rendered_repository_map(self) -> None:
+        files = tuple(
+            RepositoryFile(
+                path=f"src/module_{index:04d}.py",
+                kind="source",
+                language="python",
+                size_bytes=100,
+                line_count=10,
+                symbols=("sym",),
+            )
+            for index in range(120)
+        )
+        pack = RetrievalPack(
+            repository_map=RepositoryMap(files, truncated=False),
+            issue_terms=("blueprint", "name"),
+            excerpts=(
+                EvidenceExcerpt(
+                    path="src/module_0000.py",
+                    kind="source",
+                    score=5,
+                    reason="matched terms",
+                    start_line=1,
+                    end_line=3,
+                    content="def sym():\n    pass\n",
+                ),
+            ),
+            truncated=False,
+        )
+
+        payload = _retrieval_payload(pack)
+
+        self.assertEqual(len(payload["map"]), 40)
+        self.assertTrue(payload["map_truncated"])
+        self.assertTrue(payload["truncated"])
+        self.assertEqual(payload["map"][0]["path"], "src/module_0000.py")
 
     def test_single_shot_context_contains_bounded_repository_map_without_history(self) -> None:
         issue = (ROOT / "ISSUE.md").read_text(encoding="utf-8")

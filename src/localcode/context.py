@@ -10,6 +10,12 @@ from typing import Any, Protocol
 from .retrieval import RetrievalPack, RepositoryMap, build_repository_map, select_retrieval_evidence
 
 
+# The repository map can contain up to 1,000 files; rendering every entry would
+# blow the model context budget and the truncator would drop all evidence.
+# Keep the rendered map to the same 40-file budget as the single-shot map.
+_RETRIEVAL_MAP_FILES = 40
+
+
 @dataclass(frozen=True, slots=True)
 class ContextRequest:
     issue: str
@@ -80,7 +86,7 @@ def compile_single_shot_context(
         (),
         max_chars,
         extra={
-            "repository_map": _repository_map_payload(repository_map),
+            "repository_map": _repository_map_payload(repository_map.files),
             "single_shot_treatment": {
                 "kind": "bounded_repository_map_v1",
                 "max_map_files": max_map_files,
@@ -169,11 +175,14 @@ def _controller_instructions(history: tuple[str, ...]) -> str:
 
 
 def _retrieval_payload(pack: RetrievalPack) -> dict[str, Any]:
+    map_files = pack.repository_map.files
+    map_truncated = pack.repository_map.truncated or len(map_files) > _RETRIEVAL_MAP_FILES
     return {
         "issue_terms": list(pack.issue_terms),
         "selected_paths": list(pack.selected_paths),
-        "truncated": pack.truncated or pack.repository_map.truncated,
-        "map": _repository_map_payload(pack.repository_map),
+        "truncated": pack.truncated or map_truncated,
+        "map": _repository_map_payload(map_files[:_RETRIEVAL_MAP_FILES]),
+        "map_truncated": map_truncated,
         "excerpts": [
             {
                 "path": excerpt.path,
@@ -189,7 +198,7 @@ def _retrieval_payload(pack: RetrievalPack) -> dict[str, Any]:
     }
 
 
-def _repository_map_payload(repository_map: RepositoryMap) -> list[dict[str, Any]]:
+def _repository_map_payload(files: tuple[Any, ...]) -> list[dict[str, Any]]:
     return [
         {
             "path": file.path,
@@ -198,5 +207,5 @@ def _repository_map_payload(repository_map: RepositoryMap) -> list[dict[str, Any
             "line_count": file.line_count,
             "symbols": list(file.symbols[:8]),
         }
-        for file in repository_map.files
+        for file in files
     ]
