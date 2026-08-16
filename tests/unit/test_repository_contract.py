@@ -10,10 +10,28 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertTrue((fixture / "src/tiny_parser.py").is_file())
         self.assertTrue((fixture / "tests/test_tiny_parser.py").is_file())
 
-    def test_one_turn_controller_exists_without_later_loop_modules(self) -> None:
+    def test_guarded_engineering_runtime_exists_without_model_modules(self) -> None:
         source = Path("src/localcode")
-        required = {"actions.py", "controller.py", "registry.py"}
-        forbidden = {"workspace.py", "models", "tui.py", "agent_loop.py"}
+        required = {
+            "actions.py",
+            "context.py",
+            "controller.py",
+            "decisions.py",
+            "demo_repair.py",
+            "engineering_registry.py",
+            "experiment.py",
+            "loop.py",
+            "patches.py",
+            "real_benchmark.py",
+            "real_benchmark_adapters.py",
+            "registry.py",
+            "review.py",
+            "retrieval.py",
+            "test_runner.py",
+            "tui.py",
+            "workspace.py",
+        }
+        forbidden = {"models"}
 
         self.assertTrue((source / "tools").is_dir())
         names = {path.name for path in source.iterdir()}

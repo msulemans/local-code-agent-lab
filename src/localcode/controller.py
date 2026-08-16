@@ -7,7 +7,6 @@ from typing import Callable, Protocol
 
 from .actions import ActionValidationError, ActionValidator, ValidatedAction
 from .events import Event, EventType
-from .registry import ToolRegistry
 from .tools import ToolError, ToolResult
 
 
@@ -21,6 +20,19 @@ class OneTurnRequest:
 class ModelBackend(Protocol):
     def complete(self, request: OneTurnRequest) -> str:
         """Return one untrusted action envelope as JSON text."""
+
+
+class ModelBackendError(RuntimeError):
+    """A bounded failure reported by a model backend."""
+
+
+class ActionRegistry(Protocol):
+    @property
+    def tool_names(self) -> tuple[str, ...]:
+        """Return the exact registered action names."""
+
+    def execute(self, action: ValidatedAction) -> ToolResult:
+        """Execute one already validated action."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,7 +49,7 @@ class OneTurnController:
         self,
         backend: ModelBackend,
         validator: ActionValidator,
-        registry: ToolRegistry,
+        registry: ActionRegistry,
         *,
         clock: Callable[[], str],
     ) -> None:

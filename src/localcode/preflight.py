@@ -28,22 +28,51 @@ class SmokeBaseline:
     loaded_models: tuple[str, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class HostResourceSnapshot:
+    """Parsed host-memory evidence that does not itself impose a gate."""
+
+    swap_used_bytes: int
+    memory_free_percent: int
+
+
+def parse_host_resource_snapshot(
+    *,
+    swapusage_output: str,
+    memory_pressure_output: str,
+) -> HostResourceSnapshot:
+    """Parse bounded macOS host-resource output for preflight or monitoring."""
+
+    return HostResourceSnapshot(
+        swap_used_bytes=_parse_swap_used_bytes(swapusage_output),
+        memory_free_percent=_parse_memory_free_percent(memory_pressure_output),
+    )
+
+
 def validate_smoke_baseline(
     *,
     swapusage_output: str,
     memory_pressure_output: str,
     running_models: Sequence[dict[str, Any]],
+    allow_retained_swap: bool = False,
 ) -> SmokeBaseline:
     """Require zero retained swap and an empty Ollama process list."""
 
-    swap_used_bytes = _parse_swap_used_bytes(swapusage_output)
-    memory_free_percent = _parse_memory_free_percent(memory_pressure_output)
+    resources = parse_host_resource_snapshot(
+        swapusage_output=swapusage_output,
+        memory_pressure_output=memory_pressure_output,
+    )
     loaded_models = _loaded_model_names(running_models)
 
-    if swap_used_bytes != 0:
+    if not isinstance(allow_retained_swap, bool):
+        raise SmokePreflightError(
+            "invalid_preflight_policy",
+            "allow_retained_swap must be a boolean",
+        )
+    if resources.swap_used_bytes != 0 and not allow_retained_swap:
         raise SmokePreflightError(
             "retained_swap",
-            f"real-model smoke requires zero swap; observed {swap_used_bytes} bytes",
+            f"real-model smoke requires zero swap; observed {resources.swap_used_bytes} bytes",
         )
     if loaded_models:
         raise SmokePreflightError(
@@ -52,8 +81,8 @@ def validate_smoke_baseline(
         )
 
     return SmokeBaseline(
-        swap_used_bytes=swap_used_bytes,
-        memory_free_percent=memory_free_percent,
+        swap_used_bytes=resources.swap_used_bytes,
+        memory_free_percent=resources.memory_free_percent,
         loaded_models=loaded_models,
     )
 

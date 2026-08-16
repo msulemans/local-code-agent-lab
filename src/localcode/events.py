@@ -20,6 +20,10 @@ class EventType(str, Enum):
     ACTION_REJECTED = "action_rejected"
     TOOL_RESULT = "tool_result"
     TOOL_ERROR = "tool_error"
+    FINAL_ANSWER = "final_answer"
+    REPEATED_ACTION = "repeated_action"
+    BACKEND_ERROR = "backend_error"
+    RUN_TERMINATED = "run_terminated"
 
 
 _EVENT_KEYS = frozenset(

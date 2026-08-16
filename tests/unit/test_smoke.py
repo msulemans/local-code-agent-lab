@@ -4,7 +4,8 @@ import json
 from pathlib import Path
 import unittest
 
-from localcode.compatibility import ChatResult
+from localcode.compatibility import ChatResult, CompatibilityError
+from localcode.controller import ModelBackendError
 from localcode.events import EventType
 from localcode.preflight import SmokePreflightError
 from localcode.smoke import run_one_turn_smoke
@@ -22,8 +23,14 @@ MEMORY = "System-wide memory free percentage: 91%"
 
 
 class FakeOllamaClient:
-    def __init__(self, *, running: list[dict[str, object]] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        running: list[dict[str, object]] | None = None,
+        fail_chat: bool = False,
+    ) -> None:
         self.running = [] if running is None else running
+        self.fail_chat = fail_chat
         self.chat_payloads: list[dict[str, object]] = []
 
     def running_models(self) -> list[dict[str, object]]:
@@ -31,6 +38,8 @@ class FakeOllamaClient:
 
     def stream_chat(self, payload: dict[str, object]) -> ChatResult:
         self.chat_payloads.append(payload)
+        if self.fail_chat:
+            raise CompatibilityError("fake backend failure")
         return ChatResult(
             content="Search for the parser definition.",
             thinking="private reasoning must not cross the boundary",
@@ -128,6 +137,27 @@ class SmokeRunTests(unittest.TestCase):
 
         self.assertEqual(captured.exception.code, "model_already_loaded")
         self.assertEqual(client.chat_payloads, [])
+
+    def test_accepted_baseline_is_observed_before_backend_failure(self) -> None:
+        client = FakeOllamaClient(fail_chat=True)
+        observed = []
+
+        with self.assertRaises(ModelBackendError):
+            run_one_turn_smoke(
+                run_id="smoke-backend-error",
+                issue="Parser crashes on None",
+                model="qwen3.5:9b-q4_K_M",
+                repository_root=ROOT,
+                tool_document=self.tool_document,
+                clock=lambda: NOW,
+                client=client,
+                command_runner=command_runner(ZERO_SWAP),
+                baseline_observer=observed.append,
+            )
+
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0].swap_used_bytes, 0)
+        self.assertEqual(len(client.chat_payloads), 1)
 
 
 if __name__ == "__main__":

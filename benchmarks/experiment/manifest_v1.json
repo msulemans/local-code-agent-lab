@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "experiment_id": "localcode-experiment-v1",
+  "suite_manifest": "benchmarks/micro_agent/suite_v1.json",
+  "tool_schemas": "benchmarks/micro_agent/tool_schemas.json",
+  "fairness_controls": [
+    "Same fixed issue set and starting commit",
+    "Same model checkpoint and quantization",
+    "Same total generated-token allowance",
+    "Same tool and context budget",
+    "Same patch and timeout limits",
+    "Same network and command policy",
+    "Same evaluator and environment contract",
+    "Rerun every configuration after protocol changes"
+  ],
+  "configurations": [
+    {
+      "id": "B0",
+      "label": "Single-shot base",
+      "change": "No tools or retry",
+      "kind": "single_shot_base",
+      "availability": "implemented",
+      "context_mode": null
+    },
+    {
+      "id": "A1",
+      "label": "Simple agent",
+      "change": "+ tool loop",
+      "kind": "micro_suite_loop",
+      "availability": "implemented",
+      "context_mode": "simple"
+    },
+    {
+      "id": "A2",
+      "label": "Retrieval agent",
+      "change": "+ ranked context",
+      "kind": "micro_suite_loop",
+      "availability": "implemented",
+      "context_mode": "retrieval"
+    },
+    {
+      "id": "A3",
+      "label": "Agent + review",
+      "change": "+ fresh critique",
+      "kind": "agent_plus_review",
+      "availability": "implemented",
+      "context_mode": null
+    }
+  ]
+}

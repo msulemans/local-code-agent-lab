@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "list_files",
+        "description": "List allowed workspace files in stable lexical order.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {"type": "string", "default": "."},
+            "max_depth": {"type": "integer", "minimum": 0, "maximum": 20, "default": 4},
+            "max_results": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "search_code",
+        "description": "Search allowed UTF-8 workspace files and return bounded matching lines.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["query"],
+          "properties": {
+            "query": {"type": "string", "minLength": 1, "maxLength": 1000},
+            "path": {"type": "string", "default": "."},
+            "glob": {"type": ["string", "null"], "default": null},
+            "max_results": {"type": "integer", "minimum": 1, "maximum": 200, "default": 40},
+            "regex": {"type": "boolean", "default": false},
+            "case_sensitive": {"type": "boolean", "default": true}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "Read a bounded line-numbered excerpt from one allowed UTF-8 workspace file.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path"],
+          "properties": {
+            "path": {"type": "string"},
+            "start_line": {"type": "integer", "minimum": 1, "default": 1},
+            "end_line": {"type": ["integer", "null"], "minimum": 1, "default": null},
+            "max_lines": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 400}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "apply_patch",
+        "description": "Apply one bounded unified diff to existing allowed UTF-8 files in the disposable workspace.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["patch"],
+          "properties": {
+            "patch": {"type": "string", "minLength": 1, "maxLength": 65536},
+            "max_bytes": {"type": "integer", "minimum": 1, "maximum": 65536, "default": 65536},
+            "max_files": {"type": "integer", "minimum": 1, "maximum": 8, "default": 8},
+            "max_changed_lines": {"type": "integer", "minimum": 1, "maximum": 400, "default": 400}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "run_tests",
+        "description": "Run one registered test command in the disposable sandbox and return bounded output plus exit evidence.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["command_name"],
+          "properties": {
+            "command_name": {"type": "string", "enum": ["python-unittest"]},
+            "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 120, "default": 30},
+            "max_output_bytes": {"type": "integer", "minimum": 1, "maximum": 65536, "default": 65536}
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "git_diff",
+        "description": "Return a bounded working-tree Git diff for allowed workspace paths.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {"type": "string", "default": "."},
+            "staged": {"type": "boolean", "default": false},
+            "max_bytes": {"type": "integer", "minimum": 1, "maximum": 65536, "default": 65536}
+          }
+        }
+      }
+    }
+  ]
+}

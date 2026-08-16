@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "suite_id": "localcode-micro-v1",
+  "milestone_gate": {
+    "minimum_cases": 8,
+    "maximum_cases": 12,
+    "minimum_solved": 8
+  },
+  "cases": [
+    {
+      "id": "parser-none",
+      "category": "one-file-bug",
+      "fixture": "tests/fixtures/micro_repos/parser_none",
+      "issue_file": "ISSUE.md",
+      "expected_changed_paths": ["src/tiny_parser.py"],
+      "plan": [
+        {"thought_summary": "Find the parser implementation.", "decision": {"kind": "tool", "tool": "search_code", "arguments": {"query": "parse_value"}}},
+        {"thought_summary": "Read the implementation before editing.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/tiny_parser.py"}}},
+        {"thought_summary": "Handle absent text before stripping.", "decision": {"kind": "tool", "tool": "apply_patch", "arguments": {"patch": "diff --git a/src/tiny_parser.py b/src/tiny_parser.py\n--- a/src/tiny_parser.py\n+++ b/src/tiny_parser.py\n@@ -1,2 +1,4 @@\n def parse_value(text: str | None) -> str:\n+    if text is None:\n+        return \"\"\n     return text.strip()\n"}}},
+        {"thought_summary": "Run the registered regression tests.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Inspect the exact final patch.", "decision": {"kind": "tool", "tool": "git_diff", "arguments": {}}},
+        {"thought_summary": "The patch and test evidence are current.", "decision": {"kind": "final", "answer": "Handled absent parser input and verified the regression tests."}}
+      ]
+    },
+    {
+      "id": "discount-boundary",
+      "category": "regression-boundary",
+      "fixture": "tests/fixtures/micro_repos/discount_boundary",
+      "issue_file": "ISSUE.md",
+      "expected_changed_paths": ["src/pricing.py"],
+      "plan": [
+        {"thought_summary": "Locate the discount rule.", "decision": {"kind": "tool", "tool": "search_code", "arguments": {"query": "discount_rate"}}},
+        {"thought_summary": "Inspect the boundary comparison.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/pricing.py"}}},
+        {"thought_summary": "Include the exact eligibility boundary.", "decision": {"kind": "tool", "tool": "apply_patch", "arguments": {"patch": "diff --git a/src/pricing.py b/src/pricing.py\n--- a/src/pricing.py\n+++ b/src/pricing.py\n@@ -1,4 +1,4 @@\n def discount_rate(subtotal: int) -> int:\n-    if subtotal > 100:\n+    if subtotal >= 100:\n         return 10\n     return 0\n"}}},
+        {"thought_summary": "Verify below, at, and above the boundary.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Review the tracked change.", "decision": {"kind": "tool", "tool": "git_diff", "arguments": {}}},
+        {"thought_summary": "The boundary regression is tested.", "decision": {"kind": "final", "answer": "Included subtotal 100 in discount eligibility and preserved neighboring behavior."}}
+      ]
+    },
+    {
+      "id": "display-whitespace",
+      "category": "tests-first-discovery",
+      "fixture": "tests/fixtures/micro_repos/display_whitespace",
+      "issue_file": "ISSUE.md",
+      "expected_changed_paths": ["src/profiles.py"],
+      "plan": [
+        {"thought_summary": "Map implementation and tests before guessing names.", "decision": {"kind": "tool", "tool": "list_files", "arguments": {}}},
+        {"thought_summary": "Read the tests to discover the behavioral contract.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "tests/test_profiles.py"}}},
+        {"thought_summary": "Find the implementation named by the tests.", "decision": {"kind": "tool", "tool": "search_code", "arguments": {"query": "clean_display_name"}}},
+        {"thought_summary": "Inspect the current normalization strategy.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/profiles.py"}}},
+        {"thought_summary": "Collapse every whitespace run deterministically.", "decision": {"kind": "tool", "tool": "apply_patch", "arguments": {"patch": "diff --git a/src/profiles.py b/src/profiles.py\n--- a/src/profiles.py\n+++ b/src/profiles.py\n@@ -1,2 +1,2 @@\n def clean_display_name(value: str) -> str:\n-    return value.strip().replace(\"  \", \" \")\n+    return \" \".join(value.split())\n"}}},
+        {"thought_summary": "Verify spaces and tabs through the registered tests.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Review the minimal final patch.", "decision": {"kind": "tool", "tool": "git_diff", "arguments": {}}},
+        {"thought_summary": "The discovered test contract now passes.", "decision": {"kind": "final", "answer": "Normalized all whitespace runs while preserving trimmed display names."}}
+      ]
+    },
+    {
+      "id": "label-syntax",
+      "category": "syntax-failure",
+      "fixture": "tests/fixtures/micro_repos/label_syntax",
+      "issue_file": "ISSUE.md",
+      "expected_changed_paths": ["src/labels.py"],
+      "plan": [
+        {"thought_summary": "Reproduce the import failure before editing.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Locate the formatter mentioned by the failure.", "decision": {"kind": "tool", "tool": "search_code", "arguments": {"query": "format_label"}}},
+        {"thought_summary": "Read the syntax around the definition.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/labels.py"}}},
+        {"thought_summary": "Restore the missing function delimiter.", "decision": {"kind": "tool", "tool": "apply_patch", "arguments": {"patch": "diff --git a/src/labels.py b/src/labels.py\n--- a/src/labels.py\n+++ b/src/labels.py\n@@ -1,2 +1,2 @@\n-def format_label(name: str) -> str\n+def format_label(name: str) -> str:\n     return name.strip().title()\n"}}},
+        {"thought_summary": "Confirm the module imports and behavior passes.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Inspect the syntax-only diff.", "decision": {"kind": "tool", "tool": "git_diff", "arguments": {}}},
+        {"thought_summary": "The import-time failure is resolved.", "decision": {"kind": "final", "answer": "Restored valid formatter syntax and verified trim-and-title behavior."}}
+      ]
+    },
+    {
+      "id": "catalog-sku",
+      "category": "cross-file-evidence",
+      "fixture": "tests/fixtures/micro_repos/catalog_sku",
+      "issue_file": "ISSUE.md",
+      "expected_changed_paths": ["src/sku.py"],
+      "plan": [
+        {"thought_summary": "Map the collaborating catalogue modules.", "decision": {"kind": "tool", "tool": "list_files", "arguments": {}}},
+        {"thought_summary": "Find where SKU normalization is defined and used.", "decision": {"kind": "tool", "tool": "search_code", "arguments": {"query": "normalize_sku"}}},
+        {"thought_summary": "Inspect the normalization helper.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/sku.py"}}},
+        {"thought_summary": "Confirm how catalogue lookup consumes the helper.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/catalog.py"}}},
+        {"thought_summary": "Canonicalize external SKU case after trimming.", "decision": {"kind": "tool", "tool": "apply_patch", "arguments": {"patch": "diff --git a/src/sku.py b/src/sku.py\n--- a/src/sku.py\n+++ b/src/sku.py\n@@ -1,2 +1,2 @@\n def normalize_sku(value: str) -> str:\n-    return value.strip()\n+    return value.strip().upper()\n"}}},
+        {"thought_summary": "Run lookup and missing-key regressions.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Review the helper-only patch.", "decision": {"kind": "tool", "tool": "git_diff", "arguments": {}}},
+        {"thought_summary": "Cross-file behavior is verified.", "decision": {"kind": "final", "answer": "Canonicalized external SKUs without changing the catalogue API."}}
+      ]
+    },
+    {
+      "id": "fallback-port",
+      "category": "misleading-output",
+      "fixture": "tests/fixtures/micro_repos/fallback_port",
+      "issue_file": "ISSUE.md",
+      "expected_changed_paths": ["src/settings.py"],
+      "plan": [
+        {"thought_summary": "Observe the complete failure before interpreting warnings.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Read the test contract rather than following the unrelated warning.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "tests/test_settings.py"}}},
+        {"thought_summary": "Locate the port resolver.", "decision": {"kind": "tool", "tool": "search_code", "arguments": {"query": "resolve_port"}}},
+        {"thought_summary": "Inspect the missing-value branch.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/settings.py"}}},
+        {"thought_summary": "Use the registered service default.", "decision": {"kind": "tool", "tool": "apply_patch", "arguments": {"patch": "diff --git a/src/settings.py b/src/settings.py\n--- a/src/settings.py\n+++ b/src/settings.py\n@@ -1,4 +1,4 @@\n def resolve_port(raw: str | None) -> int:\n     if raw is None:\n-        return 0\n+        return 8080\n     return int(raw)\n"}}},
+        {"thought_summary": "Verify default and explicit values.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Review the actual causal change.", "decision": {"kind": "tool", "tool": "git_diff", "arguments": {}}},
+        {"thought_summary": "The assertion failure is fixed despite the warning.", "decision": {"kind": "final", "answer": "Changed only the missing-port fallback to 8080 and preserved explicit ports."}}
+      ]
+    },
+    {
+      "id": "ratio-retry",
+      "category": "failed-patch-retry",
+      "fixture": "tests/fixtures/micro_repos/ratio_retry",
+      "issue_file": "ISSUE.md",
+      "expected_changed_paths": ["src/metrics.py"],
+      "plan": [
+        {"thought_summary": "Inspect the ratio implementation.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/metrics.py"}}},
+        {"thought_summary": "Try a guard based on the numerator hypothesis.", "decision": {"kind": "tool", "tool": "apply_patch", "arguments": {"patch": "diff --git a/src/metrics.py b/src/metrics.py\n--- a/src/metrics.py\n+++ b/src/metrics.py\n@@ -1,2 +1,4 @@\n def success_ratio(successes: int, attempts: int) -> float:\n+    if successes == 0:\n+        return 0.0\n     return successes / attempts\n"}}},
+        {"thought_summary": "Test the first hypothesis.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Read the failing example to identify the real denominator condition.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "tests/test_metrics.py"}}},
+        {"thought_summary": "Revise the failed patch to guard attempts.", "decision": {"kind": "tool", "tool": "apply_patch", "arguments": {"patch": "diff --git a/src/metrics.py b/src/metrics.py\n--- a/src/metrics.py\n+++ b/src/metrics.py\n@@ -1,4 +1,4 @@\n def success_ratio(successes: int, attempts: int) -> float:\n-    if successes == 0:\n+    if attempts == 0:\n         return 0.0\n     return successes / attempts\n"}}},
+        {"thought_summary": "Retest the revised patch.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Inspect the final baseline-relative diff.", "decision": {"kind": "tool", "tool": "git_diff", "arguments": {}}},
+        {"thought_summary": "The failed hypothesis was corrected and retested.", "decision": {"kind": "final", "answer": "Guarded the denominator after the first patch failed and verified normal ratios."}}
+      ]
+    },
+    {
+      "id": "username-consistency",
+      "category": "multi-file-repair",
+      "fixture": "tests/fixtures/micro_repos/username_consistency",
+      "issue_file": "ISSUE.md",
+      "expected_changed_paths": ["src/accounts.py", "src/preview.py"],
+      "plan": [
+        {"thought_summary": "Map both validation flows and their tests.", "decision": {"kind": "tool", "tool": "list_files", "arguments": {}}},
+        {"thought_summary": "Find duplicated boundary comparisons.", "decision": {"kind": "tool", "tool": "search_code", "arguments": {"query": "> 3", "path": "src"}}},
+        {"thought_summary": "Inspect persistence validation.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/accounts.py"}}},
+        {"thought_summary": "Inspect preview validation.", "decision": {"kind": "tool", "tool": "read_file", "arguments": {"path": "src/preview.py"}}},
+        {"thought_summary": "Apply the same inclusive boundary to both flows.", "decision": {"kind": "tool", "tool": "apply_patch", "arguments": {"patch": "diff --git a/src/accounts.py b/src/accounts.py\n--- a/src/accounts.py\n+++ b/src/accounts.py\n@@ -1,2 +1,2 @@\n def can_save_username(value: str) -> bool:\n-    return len(value.strip()) > 3\n+    return len(value.strip()) >= 3\ndiff --git a/src/preview.py b/src/preview.py\n--- a/src/preview.py\n+++ b/src/preview.py\n@@ -1,2 +1,2 @@\n def can_preview_username(value: str) -> bool:\n-    return len(value.strip()) > 3\n+    return len(value.strip()) >= 3\n"}}},
+        {"thought_summary": "Verify both flows at and around the boundary.", "decision": {"kind": "tool", "tool": "run_tests", "arguments": {"command_name": "python-unittest"}}},
+        {"thought_summary": "Review the two-file consistency patch.", "decision": {"kind": "tool", "tool": "git_diff", "arguments": {}}},
+        {"thought_summary": "Both flows now implement the same tested rule.", "decision": {"kind": "final", "answer": "Made the three-character boundary inclusive in preview and persistence."}}
+      ]
+    }
+  ]
+}

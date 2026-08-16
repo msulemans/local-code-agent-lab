@@ -16,6 +16,7 @@ from .registry import ToolRegistry
 
 
 CommandRunner = Callable[[tuple[str, ...]], str]
+BaselineObserver = Callable[[SmokeBaseline], None]
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +37,7 @@ def run_one_turn_smoke(
     clock: Callable[[], str],
     client: OllamaClient | None = None,
     command_runner: CommandRunner | None = None,
+    baseline_observer: BaselineObserver | None = None,
 ) -> SmokeRun:
     """Capture a clean baseline, then permit exactly one Ollama-backed turn."""
 
@@ -46,6 +48,8 @@ def run_one_turn_smoke(
         memory_pressure_output=run_command(("memory_pressure", "-Q")),
         running_models=ollama.running_models(),
     )
+    if baseline_observer is not None:
+        baseline_observer(baseline)
 
     validator = ActionValidator.from_tool_document(tool_document)
     controller = OneTurnController(

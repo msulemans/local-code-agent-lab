@@ -36,6 +36,20 @@ class SmokePreflightTests(unittest.TestCase):
 
         self.assertEqual(captured.exception.code, "retained_swap")
 
+    def test_retained_swap_can_be_allowed_for_exploratory_runs(self) -> None:
+        baseline = validate_smoke_baseline(
+            swapusage_output=(
+                "vm.swapusage: total = 3072.00M  used = 2213.88M "
+                " free = 858.12M  (encrypted)"
+            ),
+            memory_pressure_output=HEALTHY_MEMORY,
+            running_models=[],
+            allow_retained_swap=True,
+        )
+
+        self.assertGreater(baseline.swap_used_bytes, 0)
+        self.assertEqual(baseline.loaded_models, ())
+
     def test_loaded_model_blocks_the_smoke_run(self) -> None:
         with self.assertRaises(SmokePreflightError) as captured:
             validate_smoke_baseline(

@@ -106,7 +106,10 @@ class ActionValidator:
             raise ActionValidationError("unknown_tool", f"unknown tool: {tool!r}")
         arguments = action["arguments"]
         function_schema = self._tools[tool]
-        if not arguments_match_schema(arguments, function_schema):
+        if not arguments_match_schema(arguments, function_schema) or not _arguments_match_enums(
+            arguments,
+            function_schema,
+        ):
             raise ActionValidationError(
                 "invalid_arguments",
                 f"arguments do not match the {tool} schema",
@@ -153,6 +156,25 @@ def _apply_declared_defaults(
         if name not in result and isinstance(rule, dict) and "default" in rule:
             result[name] = rule["default"]
     return result
+
+
+def _arguments_match_enums(
+    arguments: Any,
+    function_schema: dict[str, Any],
+) -> bool:
+    """Enforce action-only enum constraints without changing the frozen model scorer."""
+
+    if not isinstance(arguments, dict):
+        return False
+    properties = function_schema.get("parameters", {}).get("properties", {})
+    for name, value in arguments.items():
+        rule = properties.get(name)
+        if not isinstance(rule, dict) or "enum" not in rule:
+            continue
+        choices = rule["enum"]
+        if not isinstance(choices, list) or value not in choices:
+            return False
+    return True
 
 
 def _canonical_path(value: Any) -> Any:

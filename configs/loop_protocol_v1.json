@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "protocol_version": "1",
+  "max_payload_chars": 16384,
+  "description": "One strict loop decision containing either one read-only tool call or one final answer.",
+  "decision_kinds": {
+    "tool": {
+      "required": ["kind", "tool", "arguments"],
+      "additionalProperties": false
+    },
+    "final": {
+      "required": ["kind", "answer"],
+      "additionalProperties": false,
+      "answerMaxLength": 4000
+    }
+  },
+  "tool_schemas": "benchmarks/model_compatibility/tool_schemas.json"
+}
