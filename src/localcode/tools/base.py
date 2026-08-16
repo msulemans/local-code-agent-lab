@@ -93,6 +93,19 @@ SECRET_EXACT_NAMES = frozenset(
 SECRET_GLOBS = (".env.*", "*.key", "*.p12", "*.pem", "*.pfx")
 
 
+# Third-party code vendored into a repository tree (e.g. requests/packages)
+# is never the fix site for a first-party issue and must not be surfaced as
+# evidence or search matches that could misdirect the agent.
+VENDORED_DIRECTORY_NAMES = frozenset(
+    {"vendor", "vendored", "third_party", "_vendor", "site-packages", "packages"}
+)
+
+
+def is_vendored_path(relative: PurePosixPath) -> bool:
+    """Return whether a repository-relative path sits under vendored code."""
+    return any(part in VENDORED_DIRECTORY_NAMES for part in relative.parts)
+
+
 @dataclass(frozen=True, slots=True)
 class RepositoryPolicy:
     """Canonical path and exclusion policy anchored to one repository root."""

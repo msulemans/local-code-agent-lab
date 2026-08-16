@@ -6,7 +6,7 @@ import fnmatch
 from pathlib import Path, PurePosixPath
 import re
 
-from .base import RepositoryPolicy, ToolError, ToolResult
+from .base import RepositoryPolicy, ToolError, ToolResult, is_vendored_path
 from .files import MAX_FILE_BYTES
 
 
@@ -67,6 +67,8 @@ def search_code(
         if considered_files > MAX_SEARCH_FILES:
             truncated = True
             break
+        if is_vendored_path(relative):
+            continue
         relative_text = relative.as_posix()
         if glob is not None and not (
             fnmatch.fnmatchcase(relative_text, glob)

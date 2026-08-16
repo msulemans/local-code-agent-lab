@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 import re
 
-from .tools.base import RepositoryPolicy
+from .tools.base import RepositoryPolicy, is_vendored_path
 
 
 MAX_RETRIEVAL_FILES = 1_000
@@ -195,7 +195,7 @@ def select_retrieval_evidence(
     candidates: list[tuple[int, str, str, str, tuple[int, ...], str]] = []
 
     for file in repo_map.files:
-        if file.kind == "issue":
+        if file.kind in {"issue", "vendored"}:
             continue
         relative, path = policy.resolve(file.path, kind="file")
         try:
@@ -392,6 +392,10 @@ def _file_kind(path: PurePosixPath) -> str:
     name = path.name.lower()
     if name == "issue.md":
         return "issue"
+    if is_vendored_path(path):
+        # Third-party code vendored into the tree (e.g. requests/packages)
+        # is never the fix site for a first-party issue.
+        return "vendored"
     if "tests" in parts or name.startswith("test_") or name.endswith("_test.py"):
         return "test"
     if parts and parts[0] == "src":
@@ -420,7 +424,7 @@ def _language(path: PurePosixPath) -> str:
 
 
 def _kind_order(kind: str) -> int:
-    return {"source": 0, "test": 1, "other": 2, "issue": 3}.get(kind, 4)
+    return {"source": 0, "test": 1, "other": 2, "issue": 3, "vendored": 4}.get(kind, 5)
 
 
 def _safe_relative(value: str) -> PurePosixPath:

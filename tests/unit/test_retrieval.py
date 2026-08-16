@@ -126,6 +126,31 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(files["test_requests.py"].kind, "test")
         self.assertIn("requests/models.py", pack.selected_paths)
 
+    def test_vendored_code_is_excluded_from_evidence(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="localcode-retrieval-vendor-") as temporary:
+            root = Path(temporary)
+            (root / "app").mkdir()
+            (root / "app/vendor").mkdir()
+            (root / "app/core.py").write_text(
+                "def to_native_string(value):\n    return value\n", encoding="utf-8"
+            )
+            (root / "app/vendor/third.py").write_text(
+                "def to_native_string(value):\n    return value\n", encoding="utf-8"
+            )
+            files = build_repository_map(root).by_path()
+            pack = select_retrieval_evidence(
+                root,
+                "binary payload fails due to calling to_native_string",
+                max_files=3,
+                max_total_chars=2_000,
+            )
+
+        # Vendored third-party code must be classified and never ranked as
+        # evidence, so the agent is not misdirected to fix it (D-044).
+        self.assertEqual(files["app/vendor/third.py"].kind, "vendored")
+        self.assertNotIn("app/vendor/third.py", pack.selected_paths)
+        self.assertIn("app/core.py", pack.selected_paths)
+
     def test_registered_micro_suite_relevant_file_recall_under_fixed_budget(self) -> None:
         suite = load_micro_suite(MANIFEST, SCHEMAS, Path("."))
         recalled = 0

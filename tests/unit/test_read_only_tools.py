@@ -122,6 +122,22 @@ class RepositoryToolTests(unittest.TestCase):
         self.assertEqual(len(result.content.splitlines()), 1)
         self.assertTrue(result.truncated)
 
+    def test_search_excludes_vendored_third_party_code(self) -> None:
+        vendored = self.root / "src/vendor"
+        vendored.mkdir(parents=True)
+        (vendored / "third.py").write_text("needle = True\n", encoding="utf-8")
+        (self.root / "src/parser.py").write_text(
+            "def parse(text):\n    return text.strip()\nneedle = True\n",
+            encoding="utf-8",
+        )
+
+        result = search_code(self.root, "needle")
+
+        # Vendored third-party code is never the fix site and must not
+        # misdirect the agent (D-044; requests/packages/urllib3 in m042).
+        self.assertNotIn("src/vendor/third.py", result.content)
+        self.assertIn("src/parser.py", result.content)
+
 
 class GitDiffToolTests(unittest.TestCase):
     def setUp(self) -> None:
