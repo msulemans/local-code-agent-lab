@@ -152,7 +152,17 @@ across a small matched multi-repository subset.
 - Sphinx reached the correct file and an edit, but automatic testing exceeded
   the 12-call tool budget and crashed event construction before export.
 
-The observed summary is 1/3, but Sphinx is a controller failure rather than a
-model score. The controller now reserves the automatic-test slot and uses 14
-tool slots for real agent phases. The bounded next gate is Sphinx alone under a
-new run ID; Flask and Pylint must not be repurchased in that retry.
+The controller now reserves the automatic-test slot and uses 14 tool slots for
+real agent phases. Sphinx-only retry `m-luna-sphinx-a3-budget-fixed-v1` then
+completed agent execution and A3 review without a negative budget, proving the
+repair. The official target test still failed: Luna changed every annotation
+reference from `class` to `obj`, while resolving gold control
+`m-luna-sphinx-gold-v1` changed only the `None` special case. The final A3
+generalization result is therefore **1/3**: Flask resolved, while Pylint and
+Sphinx were `FIX_INCOMPLETE` under sound evaluator controls.
+
+The accepting Sphinx review exposed a general instruction flaw: it had been
+told never to undo the candidate's core fix. Review now treats that idea as
+untrusted, checks narrow named behavior against broad semantic changes, and
+must acknowledge supplied public-test evidence. Do not rerun the same three
+paid issues merely to tune against their gold answers.

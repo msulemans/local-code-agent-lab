@@ -94,6 +94,13 @@ the official evaluator resolved 1/1. The run observed two public test executions
 inside the pinned image before independent evaluation. This closes pathway
 correctness, not generalization or the frozen-20 experiment.
 
+The first A3 generalization gate is now complete at **1/3**. Flask resolved;
+Pylint and Sphinx remained `FIX_INCOMPLETE`, and same-instance gold controls
+resolved both. The Sphinx-only retry proved the corrected tool budget reaches
+automatic testing and review. Its broad `class` to `obj` change still failed
+the target test; the gold patch showed the required narrow `None` special case.
+This is model/reviewer evidence, not an evaluator or controller failure.
+
 ## Explain-back check
 
 1. Why is a gold control allowed to read `patch` while an agent resolver is not?

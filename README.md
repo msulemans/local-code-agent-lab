@@ -143,6 +143,15 @@ Docker public tests and officially resolved 1/1. It used 14 total tool calls, 2
 test executions, 2,528 generated tokens, and about 60.4 seconds. This validates
 the repaired pathway; it still does not constitute a representative score.
 
+The subsequent Flask/Pylint/Sphinx A3 generalization gate finished at **1/3**.
+Flask resolved; Pylint and Sphinx were valid patches but `FIX_INCOMPLETE`.
+Resolving gold controls cleared both evaluator environments. The Sphinx retry
+also proved the automatic-test budget repair: it completed agent and review
+phases without negative budgets, but Luna globally weakened annotation roles
+where the required fix narrowly special-cased `None`. The reviewer is now
+explicitly allowed to replace a wrong core idea and must compare patch scope
+with the exact issue and existing public-test evidence.
+
 Real agent runs now execute repository-owned public tests in the pinned
 SWE-bench instance image by default. The runner prepares selected images,
 mounts only the candidate diff, disables container networking, and retains a

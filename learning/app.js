@@ -295,11 +295,11 @@ const milestones = [
   },
   {
     id: "009",
-    state: "Generalization diagnosed · 1 resolved",
+    state: "Generalization complete · 1/3 resolved",
     title: "Real SWE-bench evaluation boundary",
-    story: "Luna generalized the repaired A3 path to Flask. Pylint produced an incomplete patch, confirmed by a resolving gold control. Sphinx reached the relevant edit but exposed a controller defect: automatic testing exceeded the declared tool budget and made remaining budget negative. The controller now reserves the verification slot before accepting an edit. Tests are read-only during review.",
-    evidence: "m-luna-generalization-a3-v1 · Flask resolved · Pylint FIX_INCOMPLETE with gold 1/1 · Sphinx budget crash fixed · 243 unit tests green",
-    decision: "Retry only Sphinx with a new run ID. Do not repay for Flask, Pylint, or Requests; do not start the frozen 20.",
+    story: "Luna resolved Flask. Pylint produced an incomplete patch. The first Sphinx attempt exposed a controller budget defect; after that was fixed, the Sphinx-only retry completed testing and review but made a global semantic change instead of the required narrow None special case. Resolving gold controls for both failures prove the evaluator path is sound.",
+    evidence: "A3 generalization 1/3 · Flask resolved · Pylint and Sphinx FIX_INCOMPLETE · both gold controls 1/1 · Sphinx retry used 15 tools with no budget crash",
+    decision: "Do not repay for these same issues. Preserve 1/3 as the measured result; use fresh issues or a frozen matched treatment comparison next.",
   },
 ];
 
@@ -405,6 +405,13 @@ const failures = [
     symptom: "The official Sphinx gold patch scored unresolved because the container could not import roman, then failed an unrelated regression after roman was installed.",
     diagnosis: "The 2020 checkout allowed an unbounded modern docutils version. ARM-local image construction installed docutils 0.23, which removed old modules and changed node behavior.",
     lesson: "A gold control is an evaluator calibration test. Pin period-compatible dependencies before attributing an unresolved result to the agent, and run the saved model patch again without new inference.",
+  },
+  {
+    type: "model",
+    title: "The reviewer protected a wrong core idea",
+    symptom: "The Sphinx reviewer accepted a global class-to-object role change, but the target test still failed while all 27 regression tests passed.",
+    diagnosis: "The issue named one None special case, while the candidate changed every annotation. The review prompt incorrectly discouraged replacing the candidate's core fix. A resolving gold control confirmed that only None needed the object role.",
+    lesson: "A reviewer must treat the candidate's central idea as untrusted. Compare semantic scope with the exact issue, prefer narrow special-case behavior when required, and acknowledge existing test evidence without mistaking baseline failures for target proof.",
   },
 ];
 

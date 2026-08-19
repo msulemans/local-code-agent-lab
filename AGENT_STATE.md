@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
 Last updated: 2026-08-19 (Australia/Sydney)
-Status: Milestone 009's complete issue-to-evaluator path is verified and its first Luna generalization gate is diagnosed. `m-luna-generalization-a3-v1` resolved Flask, produced an incomplete Pylint patch, and exposed one Sphinx controller-budget defect that is now fixed and unit-tested.
+Status: Milestone 009's complete issue-to-evaluator path is verified. The first Luna A3 generalization gate is complete at 1/3: Flask resolved; Pylint and Sphinx produced valid but incomplete fixes, each confirmed against a resolving gold control.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -40,8 +40,37 @@ compatibility evidence boundary.
 Milestone 009 runtime closure. B0 is a genuine one-decision, one-patch
 baseline; A1 adds the bounded tool loop; A2 adds ranked repository context; A3
 adds a fresh read/test/revision review. The repaired A3 path is officially
-resolved on Requests and Flask. The next experiment is a Sphinx-only retry of
-the corrected controller, not another complete three-repository run.
+resolved on Requests and Flask. The Sphinx-only retry proved the controller
+repair and isolated a model/reviewer failure. Do not buy another retry of these
+same three issues; the next experiment must use fresh issues or a frozen matched
+treatment comparison.
+
+### Sphinx retry and generalization verdict (2026-08-19)
+
+- `m-luna-sphinx-a3-budget-fixed-v1` completed without the former negative-budget
+  crash: 12 agent turns, 13 agent tools including trusted automatic testing,
+  then a fresh A3 review. It produced a valid one-file patch with 0 invalid
+  actions, 1 public test execution, 15 total tools, 4,229 generated tokens, and
+  162.018503 seconds of producer wall time.
+- The official evaluator reported unresolved: the target
+  `tests/test_domain_py.py::test_parse_annotation` failed while all 27
+  PASS_TO_PASS tests passed. The patch globally changed annotation references
+  from `class` to `obj`.
+- Gold control `m-luna-sphinx-gold-v1` resolved 1/1. Its patch changed only the
+  `None` special case to `obj` and preserved `class` for all other annotations.
+  This proves the image/evaluator and budget repair are sound; the Luna patch
+  and its accepting review were semantically incomplete.
+- The reviewer prompt no longer protects the earlier agent's "core fix." It now
+  treats that idea as untrusted, checks whether a named special case needs a
+  narrow condition rather than a global change, and must acknowledge supplied
+  public-test evidence. This is a general review correction, not a
+  Sphinx-specific answer.
+- Verification after the review correction: 243 unit tests passed with 8
+  expected sandbox skips; the 50-ID learning UI contract, JavaScript syntax,
+  Python compilation, and diff checks passed.
+- Final comparable A3 generalization result: **1/3 resolved** (Flask resolved;
+  Pylint and Sphinx `FIX_INCOMPLETE`). The two gold controls resolved, so neither
+  failure is attributed to evaluator incompatibility.
 
 ### Luna three-repository generalization gate (2026-08-19)
 

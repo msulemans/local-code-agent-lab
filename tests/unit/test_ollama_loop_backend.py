@@ -90,7 +90,11 @@ class OllamaLoopBackendTests(unittest.TestCase):
     def test_review_system_prompt_carries_rules_and_can_replace_the_loop_prompt(self) -> None:
         self.assertIn(SCHEMA_VALIDITY_RULES, REVIEW_SYSTEM_PROMPT)
         self.assertIn("review component", REVIEW_SYSTEM_PROMPT)
-        self.assertIn("call-site", REVIEW_SYSTEM_PROMPT)
+        self.assertIn("Assume the candidate's core idea may be wrong", REVIEW_SYSTEM_PROMPT)
+        self.assertIn("special case require a narrow condition", REVIEW_SYSTEM_PROMPT)
+        self.assertIn("Do not say tests were", REVIEW_SYSTEM_PROMPT)
+        self.assertIn("unavailable when that evidence exists", REVIEW_SYSTEM_PROMPT)
+        self.assertNotIn("Never undo the candidate patch's core fix", REVIEW_SYSTEM_PROMPT)
 
         client = FakeClient([chat_result(content="Done")])
         backend = OllamaLoopBackend(
