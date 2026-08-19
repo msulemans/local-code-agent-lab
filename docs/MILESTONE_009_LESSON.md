@@ -49,18 +49,33 @@ The first gold control measured one pinned Flask task under B0:
 
 The official Docker evaluator applied the gold patch and reported `resolved: 1`.
 Docker built an x86 base/environment image under ARM emulation; this is real
-harness evidence, not a micro-suite substitute. The complete 20-task agent run
-is still pending because no real Qwen patch producer has been connected yet.
+harness evidence, not a micro-suite substitute. Both Ollama and OpenAI patch
+producers are now connected, but the frozen 20 remains pending until the pilot
+protocol is stable.
+
+## Agent-visible public tests
+
+Real repositories cannot reliably use the Mac host's Python environment.
+Model-backed runs therefore default to `--agent-test-environment
+swebench-docker`. The runner prepares only the selected instance images,
+mounts only the candidate diff into `/testbed`, disables network access, runs
+the repository's pinned public `test_cmd`, and preserves the bounded output
+tail plus true exit status. It never exposes the gold patch, hidden test patch,
+`FAIL_TO_PASS`, or evaluator script.
+
+This public result guides the loop; it is not the benchmark verdict. The
+official evaluator still runs separately and exclusively decides resolution.
 
 ## Read the implementation in this order
 
 1. `benchmarks/real_benchmark/manifest_v1.json` — the frozen task contract.
 2. `src/localcode/real_benchmark.py` — preparation, evaluation, comparisons,
    evidence files, and failure taxonomy.
-3. `src/localcode/real_benchmark_adapters.py` — local dataset resolver, control
-   producer, and official subprocess evaluator.
-4. `scripts/run_real_benchmark.py` — CLI and one-instance control narrowing.
-5. `tests/unit/test_real_benchmark.py` and
+3. `src/localcode/real_benchmark_adapters.py` — dataset resolver, agent/control
+   producers, image preparation, and official evaluator.
+4. `src/localcode/swebench_public_tests.py` — isolated public-test execution.
+5. `scripts/run_real_benchmark.py` — CLI and one-instance control narrowing.
+6. `tests/unit/test_real_benchmark.py` and
    `tests/unit/test_real_benchmark_adapters.py` — contract tests.
 
 ## What this proves
@@ -68,9 +83,16 @@ is still pending because no real Qwen patch producer has been connected yet.
 It proves that a pinned real-subset manifest, official prediction JSONL, Docker
 harness, gold control, and empty control can be connected reproducibly.
 
-It does not yet report B0/A1/A2/A3 model solve rates. That requires a trusted
-real-repository patch producer and must use a new run ID after every protocol or
-model change.
+It does not establish a representative B0/A1/A2/A3 solve rate. A hosted
+three-repository ladder measured 0/3 in every treatment and diagnosed the map,
+test-environment, and review-evidence defects fixed afterward. Every changed
+protocol must use fresh run IDs and matched treatments.
+
+The first post-repair gate is now complete: Luna A3 run
+`m-luna-requests-a3-fixed-v1` produced the correct two-site Requests patch and
+the official evaluator resolved 1/1. The run observed two public test executions
+inside the pinned image before independent evaluation. This closes pathway
+correctness, not generalization or the frozen-20 experiment.
 
 ## Explain-back check
 

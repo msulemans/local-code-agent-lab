@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import sys
 import tempfile
 import unittest
 
 from localcode.patches import apply_patch
-from localcode.test_runner import TestCommand, TestRunner
+from localcode.test_runner import TestCommand, TestRunner, _execute_bounded
 from localcode.tools import ToolError
 from localcode.workspace import create_workspace
 
@@ -24,6 +25,23 @@ VALID_PATCH = """diff --git a/src/tiny_parser.py b/src/tiny_parser.py
 
 
 class TestRunnerTests(unittest.TestCase):
+    def test_tail_mode_drains_large_output_and_preserves_real_exit_status(self) -> None:
+        executable = str(Path(sys.executable).resolve())
+        with tempfile.TemporaryDirectory() as temporary:
+            result = _execute_bounded(
+                Path(temporary),
+                (executable, "-c", "print('x' * 10000); print('FINAL-SENTINEL')"),
+                dict(os.environ),
+                10,
+                100,
+                "tail-test",
+                False,
+            )
+
+        self.assertEqual(result.metadata_dict()["exit_code"], 0)
+        self.assertTrue(result.truncated)
+        self.assertIn("FINAL-SENTINEL", result.content)
+
     def run_or_skip(self, runner: TestRunner, workspace, command_name: str, **limits):
         try:
             return runner.run(workspace, command_name, **limits)

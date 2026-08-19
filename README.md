@@ -137,6 +137,18 @@ A3 run `m-online-terra-requests-a3-v2` officially resolved
 real model. This is one pilot solve, not a 20-issue score. See
 [the dual-backend lesson](docs/ONLINE_BACKENDS.md).
 
+After the three-repository ladder exposed harness defects, post-repair Luna A3
+run `m-luna-requests-a3-fixed-v1` repeated the Requests pathway with compatible
+Docker public tests and officially resolved 1/1. It used 14 total tool calls, 2
+test executions, 2,528 generated tokens, and about 60.4 seconds. This validates
+the repaired pathway; it still does not constitute a representative score.
+
+Real agent runs now execute repository-owned public tests in the pinned
+SWE-bench instance image by default. The runner prepares selected images,
+mounts only the candidate diff, disables container networking, and retains a
+bounded output tail. Gold patches, hidden tests, and evaluator scripts stay
+outside the agent; only the official evaluator may set `resolved=true`.
+
 Milestone 006 provides the bounded multi-turn foundation. A strict decision
 protocol distinguishes tool proposals from final answers; explicit budgets
 bound turns, invalid actions, tool calls, repeated actions, wall time, and

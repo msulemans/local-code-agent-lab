@@ -23,6 +23,7 @@ from localcode.real_benchmark_adapters import (
     JsonDatasetIssueResolver,
     LocalCodePatchProducer,
     OfficialSwebenchEvaluator,
+    prepare_swebench_public_test_images,
 )
 
 
@@ -121,6 +122,12 @@ def main() -> int:
         default=False,
         help="render each agent and review phase live through the terminal UI",
     )
+    parser.add_argument(
+        "--agent-test-environment",
+        choices=("host", "swebench-docker"),
+        default="swebench-docker",
+        help="where agent-visible public tests run (default: compatible SWE-bench image)",
+    )
     arguments = parser.parse_args()
 
     if arguments.producer == "openai" and not os.environ.get("OPENAI_API_KEY", "").strip():
@@ -163,6 +170,15 @@ def main() -> int:
         )
     resolver = JsonDatasetIssueResolver(arguments.dataset)
     if arguments.producer in {"ollama", "openai"}:
+        if arguments.agent_test_environment == "swebench-docker":
+            prepare_swebench_public_test_images(
+                dataset_name=arguments.dataset_name or arguments.dataset,
+                split=manifest.dataset_split,
+                instance_ids=tuple(instance.instance_id for instance in manifest.instances),
+                python_executable=arguments.python_executable,
+                evaluation_root=arguments.evaluation_root,
+                max_workers=arguments.max_workers,
+            )
         tool_document = json.loads(Path(arguments.tool_schemas).read_text(encoding="utf-8"))
         producer = LocalCodePatchProducer(
             model=arguments.model,
@@ -175,6 +191,7 @@ def main() -> int:
             think=False if arguments.thinking == "off" else arguments.thinking,
             backend_provider=arguments.producer,
             reasoning_effort=arguments.reasoning_effort,
+            test_environment=arguments.agent_test_environment,
             observer_factory=_tui_factory if arguments.tui else None,
         )
     else:

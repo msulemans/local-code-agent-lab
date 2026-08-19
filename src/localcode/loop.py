@@ -26,6 +26,7 @@ class LoopBudgets:
     recover_repeated_actions: bool = False
     phase_tool_policy: bool = False
     auto_test_after_edit: bool = False
+    auto_test_command_name: str = "python-unittest"
 
     def __post_init__(self) -> None:
         integer_fields = (
@@ -46,6 +47,12 @@ class LoopBudgets:
             raise ValueError("phase_tool_policy must be a boolean")
         if not isinstance(self.auto_test_after_edit, bool):
             raise ValueError("auto_test_after_edit must be a boolean")
+        if (
+            not isinstance(self.auto_test_command_name, str)
+            or not self.auto_test_command_name
+            or any(character.isspace() for character in self.auto_test_command_name)
+        ):
+            raise ValueError("auto_test_command_name must be a non-empty name without whitespace")
         if (
             isinstance(self.max_wall_seconds, bool)
             or not isinstance(self.max_wall_seconds, (int, float))
@@ -156,7 +163,15 @@ class ReadOnlyAgentLoop:
         self._observer = observer
         self._context_compiler = SimpleContextCompiler() if context_compiler is None else context_compiler
 
-    def run(self, *, run_id: str, issue: str) -> LoopResult:
+    def run(
+        self,
+        *,
+        run_id: str,
+        issue: str,
+        initial_patch_tested: bool = False,
+    ) -> LoopResult:
+        if not isinstance(initial_patch_tested, bool):
+            raise ValueError("initial_patch_tested must be a boolean")
         events: list[Event] = []
         observations: list[ToolResult] = []
         history: list[str] = []
@@ -168,6 +183,7 @@ class ReadOnlyAgentLoop:
         patch_applied = False
         tests_passed = False
         tests_executed = 0
+        current_patch_tested = initial_patch_tested
         started = self._monotonic()
 
         self._append_event(
@@ -282,7 +298,7 @@ class ReadOnlyAgentLoop:
                     missing.append("applied patch")
                 if self._completion.require_passing_tests and not tests_passed:
                     missing.append("passing test command")
-                elif self._completion.require_test_execution and tests_executed == 0:
+                elif self._completion.require_test_execution and not current_patch_tested:
                     missing.append("executed test command")
                 if missing:
                     invalid_actions_used += 1
@@ -423,9 +439,11 @@ class ReadOnlyAgentLoop:
                 if decision.tool in {"apply_patch", "edit_file", "write_file"}:
                     patch_applied = True
                     tests_passed = False
+                    current_patch_tested = False
                     action_counts.clear()
                 elif decision.tool == "run_tests":
                     tests_executed += 1
+                    current_patch_tested = True
                     tests_passed = observation.metadata_dict().get("exit_code") == 0
             self._append_observation(observations, observation)
             tool_history.append(decision.tool)
@@ -471,7 +489,7 @@ class ReadOnlyAgentLoop:
                     protocol_version="1",
                     thought_summary="automatic verification after edit",
                     tool="run_tests",
-                    arguments=(("command_name", "python-unittest"),),
+                    arguments=(("command_name", self._budgets.auto_test_command_name),),
                 )
                 try:
                     auto_observation = self._registry.execute(auto_action)
@@ -481,6 +499,7 @@ class ReadOnlyAgentLoop:
                     auto_summary = auto_observation.content
                 else:
                     tests_executed += 1
+                    current_patch_tested = True
                     tests_passed = auto_observation.metadata_dict().get("exit_code") == 0
                     auto_event_type = EventType.TOOL_RESULT
                     auto_summary = "Automatic verification after edit completed."
@@ -491,7 +510,9 @@ class ReadOnlyAgentLoop:
                     json.dumps(
                         {
                             "tool": "run_tests",
-                            "arguments": {"command_name": "python-unittest"},
+                            "arguments": {
+                                "command_name": self._budgets.auto_test_command_name
+                            },
                             "observation": auto_observation.content,
                             "metadata": auto_observation.metadata_dict(),
                             "controller_guidance": "Automatic test run after edit; revise with edit_file or apply_patch if failing, otherwise review with git_diff and finish.",

@@ -122,6 +122,7 @@ class RealBenchmarkIssue:
     repository: str
     base_commit: str
     problem_statement: str
+    version: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

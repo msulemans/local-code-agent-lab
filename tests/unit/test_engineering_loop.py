@@ -122,6 +122,33 @@ class EngineeringLoopTests(unittest.TestCase):
         self.assertEqual(registry.executed, ["apply_patch", "run_tests"])
         self.assertEqual(result.tests_executed, 1)
 
+    def test_auto_test_uses_the_controller_registered_command_name(self) -> None:
+        class CommandRecordingRegistry(FakeEngineeringRegistry):
+            def execute(self, action) -> ToolResult:
+                if action.tool == "run_tests":
+                    self.executed.append(action.arguments_dict()["command_name"])
+                    return ToolResult(content="tests", metadata=(("exit_code", 0),))
+                return super().execute(action)
+
+        registry = CommandRecordingRegistry([0])
+        result = AgentLoop(
+            FakeBackend([tool("apply_patch", {"patch": "patch-one"}), final()]),
+            DecisionValidator.from_path(SCHEMAS),
+            registry,
+            LoopBudgets(
+                max_turns=2,
+                max_tool_calls=8,
+                auto_test_after_edit=True,
+                auto_test_command_name="repository-tests",
+            ),
+            clock=lambda: NOW,
+            monotonic=lambda: 0.0,
+            completion_requirements=CompletionRequirements(require_patch=True),
+        ).run(run_id="docker-auto-test", issue="Fix parser")
+
+        self.assertEqual(result.termination_reason, TerminationReason.FINAL_ANSWER)
+        self.assertEqual(registry.executed, ["apply_patch", "repository-tests"])
+
     def test_all_successful_edit_tools_satisfy_the_patch_requirement(self) -> None:
         edit_actions = (
             tool(
@@ -221,6 +248,45 @@ class EngineeringLoopTests(unittest.TestCase):
         self.assertEqual(result.termination_reason, TerminationReason.FINAL_ANSWER)
         self.assertEqual(result.tests_executed, 1)
         self.assertEqual(result.invalid_actions_used, 1)
+
+    def test_seeded_test_evidence_allows_review_acceptance_but_edit_invalidates_it(self) -> None:
+        accepted = AgentLoop(
+            FakeBackend([final()]),
+            DecisionValidator.from_path(SCHEMAS),
+            FakeEngineeringRegistry([]),
+            LoopBudgets(max_turns=1, max_tool_calls=1),
+            clock=lambda: NOW,
+            monotonic=lambda: 0.0,
+            completion_requirements=CompletionRequirements(require_test_execution=True),
+        ).run(
+            run_id="review-accept",
+            issue="Review parser patch",
+            initial_patch_tested=True,
+        )
+        self.assertEqual(accepted.termination_reason, TerminationReason.FINAL_ANSWER)
+        self.assertEqual(accepted.tests_executed, 0)
+
+        registry = FakeEngineeringRegistry([])
+        revised = AgentLoop(
+            FakeBackend([tool("edit_file", {
+                "path": "src/parser.py",
+                "old_string": "old",
+                "new_string": "new",
+            }), final()]),
+            DecisionValidator.from_path(SCHEMAS),
+            registry,
+            LoopBudgets(max_turns=2, max_tool_calls=1),
+            clock=lambda: NOW,
+            monotonic=lambda: 0.0,
+            completion_requirements=CompletionRequirements(require_test_execution=True),
+        ).run(
+            run_id="review-revise",
+            issue="Review parser patch",
+            initial_patch_tested=True,
+        )
+        self.assertEqual(revised.termination_reason, TerminationReason.TURN_EXHAUSTION)
+        self.assertEqual(revised.invalid_actions_used, 1)
+        self.assertEqual(registry.executed, ["edit_file"])
 
     def test_phase_policy_allows_failure_investigation_after_tests(self) -> None:
         backend = RecordingBackend(

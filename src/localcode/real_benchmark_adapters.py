@@ -75,10 +75,13 @@ class LocalCodePatchProducer:
         backend_provider: str = "ollama",
         openai_api_key: str | None = None,
         reasoning_effort: str = "medium",
+        test_environment: str = "host",
         observer_factory: Callable[[RealBenchmarkConfiguration, RealBenchmarkIssue, str], object | None] | None = None,
     ) -> None:
         if backend_provider not in {"ollama", "openai"}:
             raise ValueError("backend_provider must be 'ollama' or 'openai'")
+        if test_environment not in {"host", "swebench-docker"}:
+            raise ValueError("test_environment must be 'host' or 'swebench-docker'")
         self.model = model
         self.tool_document = tool_document
         self.only_instance_id = only_instance_id
@@ -93,6 +96,7 @@ class LocalCodePatchProducer:
         self.backend_provider = backend_provider
         self.openai_api_key = openai_api_key
         self.reasoning_effort = reasoning_effort
+        self.test_environment = test_environment
         self.observer_factory = observer_factory
         self._preflight_ok = False
         self._client = None
@@ -127,6 +131,7 @@ class LocalCodePatchProducer:
         from .loop import AgentLoop, CompletionRequirements, LoopBudgets
         from .preflight import SmokeBaseline, parse_host_resource_snapshot, validate_smoke_baseline
         from .smoke import _run_host_command
+        from .swebench_public_tests import SwebenchPublicTestRunner
         from .tools import git_diff
         from .workspace import create_workspace
 
@@ -144,6 +149,11 @@ class LocalCodePatchProducer:
             )
         client = self._client
         single_shot = configuration.kind == "single_shot_base"
+        runtime_tool_document = (
+            _tool_document_test_command(self.tool_document, "repository-tests")
+            if self.test_environment == "swebench-docker" and not single_shot
+            else self.tool_document
+        )
         agent_prompt = SINGLE_SHOT_SYSTEM_PROMPT if single_shot else LOOP_SYSTEM_PROMPT
         # The empty-ollama preflight runs once per producer, not once per
         # instance: a multi-instance run legitimately keeps the model resident
@@ -161,7 +171,7 @@ class LocalCodePatchProducer:
         if self.backend_provider == "ollama":
             loop_backend = OllamaLoopBackend(
                 model=self.model,
-                tool_document=self.tool_document,
+                tool_document=runtime_tool_document,
                 client=client,
                 context_tokens=self.context_tokens,
                 max_output_tokens=self.max_output_tokens,
@@ -185,7 +195,7 @@ class LocalCodePatchProducer:
         else:
             loop_backend = OpenAIResponsesLoopBackend(
                 model=self.model,
-                tool_document=self.tool_document,
+                tool_document=runtime_tool_document,
                 client=client,
                 max_output_tokens=self.max_output_tokens,
                 reasoning_effort=self.reasoning_effort,
@@ -207,9 +217,9 @@ class LocalCodePatchProducer:
                 skip_symlinks=True,
             )
             validator_document = (
-                _tool_document_subset(self.tool_document, {"apply_patch"})
+                _tool_document_subset(runtime_tool_document, {"apply_patch"})
                 if single_shot
-                else self.tool_document
+                else runtime_tool_document
             )
             validator = DecisionValidator.from_tool_document(validator_document)
             backend = (
@@ -222,7 +232,19 @@ class LocalCodePatchProducer:
                 if baseline is not None
                 else loop_backend
             )
-            registry = EngineeringToolRegistry(workspace)
+            if self.test_environment == "swebench-docker" and not single_shot:
+                if issue.version is None:
+                    raise RealBenchmarkError(
+                        f"dataset row is missing version for {issue.instance_id}"
+                    )
+                test_runner = SwebenchPublicTestRunner(
+                    instance_id=issue.instance_id,
+                    repository=issue.repository,
+                    version=issue.version,
+                )
+            else:
+                test_runner = None
+            registry = EngineeringToolRegistry(workspace, test_runner)
             agent_registry = (
                 ToolSubsetRegistry(registry, {"apply_patch"}) if single_shot else registry
             )
@@ -251,6 +273,11 @@ class LocalCodePatchProducer:
                     recover_repeated_actions=not single_shot,
                     phase_tool_policy=not single_shot,
                     auto_test_after_edit=not single_shot,
+                    auto_test_command_name=(
+                        "repository-tests"
+                        if self.test_environment == "swebench-docker"
+                        else "python-unittest"
+                    ),
                     max_wall_seconds=600,
                     max_context_chars=self.max_context_chars,
                 ),
@@ -284,7 +311,7 @@ class LocalCodePatchProducer:
                 if self.backend_provider == "ollama":
                     review_backend = OllamaLoopBackend(
                         model=self.model,
-                        tool_document=self.tool_document,
+                        tool_document=runtime_tool_document,
                         client=client,
                         context_tokens=self.context_tokens,
                         max_output_tokens=self.max_output_tokens,
@@ -302,7 +329,7 @@ class LocalCodePatchProducer:
                 else:
                     review_backend = OpenAIResponsesLoopBackend(
                         model=self.model,
-                        tool_document=self.tool_document,
+                        tool_document=runtime_tool_document,
                         client=client,
                         max_output_tokens=self.max_output_tokens,
                         reasoning_effort=self.reasoning_effort,
@@ -334,6 +361,11 @@ class LocalCodePatchProducer:
                             recover_repeated_actions=True,
                             phase_tool_policy=True,
                             auto_test_after_edit=True,
+                            auto_test_command_name=(
+                                "repository-tests"
+                                if self.test_environment == "swebench-docker"
+                                else "python-unittest"
+                            ),
                             max_wall_seconds=360,
                             max_context_chars=self.max_context_chars,
                         ),
@@ -348,7 +380,12 @@ class LocalCodePatchProducer:
                         observer=review_observer,
                     ).run(
                         run_id=f"real-{issue.instance_id}-review",
-                        issue=_review_issue_text(issue.problem_statement, diff.content),
+                        issue=_review_issue_text(
+                            issue.problem_statement,
+                            diff.content,
+                            test_evidence=_last_test_evidence(result.observations),
+                        ),
+                        initial_patch_tested=result.tests_executed > 0,
                     )
                 except Exception:
                     # A crashing review must never destroy the pre-review patch.
@@ -393,7 +430,13 @@ class LocalCodePatchProducer:
         )
 
 
-def _review_issue_text(issue: str, diff_content: str, max_diff_chars: int = 12_000) -> str:
+def _review_issue_text(
+    issue: str,
+    diff_content: str,
+    max_diff_chars: int = 12_000,
+    *,
+    test_evidence: str | None = None,
+) -> str:
     """Compose the issue envelope for the fresh A3 critique pass."""
     shown = diff_content[:max_diff_chars]
     if len(diff_content) > max_diff_chars:
@@ -406,7 +449,30 @@ def _review_issue_text(issue: str, diff_content: str, max_diff_chars: int = 12_0
         + issue
         + "\n\nCANDIDATE PATCH:\n"
         + shown
+        + "\n\nEXISTING PUBLIC TEST EVIDENCE:\n"
+        + (test_evidence if test_evidence else "No completed public test command was recorded.")
     )
+
+
+def _last_test_evidence(observations: tuple[ToolResult, ...], max_chars: int = 4_000) -> str | None:
+    """Return bounded public test evidence from the agent phase for A3."""
+
+    for observation in reversed(observations):
+        metadata = observation.metadata_dict()
+        if "exit_code" not in metadata:
+            continue
+        header = (
+            f"command={metadata.get('command', 'unknown')} "
+            f"exit_code={metadata['exit_code']} "
+            f"environment={metadata.get('environment', 'local-sandbox')} "
+            f"hidden_tests={metadata.get('hidden_tests', False)}"
+        )
+        remaining = max(0, max_chars - len(header) - 1)
+        content = observation.content[:remaining]
+        if len(observation.content) > remaining:
+            content += "\n[test output truncated]"
+        return header + "\n" + content
+    return None
 
 
 def _final_patch(pre_review: ToolResult, reviewed: ToolResult) -> ToolResult:
@@ -445,6 +511,34 @@ def _tool_document_subset(document: dict[str, Any], names: set[str]) -> dict[str
         "schema_version": document.get("schema_version", 1),
         "tools": selected,
     }
+
+
+def _tool_document_test_command(document: dict[str, Any], command_name: str) -> dict[str, Any]:
+    """Return a deep copy whose run_tests schema exposes one trusted command."""
+
+    copied = json.loads(json.dumps(document))
+    tools = copied.get("tools")
+    if not isinstance(tools, list):
+        raise ValueError("tool document must contain a tools list")
+    matches = [
+        tool
+        for tool in tools
+        if isinstance(tool, dict)
+        and isinstance(tool.get("function"), dict)
+        and tool["function"].get("name") == "run_tests"
+    ]
+    if len(matches) != 1:
+        raise ValueError("tool document must contain exactly one run_tests schema")
+    try:
+        command_schema = matches[0]["function"]["parameters"]["properties"]["command_name"]
+    except (KeyError, TypeError) as exc:
+        raise ValueError("run_tests schema is missing command_name") from exc
+    command_schema["enum"] = [command_name]
+    matches[0]["function"]["description"] = (
+        "Run the repository's registered public test command in a disposable "
+        "SWE-bench instance image. Supply only command_name; use repository-tests."
+    )
+    return copied
 
 
 def _clone_at_commit(repository: str, commit: str, destination: Path) -> None:
@@ -515,14 +609,78 @@ class JsonDatasetIssueResolver:
         repository = row.get("repo", row.get("repository"))
         base_commit = row.get("base_commit")
         problem_statement = row.get("problem_statement")
+        version = row.get("version")
         if not all(isinstance(value, str) and value for value in (repository, base_commit, problem_statement)):
             raise RealBenchmarkError(f"dataset row is missing issue fields for {instance.instance_id}")
+        if version is not None and (not isinstance(version, str) or not version):
+            raise RealBenchmarkError(f"dataset row has invalid version for {instance.instance_id}")
         return RealBenchmarkIssue(
             instance_id=instance.instance_id,
             repository=repository,
             base_commit=base_commit,
             problem_statement=problem_statement,
+            version=version,
         )
+
+
+def prepare_swebench_public_test_images(
+    *,
+    dataset_name: str,
+    split: str,
+    instance_ids: tuple[str, ...],
+    python_executable: str,
+    evaluation_root: str | Path,
+    max_workers: int = 1,
+) -> None:
+    """Build public-test instance images before model inference begins."""
+
+    command = [
+        python_executable,
+        "-m",
+        "swebench.harness.prepare_images",
+        "--dataset_name",
+        dataset_name,
+        "--split",
+        split,
+        "--instance_ids",
+        *instance_ids,
+        "--max_workers",
+        str(max_workers),
+        "--force_rebuild",
+        "false",
+        # swebench 4.x's prepare_images CLI forwards explicit None values and
+        # thereby bypasses make_test_spec's defaults unless both tags are set.
+        "--tag",
+        "latest",
+        "--env_image_tag",
+        "latest",
+    ]
+    try:
+        subprocess.run(
+            command,
+            cwd=Path(evaluation_root),
+            env=_evaluator_environment(),
+            check=True,
+            text=True,
+            timeout=3_600,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise RealBenchmarkError("could not prepare SWE-bench public-test images") from exc
+    for instance_id in instance_ids:
+        image = f"sweb.eval.x86_64.{instance_id.lower()}:latest"
+        try:
+            subprocess.run(
+                ("docker", "image", "inspect", image),
+                check=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=20,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise RealBenchmarkError(
+                f"SWE-bench image preparation did not produce {image}"
+            ) from exc
 
 
 class DatasetControlPatchProducer:

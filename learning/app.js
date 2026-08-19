@@ -295,11 +295,11 @@ const milestones = [
   },
   {
     id: "009",
-    state: "Hosted A3 officially resolved 1/1",
+    state: "Post-repair pathway resolved 1/1",
     title: "Real SWE-bench evaluation boundary",
-    story: "The real runner now supports the same bounded runtime through Ollama or OpenAI. A2 produced a valid Requests patch but introduced a peer-to-peer regression. A3 reviewed both relevant call sites, revised the patch, and crossed the official evaluator successfully. Tests are read-only during review.",
-    evidence: "m-online-terra-requests-a3-v2 · psf__requests-2931 resolved 1/1 · target and all peer-to-peer tests passed · 1,960 generated tokens · 11 total tool calls · about 44.4 seconds",
-    decision: "This proves the complete pathway, not a leaderboard score. Next run a small cross-repository B0/A1/A2/A3 ladder with one fixed model and frozen budgets.",
+    story: "A three-repository ladder measured 0/3 and exposed real harness defects. B0 now ranks the complete bounded map, A3 carries current test evidence, edits invalidate stale evidence, and real public tests run inside pinned SWE-bench images. Tests are read-only during review. Luna then crossed the repaired A3 pathway: agent edit, Docker test, fresh review, second test, final diff, and independent resolution.",
+    evidence: "m-online-terra-requests-a3-v2 first resolved 1/1 · m-ladder3-terra-v1 diagnosed 0/3 · m-luna-requests-a3-fixed-v1 post-repair resolved 1/1 · 0 invalid actions · 2 tests · 14 tools · 2,528 tokens · 60.4 seconds",
+    decision: "Pathway correctness is closed. Do not rerun Requests; next measure generalization on a matched multi-repository subset before the frozen 20.",
   },
 ];
 

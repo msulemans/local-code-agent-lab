@@ -77,6 +77,12 @@ No Ollama process, zero-swap baseline, model download, or local model restart is
 required for this backend. Docker is still required for the official SWE-bench
 evaluation after a patch is produced.
 
+Docker is also the default environment for agent-visible public tests on real
+issues. The CLI prepares selected instance images before inference, and
+`run_tests` exposes only `repository-tests`. The container has no network and
+receives only the candidate diff. `--agent-test-environment host` exists for an
+explicit diagnostic comparison, not a scored real-issue run.
+
 ## How to read the result
 
 - `patch_status=produced` means the agent exported a syntactically valid Git
@@ -116,5 +122,21 @@ so review exhaustion cannot be hidden behind the agent's earlier final answer.
 Running `--configuration-id A3` intentionally reports B0/A1/A2 as unavailable:
 the command measured only A3. A comparable ladder requires four runs over the
 same instance IDs, model, budgets, and evaluator conditions, then a combined
-summary. The next gate is a small cross-repository ladder, not the full frozen
-20 yet.
+summary. The first three-repository ladder measured 0/3 for every treatment and
+revealed three harness defects: B0 omitted relevant late-map paths, host Python
+gave incompatible test evidence, and A3 lost prior test evidence. Those
+capabilities are now repaired. The next paid gate is one fresh matched pilot
+with new run IDs, not a rerun of the unchanged experiment.
+
+## Post-repair Luna result
+
+The fresh gate passed. `m-luna-requests-a3-fixed-v1` ran `gpt-5.6-luna` on
+`psf__requests-2931` under A3 with `swebench-docker` public tests. The agent
+changed `_encode_params`; the reviewer added the related URL call-site
+conversion. Both phases finished normally, the run recorded 0 invalid actions,
+2 tests, 14 tools, 2,528 generated tokens, and 60.448844 seconds, and the
+official evaluator reported **resolved 1/1**.
+
+This closes the repaired single-issue pathway gate. Do not repeat this Requests
+run. The next benchmark question is whether the same fixed treatment generalizes
+across a small matched multi-repository subset.

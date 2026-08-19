@@ -8,6 +8,7 @@ from localcode.context import (
     ContextRequest,
     RetrievalContextCompiler,
     SimpleContextCompiler,
+    _rank_map_files,
     _retrieval_payload,
     compile_single_shot_context,
     compile_simple_context,
@@ -126,12 +127,43 @@ class ContextCompilerTests(unittest.TestCase):
 
         payload = json.loads(compile_single_shot_context(issue, ROOT, 4_000, max_map_files=8))
 
-        self.assertEqual(payload["single_shot_treatment"]["kind"], "bounded_repository_map_v1")
+        self.assertEqual(payload["single_shot_treatment"]["kind"], "issue_ranked_repository_map_v2")
         self.assertIn("repository_map", payload)
         self.assertIn("src/tiny_parser.py", [entry["path"] for entry in payload["repository_map"]])
         self.assertEqual(payload["history"], [])
         self.assertEqual(payload["budgets_remaining"], {})
         self.assertLessEqual(len(json.dumps(payload, separators=(",", ":"))), 4_000)
+
+    def test_single_shot_map_ranks_issue_paths_and_symbols_before_lexical_noise(self) -> None:
+        files = tuple(
+            RepositoryFile(
+                path=f"docs/noise_{index:03d}.rst",
+                kind="other",
+                language="rst",
+                size_bytes=10,
+                line_count=1,
+                symbols=(),
+            )
+            for index in range(200)
+        ) + (
+            RepositoryFile(
+                path="requests/models.py",
+                kind="source",
+                language="python",
+                size_bytes=100,
+                line_count=20,
+                symbols=("RequestEncodingMixin",),
+            ),
+        )
+
+        ranked = _rank_map_files(
+            files,
+            "Request with binary payload fails in RequestEncodingMixin",
+            40,
+        )
+
+        self.assertEqual(ranked[0].path, "requests/models.py")
+        self.assertNotIn("docs/noise_199.rst", [file.path for file in ranked])
 
     def test_loop_can_receive_retrieval_context_without_changing_tools_or_result(self) -> None:
         backend = FakeBackend(final())

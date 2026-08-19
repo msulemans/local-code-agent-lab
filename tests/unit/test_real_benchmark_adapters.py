@@ -14,7 +14,10 @@ from localcode.real_benchmark_adapters import (
     LocalCodePatchProducer,
     OfficialSwebenchEvaluator,
     _final_patch,
+    _last_test_evidence,
     _review_issue_text,
+    _tool_document_test_command,
+    prepare_swebench_public_test_images,
 )
 from localcode.tools import ToolResult
 from localcode.loop import LoopResult, TerminationReason
@@ -30,6 +33,7 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
             "repo": "owner/repo",
             "base_commit": "1234567890abcdef1234567890abcdef12345678",
             "problem_statement": "Fix the parser.",
+            "version": "1.0",
             "patch": "diff --git a/src/parser.py b/src/parser.py\n",
             "test_patch": "hidden",
         }
@@ -46,7 +50,45 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
                 )
             )
             self.assertEqual(issue.problem_statement, "Fix the parser.")
+            self.assertEqual(issue.version, "1.0")
             self.assertFalse(hasattr(issue, "patch"))
+
+    def test_docker_test_schema_exposes_only_repository_tests(self) -> None:
+        original = json.loads(SCHEMAS.read_text(encoding="utf-8"))
+
+        changed = _tool_document_test_command(original, "repository-tests")
+        run_tests = next(
+            tool for tool in changed["tools"] if tool["function"]["name"] == "run_tests"
+        )
+
+        self.assertEqual(
+            run_tests["function"]["parameters"]["properties"]["command_name"]["enum"],
+            ["repository-tests"],
+        )
+        original_run_tests = next(
+            tool for tool in original["tools"] if tool["function"]["name"] == "run_tests"
+        )
+        self.assertEqual(
+            original_run_tests["function"]["parameters"]["properties"]["command_name"]["enum"],
+            ["python-unittest"],
+        )
+
+    def test_public_test_image_preparation_is_pinned_to_selected_instances(self) -> None:
+        with patch("localcode.real_benchmark_adapters.subprocess.run") as run:
+            prepare_swebench_public_test_images(
+                dataset_name="snapshot.jsonl",
+                split="test",
+                instance_ids=("owner__repo-1",),
+                python_executable="python-test",
+                evaluation_root=".",
+            )
+
+        command = run.call_args_list[0].args[0]
+        self.assertIn("swebench.harness.prepare_images", command)
+        self.assertIn("owner__repo-1", command)
+        self.assertIn("--force_rebuild", command)
+        self.assertIn("--env_image_tag", command)
+        self.assertEqual(run.call_args_list[1].args[0][:3], ("docker", "image", "inspect"))
 
     def test_control_producer_separates_gold_and_empty_modes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -452,8 +494,33 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         self.assertIn("Fix the parser.", text)
         self.assertIn("diff --git", text)
         self.assertIn("[diff truncated]", text)
-        shown = text.split("CANDIDATE PATCH:\n", 1)[1]
+        shown = text.split("CANDIDATE PATCH:\n", 1)[1].split(
+            "\n\nEXISTING PUBLIC TEST EVIDENCE:", 1
+        )[0]
         self.assertLessEqual(len(shown), 50 + len("[diff truncated]\n"))
+
+    def test_review_receives_bounded_public_test_evidence(self) -> None:
+        observation = ToolResult(
+            content="one failed, ninety passed",
+            metadata=(
+                ("command", "repository-tests"),
+                ("environment", "swebench-instance-image"),
+                ("exit_code", 1),
+                ("hidden_tests", False),
+            ),
+        )
+
+        evidence = _last_test_evidence((observation,))
+        text = _review_issue_text(
+            "Fix the parser.",
+            "diff --git a/x.py b/x.py\n",
+            test_evidence=evidence,
+        )
+
+        self.assertIn("EXISTING PUBLIC TEST EVIDENCE", text)
+        self.assertIn("command=repository-tests exit_code=1", text)
+        self.assertIn("hidden_tests=False", text)
+        self.assertIn("one failed, ninety passed", text)
 
     def test_final_patch_keeps_valid_reviewed_diff_and_falls_back_safely(self) -> None:
         original = ToolResult(content="diff --git a/one.py b/one.py\n")

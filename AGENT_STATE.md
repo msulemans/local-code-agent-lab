@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
 Last updated: 2026-08-19 (Australia/Sydney)
-Status: The complete LocalCode runtime, distinct B0/A1/A2/A3 treatments, dual Ollama/OpenAI inference boundary, and official evaluator path are implemented. Hosted A3 run `m-online-terra-requests-a3-v2` officially resolved `psf__requests-2931` (1/1); local models remain an explicitly weaker comparison rather than a blocker to runtime development.
+Status: Milestone 009's complete issue-to-evaluator path is verified after the real-test repairs. Luna A3 run `m-luna-requests-a3-fixed-v1` officially resolved `psf__requests-2931` (1/1) through the compatible public-test Docker path; the earlier failed ladder remains retained diagnostic evidence.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -37,10 +37,30 @@ compatibility evidence boundary.
 
 ## Current milestone
 
-Real experiment ladder closure (Milestone 009). B0 is a genuine one-decision,
-one-patch baseline; A1 adds the bounded tool loop; A2 adds ranked repository
-context; A3 adds a fresh read/test/revision review. The next experiment is a
-small multi-repository comparison using the same model and frozen budgets.
+Milestone 009 runtime closure. B0 is a genuine one-decision, one-patch
+baseline; A1 adds the bounded tool loop; A2 adds ranked repository context; A3
+adds a fresh read/test/revision review. The repaired A3 path is officially
+resolved on one real issue. The next experiment is a matched multi-repository
+comparison using one model and frozen budgets; do not rerun the Requests proof.
+
+### Post-repair Luna verification (2026-08-19)
+
+- `m-luna-requests-a3-fixed-v1` used `gpt-5.6-luna`, A3, and the repaired
+  `swebench-docker` public-test boundary on `psf__requests-2931`.
+- The agent repaired `_encode_params`; the fresh reviewer inspected the related
+  URL call site and added the necessary bytes-to-native-string conversion.
+- Both phases terminated with `final_answer`, with 0 invalid actions, 2 public
+  test executions, 14 tool calls, 2,528 generated tokens, and 60.448844 seconds
+  of producer wall time.
+- The final two-site patch was valid and the official SWE-bench evaluator
+  reported **resolved 1/1**. Evidence is preserved under
+  `runs/real-benchmark/m-luna-requests-a3-fixed-v1/`.
+- B0/A1/A2 are `unavailable` in that run by design because the command selected
+  only A3; this is a pathway proof, not a paired ladder score.
+- The agent-phase TUI displayed model-generated JSON-like fragments inside its
+  final prose. They were never executed, produced 0 invalid actions, and did
+  not affect the saved patch or evaluator result; this is presentation debt,
+  not a benchmark blocker.
 
 ### Dual-backend and first official hosted solve (2026-08-19)
 
@@ -69,6 +89,26 @@ small multi-repository comparison using the same model and frozen budgets.
 Next gate: run a deliberately small cross-repository ladder before the frozen
 20. Use one fixed hosted model first to measure agent-treatment effects, then
 repeat the chosen treatment with a local model as a separate efficiency result.
+
+### Three-repository ladder repair (2026-08-19)
+
+- `m-ladder3-terra-v1` completed B0/A1/A2/A3 across Requests, Pylint, and
+  Sphinx but resolved 0/3 in every treatment. This is retained negative
+  evidence, not a reason to repeat the unchanged paid run.
+- B0 now scans the complete bounded repository map and ranks 120 structural
+  entries by issue terms instead of exposing only the first 40 lexical paths.
+- A3 now receives the latest public-test exit/output from the agent phase. A
+  seeded test result satisfies review completion only until the reviewer edits;
+  every successful edit invalidates it and forces a new test.
+- Model-backed real runs default to public repository tests inside pinned
+  SWE-bench instance images. Only the candidate diff is mounted; network,
+  hidden tests, `FAIL_TO_PASS`, evaluator scripts, and gold patches remain
+  unavailable to the agent.
+- A live Sphinx image proof ran the pinned public command to its true exit:
+  1414 passed, 26 failed, 22 skipped. Output exceeded 65,536 bytes, so the
+  runner retained the bounded tail without killing the process.
+- Verification after these changes: 241 unit tests passed with 8 expected
+  sandbox skips; the learning UI contract, compileall, and diff check also pass.
 
 ### Pilot era summary (m010–m021)
 
@@ -1647,6 +1687,10 @@ Status: repository and static learning UI publicly verified.
 | D-047 | Implement the A3 review pass: after a valid A2 patch, run a fresh critique/revision loop with its own review prompt, budgets, and required test execution, and keep the reviewed diff only when it is a valid untruncated git diff (a crashing review never destroys the pre-review patch) | m050–m054 showed gpt-oss can find the right file and make the right fix but single-pass A2 cannot stabilize it (revert loops, unrelated churn, missing call-sites); A3 is the manifest's designated review configuration and the 9/20 lever | fixed 2026-08-16; 208 unit tests pass |
 | D-048 | Inject an automatic `run_tests` after every successful edit (`auto_test_after_edit` budget flag, on for real producers) | m050–m055: gpt-oss repeatedly found the right fix but churned on read/edit re-checks and died at the turn/tool budget one call short of `run_tests` (m055: 12 calls, 0 tests, `turn_exhaustion`); phase narrowing is presentation-only and cannot force the model's next call, so the controller now runs the registered tests deterministically after each successful edit | fixed 2026-08-16; 209 unit tests pass |
 | D-049 | Make `edit_file` indentation-tolerant: accept a unique whitespace-stripped match and re-indent the replacement to the file's actual indentation | m056 (bit-identical to m055, 4,187 tokens, 0 tests) proved the deeper root cause: every edit_file carried wrong indentation (4 spaces vs the file's 8), so no edit ever matched, D-048's auto-test never fired, and the loop died in read/edit churn; m052 succeeded only because indentation happened to match | fixed 2026-08-16; 211 unit tests pass |
+| D-050 | Rank B0's complete bounded repository map before rendering 120 structural entries | The 3-repository ladder's B0 prompts omitted relevant paths because the first 40 lexical files were treated as the repository | fixed 2026-08-19; regression covers 200 lexical distractors |
+| D-051 | Carry public-test evidence into A3 and invalidate it after every review edit | A3 reviewers were required to test but could not see that the agent already had; the old historical counter also allowed a post-test edit to finish without retesting | fixed 2026-08-19; seeded and stale-evidence regressions added |
+| D-052 | Run real agent-visible public tests in pinned SWE-bench instance images by default | Host Python 3.11 produced dependency/import noise for legacy repositories, so the loop optimized against the wrong environment | fixed 2026-08-19; no hidden evaluator material is mounted |
+| D-053 | Drain oversized public-test output while retaining a bounded tail and true exit status | Killing at 65,536 bytes returned SIGKILL/SIGPIPE instead of the repository's real result; Sphinx naturally emits more than the observation budget | fixed 2026-08-19; live Sphinx proof returned exit 1 and final summary |
 
 ## Run ledger
 

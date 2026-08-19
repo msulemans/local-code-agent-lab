@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import re
 from typing import Any, Protocol
 
 from .retrieval import RetrievalPack, RepositoryMap, build_repository_map, select_retrieval_evidence
@@ -14,6 +15,7 @@ from .retrieval import RetrievalPack, RepositoryMap, build_repository_map, selec
 # blow the model context budget and the truncator would drop all evidence.
 # Keep the rendered map to the same 40-file budget as the single-shot map.
 _RETRIEVAL_MAP_FILES = 40
+_MAP_TOKEN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,7 +48,7 @@ class SingleShotContextCompiler:
     """Compile one issue plus a bounded repository map without loop history."""
 
     root: str | Path
-    max_map_files: int = 40
+    max_map_files: int = 120
 
     def compile(self, request: ContextRequest) -> str:
         return compile_single_shot_context(
@@ -93,19 +95,30 @@ def compile_single_shot_context(
     root: str | Path,
     max_chars: int,
     *,
-    max_map_files: int = 40,
+    max_map_files: int = 120,
 ) -> str:
-    repository_map = build_repository_map(root, max_files=max_map_files)
+    if (
+        isinstance(max_map_files, bool)
+        or not isinstance(max_map_files, int)
+        or not 1 <= max_map_files <= 1_000
+    ):
+        raise ValueError("max_map_files must be between 1 and 1000")
+    # Scan the complete bounded map, then render only issue-relevant structural
+    # entries. B0 still receives no file contents and has no inspection loop,
+    # but large repositories no longer degrade to the first 40 lexical paths.
+    repository_map = build_repository_map(root)
+    selected_files = _rank_map_files(repository_map.files, issue, max_map_files)
     return _compile_payload(
         issue,
         (),
         (),
         max_chars,
         extra={
-            "repository_map": _repository_map_payload(repository_map.files),
+            "repository_map": _repository_map_payload(selected_files),
             "single_shot_treatment": {
-                "kind": "bounded_repository_map_v1",
+                "kind": "issue_ranked_repository_map_v2",
                 "max_map_files": max_map_files,
+                "map_truncated": repository_map.truncated or len(repository_map.files) > len(selected_files),
             },
         },
     )
@@ -166,6 +179,18 @@ def _compile_payload(
                 continue
             extra_payload.pop("retrieved_evidence", None)
             continue
+        if "repository_map" in extra_payload:
+            repository_map = extra_payload["repository_map"]
+            if isinstance(repository_map, list) and repository_map:
+                extra_payload["repository_map"] = repository_map[:-1]
+                treatment = extra_payload.get("single_shot_treatment")
+                if isinstance(treatment, dict):
+                    treatment = dict(treatment)
+                    treatment["map_truncated"] = True
+                    extra_payload["single_shot_treatment"] = treatment
+                continue
+            extra_payload.pop("repository_map", None)
+            continue
         excess = len(rendered) - max_chars
         if not issue_text:
             raise ValueError("max_context_chars is too small for the context envelope")
@@ -225,3 +250,27 @@ def _repository_map_payload(files: tuple[Any, ...]) -> list[dict[str, Any]]:
         }
         for file in files
     ]
+
+
+def _rank_map_files(
+    files: tuple[Any, ...],
+    issue: str,
+    max_files: int,
+) -> tuple[Any, ...]:
+    """Rank map-only B0 evidence without exposing source excerpts."""
+
+    terms = {
+        token.casefold()
+        for token in _MAP_TOKEN.findall(issue)
+        if len(token) >= 3
+    }
+
+    def rank(file: Any) -> tuple[int, int, str]:
+        path = file.path.casefold()
+        symbols = " ".join(file.symbols).casefold()
+        path_score = sum(4 for term in terms if term in path)
+        symbol_score = sum(3 for term in terms if term in symbols)
+        kind_score = 2 if file.kind == "source" else 1 if file.kind == "test" else 0
+        return (-(path_score + symbol_score + kind_score), 0 if file.kind == "source" else 1, file.path)
+
+    return tuple(sorted((file for file in files if file.kind != "issue"), key=rank)[:max_files])

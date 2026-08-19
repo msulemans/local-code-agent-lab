@@ -177,6 +177,7 @@ def _execute_bounded(
     timeout_seconds: int,
     max_output_bytes: int,
     command_name: str,
+    terminate_on_output_limit: bool = True,
 ) -> ToolResult:
     started = time.monotonic()
     try:
@@ -218,13 +219,19 @@ def _execute_bounded(
                 if not chunk:
                     selector.unregister(key.fileobj)
                     continue
-                room = max_output_bytes + 1 - len(output)
-                output.extend(chunk[: max(0, room)])
-                if len(output) > max_output_bytes or len(chunk) > room:
-                    output_limit_hit = True
-                    _kill_process_group(process)
-                    break
-            if output_limit_hit:
+                if terminate_on_output_limit:
+                    room = max_output_bytes + 1 - len(output)
+                    output.extend(chunk[: max(0, room)])
+                    if len(output) > max_output_bytes or len(chunk) > room:
+                        output_limit_hit = True
+                        _kill_process_group(process)
+                        break
+                else:
+                    output.extend(chunk)
+                    if len(output) > max_output_bytes:
+                        output_limit_hit = True
+                        del output[: len(output) - max_output_bytes]
+            if output_limit_hit and terminate_on_output_limit:
                 break
     finally:
         selector.close()
