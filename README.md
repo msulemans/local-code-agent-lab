@@ -11,7 +11,7 @@ This is phase 3 of the learning-labs sequence:
 3. `local-code-agent-lab` applies the same evidence discipline to an agent.
 
 The project is not an API wrapper and will not delegate its loop to an existing
-agent framework. A local open-weight model supplies predictions; this repository
+agent framework. A replaceable local or hosted model supplies predictions; this repository
 owns tool definitions, parsing, context assembly, budgets, retry logic, event
 history, safety boundaries, patch production, evaluation, and the terminal UI.
 
@@ -25,6 +25,7 @@ Read these documents in order:
 4. [Benchmark plan](docs/BENCHMARK_PLAN.md)
 5. [Guide for Luna or another low-cost model](docs/LUNA_GUIDE.md)
 6. [Canonical project state](AGENT_STATE.md)
+7. [Local and online backend lesson](docs/ONLINE_BACKENDS.md)
 
 The trusted/untrusted filesystem boundary is defined in the
 [repository contract](docs/REPOSITORY_CONTRACT.md).
@@ -124,15 +125,17 @@ bounded review pass over the `A2` result. This gives one place to compare
 solved counts, paired transitions, and case-level evidence as more treatments
 land.
 
-The real-benchmark layer is now wired to a pinned 20-instance SWE-bench
-Verified manifest in `benchmarks/real_benchmark/manifest_v1.json`. It resolves
-issue statements from an ignored local dataset snapshot, writes the official
+The real-benchmark layer is wired to a pinned 20-instance SWE-bench Verified
+manifest in `benchmarks/real_benchmark/manifest_v1.json`. It resolves issue
+statements from an ignored local dataset snapshot, writes the official
 prediction JSONL shape, and calls the official Docker evaluator through
-`src/localcode/real_benchmark_adapters.py`. The empty control measured `0/20`
-for B0/A1/A2/A3, and the gold Flask control resolved
-`pallets__flask-5014` under B0. This proves the evaluation boundary; it is not
-yet a real-model solve score because a disposable real-repository patch
-producer remains to be connected. See [the Milestone 009 lesson](docs/MILESTONE_009_LESSON.md).
+`src/localcode/real_benchmark_adapters.py`. The real producer now implements
+four distinct treatments: B0 is one mapped single-shot patch, A1 is the simple
+tool loop, A2 adds retrieval, and A3 adds a fresh test-read-only review. Hosted
+A3 run `m-online-terra-requests-a3-v2` officially resolved
+`psf__requests-2931` (1/1), proving the complete issue-to-evaluator path with a
+real model. This is one pilot solve, not a 20-issue score. See
+[the dual-backend lesson](docs/ONLINE_BACKENDS.md).
 
 Milestone 006 provides the bounded multi-turn foundation. A strict decision
 protocol distinguishes tool proposals from final answers; explicit budgets
@@ -166,6 +169,10 @@ adapter to a disposable workspace, all six tools, completion requirements,
 per-turn resource checks, trusted final-diff capture, and a unique atomic run
 record. Fake Ollama tests prove the full connection without claiming model
 quality.
+A parallel OpenAI Responses adapter now exposes the same phase-limited function
+tools and returns the same protocol-v1 decisions. It deliberately skips local
+Ollama memory gates while preserving every controller, workspace, test, review,
+diff, and evaluator boundary. See [the dual-backend lesson](docs/ONLINE_BACKENDS.md).
 A dedicated smoke preflight parses the macOS swap and memory evidence and the
 Ollama process list before inference is reachable. Retained swap or any loaded
 model blocks the run with a typed error and zero chat requests.

@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
-Last updated: 2026-08-16 (Australia/Sydney)
-Status: The offline runtime, micro ladder, and real harness controls are proven. Real Qwen/DeepSeek pilots (m010–m021) connected the loop to Ollama but produced 0/20 patches; the root cause is now diagnosed and the first half is fixed (content-form JSON tool calls were misread as final answers, translated in the loop backend with new tests), while a strict-argument-schema barrier and a fresh real-model pilot remain
+Last updated: 2026-08-19 (Australia/Sydney)
+Status: The complete LocalCode runtime, distinct B0/A1/A2/A3 treatments, dual Ollama/OpenAI inference boundary, and official evaluator path are implemented. Hosted A3 run `m-online-terra-requests-a3-v2` officially resolved `psf__requests-2931` (1/1); local models remain an explicitly weaker comparison rather than a blocker to runtime development.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -9,14 +9,16 @@ before suggesting or executing the next step.
 
 ## Objective
 
-Build and understand a local coding agent that can turn a repository issue into
-a tested Git patch using a local open-weight model and tools implemented in this
-repository.
+Build and understand a coding-agent runtime that can turn a repository issue
+into a tested Git patch. The runtime, tools, safety policy, review, and evaluator
+belong to this repository; inference may use a local open-weight model or a
+hosted comparison model through the same decision protocol.
 
 ## Fixed constraints
 
 - Hardware: Apple M2 Max with 32 GiB unified memory; reverify before model work.
-- Local inference only for the agent under study; no hosted inference API.
+- Keep local inference as the primary efficiency treatment and hosted inference
+  as a clearly labelled capability comparison; never combine their scores.
 - Start from a capable pretrained coding model; do not train from scratch.
 - Own the agent loop and tool protocol; do not wrap Claude Code, Codex, Aider,
   OpenHands, SWE-agent, or another complete agent.
@@ -35,9 +37,38 @@ compatibility evidence boundary.
 
 ## Current milestone
 
-Real-model patch producer bridge (Milestone 009 continuation). The loop now
-translates content-form JSON tool calls; the next allowed action is a fresh
-non-gold pilot after the remaining strict-argument-schema barrier is decided.
+Real experiment ladder closure (Milestone 009). B0 is a genuine one-decision,
+one-patch baseline; A1 adds the bounded tool loop; A2 adds ranked repository
+context; A3 adds a fresh read/test/revision review. The next experiment is a
+small multi-repository comparison using the same model and frozen budgets.
+
+### Dual-backend and first official hosted solve (2026-08-19)
+
+- Added an OpenAI Responses backend behind the same versioned decision
+  validator and local tool registry as Ollama. The key is accepted only from
+  `OPENAI_API_KEY`; requests use `store: false`, disable parallel tool calls,
+  and give the provider no hosted shell.
+- A2 run `m-online-terra-requests-a2-v1` produced a valid patch for
+  `psf__requests-2931` but the official evaluator returned unresolved because
+  the implementation introduced a peer-to-peer regression.
+- The first A3 attempt exposed an unsafe reviewer behavior: it edited a test.
+  `ProductionReviewRegistry` now rejects test-file edits, including strict
+  patches that touch test paths, and final reviewed diffs fall back to the
+  pre-review patch if tests changed.
+- A3 run `m-online-terra-requests-a3-v2` revised both relevant call sites in
+  `requests/models.py`. The official SWE-bench evaluator passed the target test
+  and all peer-to-peer tests: **resolved 1/1**. It used 11 total tool calls,
+  1,960 generated tokens, and about 44.4 seconds.
+- Run evidence now records agent and review termination separately and totals
+  tool calls, invalid actions, tests, and generated tokens across both phases.
+  This prevents a successful agent phase from hiding review exhaustion.
+- B0/A1/A2/A3 kinds are validated against their fixed IDs. Real B0 receives a
+  bounded repository map, exposes only `apply_patch`, and consumes exactly one
+  turn and one tool allowance; it no longer aliases A1.
+
+Next gate: run a deliberately small cross-repository ladder before the frozen
+20. Use one fixed hosted model first to measure agent-treatment effects, then
+repeat the chosen treatment with a local model as a separate efficiency result.
 
 ### Pilot era summary (m010–m021)
 
@@ -1789,3 +1820,25 @@ No real-model solve score exists yet. The m010–m021 pilots prove the loop can
 call the model on a disposable real repository; they do not prove the model can
 produce a valid patch. The frozen 20-run requires a fresh run ID after any
 protocol or model change, per the registered fairness controls.
+## 2026-08-19 — Dual local/hosted inference boundary
+
+Status: implemented and offline-verified; the first paid one-issue OpenAI pilot
+is waiting only for `OPENAI_API_KEY` in the learner's shell.
+
+- Added an OpenAI Responses API loop backend that converts provider function
+  calls into the same strict LocalCode protocol used by Ollama.
+- The hosted model receives only the issue and bounded compiled context. It
+  cannot execute tools directly; LocalCode still owns repository access,
+  validation, edits, tests, budgets, A2 retrieval, A3 review, diff export, and
+  official SWE-bench evaluation.
+- Added `--producer openai` and `--reasoning-effort`; a missing key fails at CLI
+  parsing before repository cloning or inference. Requests use `store: false`
+  and `parallel_tool_calls: false`.
+- Ollama remains available and retains its host preflight/resource guard. The
+  OpenAI path deliberately skips Ollama process, swap, warm-up, and unload
+  behavior while preserving the rest of the benchmark pipeline.
+- Verification: 226 unit tests pass in `.venv-realbench` with 8 expected
+  sandbox skips. Four new backend tests and two producer integration tests use
+  injected fakes and spend no API tokens.
+- Next gate: run one public `psf__requests-2931` A2 pilot with
+  `gpt-5.6-terra`, then A3 under a new run ID if the complete A2 path works.

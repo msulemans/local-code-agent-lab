@@ -42,6 +42,22 @@ class SimpleContextCompiler:
 
 
 @dataclass(frozen=True, slots=True)
+class SingleShotContextCompiler:
+    """Compile one issue plus a bounded repository map without loop history."""
+
+    root: str | Path
+    max_map_files: int = 40
+
+    def compile(self, request: ContextRequest) -> str:
+        return compile_single_shot_context(
+            request.issue,
+            self.root,
+            request.max_chars,
+            max_map_files=self.max_map_files,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class RetrievalContextCompiler:
     """Add trusted retrieval evidence under an explicit context treatment."""
 

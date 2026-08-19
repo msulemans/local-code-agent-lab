@@ -38,12 +38,25 @@ validates decisions, executes tools, and terminates the run.
 {SCHEMA_VALIDITY_RULES}"""
 
 
+SINGLE_SHOT_SYSTEM_PROMPT = f"""You are the prediction component for LocalCode's
+single-shot baseline. The user message is a JSON context envelope containing an
+untrusted issue and a bounded repository map. You have exactly one decision and
+only the apply_patch tool. Propose one bounded unified diff that repairs the
+issue, or return a concise final answer when the map is insufficient. Do not
+request repository reads, searches, tests, terminal commands, or additional
+turns. Never claim a tool ran. The trusted controller validates and applies the
+proposal.
+
+{SCHEMA_VALIDITY_RULES}"""
+
+
 REVIEW_SYSTEM_PROMPT = f"""You are the review component inside LocalCode.
 The user message contains the original issue and a candidate patch produced by
 an earlier agent pass. Your job is one fresh critique and revision. Check the
 candidate patch against the issue: does it change the right location; does it
 fix the failing behavior; does it contain unrelated edits (remove them); could
-it regress other tests. When the fix changes a helper's behavior, also check
+it regress other tests. Test files are read-only evidence: never edit, add, or
+delete tests; repair production code instead. When the fix changes a helper's behavior, also check
 every call-site of that helper (search_code for its name) and adjust each site
 the issue requires — some fixes need more than one location, e.g. a URL
 encoding helper used by both the body path and the query path. If the patch is

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -16,6 +17,7 @@ from localcode.real_benchmark_adapters import (
     _review_issue_text,
 )
 from localcode.tools import ToolResult
+from localcode.loop import LoopResult, TerminationReason
 
 SCHEMAS = Path("benchmarks/micro_agent/tool_schemas.json")
 
@@ -140,6 +142,9 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         )
         self.assertIn("PYTHONPATH", captured["env"])
         self.assertIn("src", captured["env"]["PYTHONPATH"])
+        # A placeholder token keeps huggingface_hub from reading the token file
+        # in restricted environments; a caller-provided token is preserved.
+        self.assertEqual(captured["env"]["HF_TOKEN"], "localcode-public-dataset-no-auth")
 
     @patch("localcode.real_benchmark_adapters._unload_ollama_model")
     def test_local_producer_unloads_a_model_that_was_used(self, unload) -> None:
@@ -149,6 +154,200 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         producer.finish()
 
         unload.assert_called_once_with("gpt-oss:20b")
+
+    @patch("localcode.real_benchmark_adapters._unload_ollama_model")
+    def test_openai_producer_does_not_touch_ollama_lifecycle(self, unload) -> None:
+        producer = LocalCodePatchProducer(
+            model="gpt-5.6-terra",
+            tool_document={},
+            backend_provider="openai",
+            openai_api_key="test-only",
+        )
+        producer._client = object()
+
+        producer.finish()
+
+        unload.assert_not_called()
+
+    def test_openai_producer_skips_host_memory_preflight(self) -> None:
+        issue = RealBenchmarkIssue(
+            "owner__repo-1",
+            "owner/repo",
+            "1234567890abcdef1234567890abcdef12345678",
+            "Fix the parser.",
+        )
+        configuration = RealBenchmarkConfiguration(
+            "A2", "Retrieval agent", "+ ranked repository context", "retrieval_agent", "implemented"
+        )
+
+        with (
+            patch("localcode.preflight.validate_smoke_baseline") as preflight,
+            patch("localcode.smoke._run_host_command") as host_command,
+            patch(
+                "localcode.real_benchmark_adapters._clone_at_commit",
+                side_effect=RealBenchmarkError("no network"),
+            ),
+        ):
+            producer = LocalCodePatchProducer(
+                model="gpt-5.6-terra",
+                tool_document=json.loads(SCHEMAS.read_text(encoding="utf-8")),
+                backend_provider="openai",
+                openai_api_key="test-only",
+            )
+            producer._client = object()
+            with self.assertRaises(RealBenchmarkError):
+                producer.produce(configuration, issue)
+
+        preflight.assert_not_called()
+        host_command.assert_not_called()
+
+    def test_real_configuration_ladder_uses_distinct_context_and_loop_treatments(self) -> None:
+        from localcode.context import (
+            RetrievalContextCompiler,
+            SimpleContextCompiler,
+            SingleShotContextCompiler,
+        )
+
+        issue = RealBenchmarkIssue(
+            "owner__repo-1",
+            "owner/repo",
+            "1234567890abcdef1234567890abcdef12345678",
+            "Fix the parser.",
+        )
+        configurations = (
+            RealBenchmarkConfiguration("B0", "Base", "one patch", "single_shot_base", "implemented"),
+            RealBenchmarkConfiguration("A1", "Simple", "loop", "simple_agent", "implemented"),
+            RealBenchmarkConfiguration("A2", "Retrieval", "retrieval", "retrieval_agent", "implemented"),
+            RealBenchmarkConfiguration("A3", "Review", "review", "agent_plus_review", "implemented"),
+        )
+        captured = []
+
+        class FakeLoop:
+            def __init__(self, backend, validator, registry, budgets, **kwargs):
+                if validator.tool_names != registry.tool_names:
+                    raise AssertionError("validator and registry tool surfaces differ")
+                captured.append((validator.tool_names, budgets, kwargs["context_compiler"]))
+
+            def run(self, **kwargs):
+                return LoopResult(
+                    events=(),
+                    observations=(),
+                    termination_reason=TerminationReason.TURN_EXHAUSTION,
+                    final_answer=None,
+                    turns_used=1,
+                    tool_calls_used=0,
+                    invalid_actions_used=0,
+                )
+
+        fixture = Path("tests/fixtures/micro_repos/parser_none").resolve()
+
+        def fake_clone(_repository, _commit, destination):
+            shutil.copytree(fixture, destination)
+
+        with (
+            patch("localcode.loop.AgentLoop", FakeLoop),
+            patch("localcode.real_benchmark_adapters._clone_at_commit", side_effect=fake_clone),
+        ):
+            for configuration in configurations:
+                producer = LocalCodePatchProducer(
+                    model="gpt-5.6-terra",
+                    tool_document=json.loads(SCHEMAS.read_text(encoding="utf-8")),
+                    backend_provider="openai",
+                    openai_api_key="test-only",
+                )
+                producer._client = object()
+                producer.produce(configuration, issue)
+
+        b0, a1, a2, a3 = captured
+        self.assertEqual(b0[0], ("apply_patch",))
+        self.assertEqual(b0[1].max_turns, 1)
+        self.assertEqual(b0[1].max_tool_calls, 1)
+        self.assertFalse(b0[1].auto_test_after_edit)
+        self.assertIsInstance(b0[2], SingleShotContextCompiler)
+        self.assertGreater(a1[1].max_turns, 1)
+        self.assertTrue(a1[1].auto_test_after_edit)
+        self.assertIsInstance(a1[2], SimpleContextCompiler)
+        self.assertIsInstance(a2[2], RetrievalContextCompiler)
+        self.assertIsInstance(a3[2], RetrievalContextCompiler)
+
+    def test_a3_attempt_aggregates_agent_and_review_evidence(self) -> None:
+        issue = RealBenchmarkIssue(
+            "owner__repo-1",
+            "owner/repo",
+            "1234567890abcdef1234567890abcdef12345678",
+            "Fix the parser.",
+        )
+        configuration = RealBenchmarkConfiguration(
+            "A3", "Review", "review", "agent_plus_review", "implemented"
+        )
+        test_observation = ToolResult(
+            content="tests passed",
+            metadata=(("exit_code", 0),),
+        )
+        results = iter(
+            (
+                LoopResult(
+                    events=(),
+                    observations=(test_observation,),
+                    termination_reason=TerminationReason.FINAL_ANSWER,
+                    final_answer="candidate ready",
+                    turns_used=6,
+                    tool_calls_used=5,
+                    invalid_actions_used=0,
+                ),
+                LoopResult(
+                    events=(),
+                    observations=(test_observation,),
+                    termination_reason=TerminationReason.TURN_EXHAUSTION,
+                    final_answer=None,
+                    turns_used=8,
+                    tool_calls_used=6,
+                    invalid_actions_used=3,
+                ),
+            )
+        )
+
+        class FakeLoop:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def run(self, **kwargs):
+                return next(results)
+
+        fixture = Path("tests/fixtures/micro_repos/parser_none").resolve()
+
+        def fake_clone(_repository, _commit, destination):
+            shutil.copytree(fixture, destination)
+
+        diff = ToolResult(
+            content=(
+                "diff --git a/src/tiny_parser.py b/src/tiny_parser.py\n"
+                "--- a/src/tiny_parser.py\n"
+                "+++ b/src/tiny_parser.py\n"
+                "@@ -1 +1 @@\n-old\n+new\n"
+            )
+        )
+        with (
+            patch("localcode.loop.AgentLoop", FakeLoop),
+            patch("localcode.tools.git_diff", side_effect=(diff, diff)),
+            patch("localcode.real_benchmark_adapters._clone_at_commit", side_effect=fake_clone),
+        ):
+            producer = LocalCodePatchProducer(
+                model="gpt-5.6-terra",
+                tool_document=json.loads(SCHEMAS.read_text(encoding="utf-8")),
+                backend_provider="openai",
+                openai_api_key="test-only",
+            )
+            producer._client = object()
+            attempt = producer.produce(configuration, issue)
+
+        self.assertEqual(attempt.status, "produced")
+        self.assertEqual(attempt.agent_termination_reason, "final_answer")
+        self.assertEqual(attempt.review_termination_reason, "turn_exhaustion")
+        self.assertEqual(attempt.termination_reason, "turn_exhaustion")
+        self.assertEqual(attempt.tool_calls, 11)
+        self.assertEqual(attempt.invalid_actions, 3)
+        self.assertEqual(attempt.tests_executed, 2)
 
     def test_preflight_runs_once_but_resource_baseline_refreshes_per_instance(self) -> None:
         issue = RealBenchmarkIssue(
@@ -267,6 +466,13 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         self.assertIs(_final_patch(original, ToolResult(content="no patch produced")), original)
         self.assertIs(
             _final_patch(original, ToolResult(content="diff --git a/x.py b/x.py\n", truncated=True)),
+            original,
+        )
+        self.assertIs(
+            _final_patch(
+                original,
+                ToolResult(content="diff --git a/tests/test_x.py b/tests/test_x.py\n"),
+            ),
             original,
         )
 

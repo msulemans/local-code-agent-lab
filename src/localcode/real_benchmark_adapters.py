@@ -30,7 +30,15 @@ from .tools import ToolResult
 
 
 def _evaluator_environment() -> dict[str, str]:
-    """Ensure the evaluator subprocess can import localcode modules."""
+    """Ensure the evaluator subprocess can import localcode modules.
+
+    huggingface_hub reads ``~/.cache/huggingface/token`` when no token
+    environment variable is present, which raises PermissionError in
+    restricted environments (e.g. sandboxed evaluation) before the public
+    SWE-bench dataset can even be downloaded.  An explicit placeholder token
+    skips that unreadable token-file path entirely; a real ``HF_TOKEN`` from
+    the caller is preserved via ``setdefault``.
+    """
 
     environment = dict(os.environ)
     source_root = str(Path(__file__).resolve().parent.parent)
@@ -38,6 +46,7 @@ def _evaluator_environment() -> dict[str, str]:
     environment["PYTHONPATH"] = (
         source_root if not existing else f"{source_root}{os.pathsep}{existing}"
     )
+    environment.setdefault("HF_TOKEN", "localcode-public-dataset-no-auth")
     return environment
 
 
@@ -63,8 +72,13 @@ class LocalCodePatchProducer:
         allow_retained_swap: bool = False,
         keep_alive: int = 300,
         think: bool | str = False,
+        backend_provider: str = "ollama",
+        openai_api_key: str | None = None,
+        reasoning_effort: str = "medium",
         observer_factory: Callable[[RealBenchmarkConfiguration, RealBenchmarkIssue, str], object | None] | None = None,
     ) -> None:
+        if backend_provider not in {"ollama", "openai"}:
+            raise ValueError("backend_provider must be 'ollama' or 'openai'")
         self.model = model
         self.tool_document = tool_document
         self.only_instance_id = only_instance_id
@@ -76,6 +90,9 @@ class LocalCodePatchProducer:
         self.allow_retained_swap = allow_retained_swap
         self.keep_alive = keep_alive
         self.think = think
+        self.backend_provider = backend_provider
+        self.openai_api_key = openai_api_key
+        self.reasoning_effort = reasoning_effort
         self.observer_factory = observer_factory
         self._preflight_ok = False
         self._client = None
@@ -83,15 +100,29 @@ class LocalCodePatchProducer:
     def finish(self) -> None:
         """Release Ollama memory before the external Docker evaluator starts."""
 
-        if self._client is not None:
+        if self.backend_provider == "ollama" and self._client is not None:
             _unload_ollama_model(self.model)
 
     def produce(self, configuration: RealBenchmarkConfiguration, issue: RealBenchmarkIssue):
-        from .backends.ollama_loop import OllamaLoopBackend, REVIEW_SYSTEM_PROMPT
+        from .backends.ollama_loop import (
+            LOOP_SYSTEM_PROMPT,
+            REVIEW_SYSTEM_PROMPT,
+            SINGLE_SHOT_SYSTEM_PROMPT,
+            OllamaLoopBackend,
+        )
+        from .backends.openai_responses import OpenAIResponsesClient, OpenAIResponsesLoopBackend
         from .compatibility import OllamaClient
-        from .context import RetrievalContextCompiler, SimpleContextCompiler
+        from .context import (
+            RetrievalContextCompiler,
+            SimpleContextCompiler,
+            SingleShotContextCompiler,
+        )
         from .decisions import DecisionValidator
-        from .engineering_registry import EngineeringToolRegistry
+        from .engineering_registry import (
+            EngineeringToolRegistry,
+            ProductionReviewRegistry,
+            ToolSubsetRegistry,
+        )
         from .engineering_smoke import ResourceGuardedLoopBackend
         from .loop import AgentLoop, CompletionRequirements, LoopBudgets
         from .preflight import SmokeBaseline, parse_host_resource_snapshot, validate_smoke_baseline
@@ -106,14 +137,20 @@ class LocalCodePatchProducer:
         )
         started = time.monotonic()
         if self._client is None:
-            self._client = OllamaClient()
+            self._client = (
+                OllamaClient()
+                if self.backend_provider == "ollama"
+                else OpenAIResponsesClient(api_key=self.openai_api_key)
+            )
         client = self._client
+        single_shot = configuration.kind == "single_shot_base"
+        agent_prompt = SINGLE_SHOT_SYSTEM_PROMPT if single_shot else LOOP_SYSTEM_PROMPT
         # The empty-ollama preflight runs once per producer, not once per
         # instance: a multi-instance run legitimately keeps the model resident
         # between instances (m041). The resource baseline for the per-turn
         # swap/memory guard, however, must be captured fresh per instance so
         # drift from earlier instances does not trip the guard (m042).
-        if not self._preflight_ok:
+        if self.backend_provider == "ollama" and not self._preflight_ok:
             validate_smoke_baseline(
                 swapusage_output=_run_host_command(("sysctl", "vm.swapusage")),
                 memory_pressure_output=_run_host_command(("memory_pressure", "-Q")),
@@ -121,28 +158,41 @@ class LocalCodePatchProducer:
                 allow_retained_swap=self.allow_retained_swap,
             )
             self._preflight_ok = True
-        loop_backend = OllamaLoopBackend(
-            model=self.model,
-            tool_document=self.tool_document,
-            client=client,
-            context_tokens=self.context_tokens,
-            max_output_tokens=self.max_output_tokens,
-            allow_tool_subsets=True,
-            keep_alive=self.keep_alive,
-            think=self.think,
-        )
-        # Load the model before capturing the per-turn swap baseline so the
-        # one-time cold-load cost cannot trip the per-turn growth guard (m059).
-        loop_backend.warm_up()
-        resources = parse_host_resource_snapshot(
-            swapusage_output=_run_host_command(("sysctl", "vm.swapusage")),
-            memory_pressure_output=_run_host_command(("memory_pressure", "-Q")),
-        )
-        baseline = SmokeBaseline(
-            swap_used_bytes=resources.swap_used_bytes,
-            memory_free_percent=resources.memory_free_percent,
-            loaded_models=(),
-        )
+        if self.backend_provider == "ollama":
+            loop_backend = OllamaLoopBackend(
+                model=self.model,
+                tool_document=self.tool_document,
+                client=client,
+                context_tokens=self.context_tokens,
+                max_output_tokens=self.max_output_tokens,
+                allow_tool_subsets=True,
+                keep_alive=self.keep_alive,
+                think=self.think,
+                system_prompt=agent_prompt,
+            )
+            # Load the model before capturing the per-turn swap baseline so the
+            # one-time cold-load cost cannot trip the per-turn growth guard.
+            loop_backend.warm_up()
+            resources = parse_host_resource_snapshot(
+                swapusage_output=_run_host_command(("sysctl", "vm.swapusage")),
+                memory_pressure_output=_run_host_command(("memory_pressure", "-Q")),
+            )
+            baseline = SmokeBaseline(
+                swap_used_bytes=resources.swap_used_bytes,
+                memory_free_percent=resources.memory_free_percent,
+                loaded_models=(),
+            )
+        else:
+            loop_backend = OpenAIResponsesLoopBackend(
+                model=self.model,
+                tool_document=self.tool_document,
+                client=client,
+                max_output_tokens=self.max_output_tokens,
+                reasoning_effort=self.reasoning_effort,
+                allow_tool_subsets=True,
+                system_prompt=agent_prompt,
+            )
+            baseline = None
         with tempfile.TemporaryDirectory(prefix="localcode-real-agent-") as temporary:
             root = Path(temporary)
             source = root / "source"
@@ -156,15 +206,29 @@ class LocalCodePatchProducer:
                 # docs/fixtures. Never follow them into the agent workspace.
                 skip_symlinks=True,
             )
-            validator = DecisionValidator.from_tool_document(self.tool_document)
-            backend = ResourceGuardedLoopBackend(
-                loop_backend,
-                baseline=baseline,
-                command_runner=_run_host_command,
-                observer=lambda _snapshot: None,
+            validator_document = (
+                _tool_document_subset(self.tool_document, {"apply_patch"})
+                if single_shot
+                else self.tool_document
+            )
+            validator = DecisionValidator.from_tool_document(validator_document)
+            backend = (
+                ResourceGuardedLoopBackend(
+                    loop_backend,
+                    baseline=baseline,
+                    command_runner=_run_host_command,
+                    observer=lambda _snapshot: None,
+                )
+                if baseline is not None
+                else loop_backend
             )
             registry = EngineeringToolRegistry(workspace)
-            if configuration.configuration_id in {"A2", "A3"}:
+            agent_registry = (
+                ToolSubsetRegistry(registry, {"apply_patch"}) if single_shot else registry
+            )
+            if single_shot:
+                compiler = SingleShotContextCompiler(workspace.root)
+            elif configuration.kind in {"retrieval_agent", "agent_plus_review"}:
                 compiler = RetrievalContextCompiler(workspace.root, max_files=6)
             else:
                 compiler = SimpleContextCompiler()
@@ -176,29 +240,29 @@ class LocalCodePatchProducer:
             result = AgentLoop(
                 backend,
                 validator,
-                registry,
+                agent_registry,
                 LoopBudgets(
-                    max_turns=self.max_turns,
-                    max_tool_calls=self.max_tool_calls,
-                    max_invalid_actions=4,
+                    max_turns=1 if single_shot else self.max_turns,
+                    max_tool_calls=1 if single_shot else self.max_tool_calls,
+                    max_invalid_actions=1 if single_shot else 4,
                     # Real models may repeat a discovery query after its first
                     # bounded observation; permit one repeat before stopping.
-                    max_identical_actions=2,
-                    recover_repeated_actions=True,
-                    phase_tool_policy=True,
-                    auto_test_after_edit=True,
+                    max_identical_actions=1 if single_shot else 2,
+                    recover_repeated_actions=not single_shot,
+                    phase_tool_policy=not single_shot,
+                    auto_test_after_edit=not single_shot,
                     max_wall_seconds=600,
                     max_context_chars=self.max_context_chars,
                 ),
                 clock=lambda: time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                 monotonic=time.monotonic,
                 completion_requirements=CompletionRequirements(
-                    require_patch=True,
+                    require_patch=not single_shot,
                     # The official evaluator, not the host, owns real test truth.
                     require_passing_tests=False,
                     # Still require one real local execution before exporting a
                     # patch, so schema mistakes cannot silently skip review.
-                    require_test_execution=True,
+                    require_test_execution=not single_shot,
                 ),
                 context_compiler=compiler,
                 observer=agent_observer,
@@ -208,29 +272,44 @@ class LocalCodePatchProducer:
                 agent_observer.finish(result, final_diff=diff.content or "")
             review_tokens = 0
             review_tool_calls = 0
+            review_invalid_actions = 0
+            review_tests_executed = 0
+            review_termination: str | None = None
             if (
-                configuration.configuration_id == "A3"
+                configuration.kind == "agent_plus_review"
                 and diff.content
                 and diff.content.lstrip().startswith("diff --git ")
                 and not diff.truncated
             ):
-                review_backend = OllamaLoopBackend(
-                    model=self.model,
-                    tool_document=self.tool_document,
-                    client=client,
-                    context_tokens=self.context_tokens,
-                    max_output_tokens=self.max_output_tokens,
-                    allow_tool_subsets=True,
-                    keep_alive=self.keep_alive,
-                    think=self.think,
-                    system_prompt=REVIEW_SYSTEM_PROMPT,
-                )
-                review_guarded = ResourceGuardedLoopBackend(
-                    review_backend,
-                    baseline=baseline,
-                    command_runner=_run_host_command,
-                    observer=lambda _snapshot: None,
-                )
+                if self.backend_provider == "ollama":
+                    review_backend = OllamaLoopBackend(
+                        model=self.model,
+                        tool_document=self.tool_document,
+                        client=client,
+                        context_tokens=self.context_tokens,
+                        max_output_tokens=self.max_output_tokens,
+                        allow_tool_subsets=True,
+                        keep_alive=self.keep_alive,
+                        think=self.think,
+                        system_prompt=REVIEW_SYSTEM_PROMPT,
+                    )
+                    review_guarded = ResourceGuardedLoopBackend(
+                        review_backend,
+                        baseline=baseline,
+                        command_runner=_run_host_command,
+                        observer=lambda _snapshot: None,
+                    )
+                else:
+                    review_backend = OpenAIResponsesLoopBackend(
+                        model=self.model,
+                        tool_document=self.tool_document,
+                        client=client,
+                        max_output_tokens=self.max_output_tokens,
+                        reasoning_effort=self.reasoning_effort,
+                        allow_tool_subsets=True,
+                        system_prompt=REVIEW_SYSTEM_PROMPT,
+                    )
+                    review_guarded = review_backend
                 review_observer = (
                     self.observer_factory(configuration, issue, "review")
                     if self.observer_factory
@@ -246,7 +325,7 @@ class LocalCodePatchProducer:
                     review_result = AgentLoop(
                         review_guarded,
                         validator,
-                        registry,
+                        ProductionReviewRegistry(registry),
                         LoopBudgets(
                             max_turns=8,
                             max_tool_calls=8,
@@ -277,6 +356,9 @@ class LocalCodePatchProducer:
                 if review_result is not None:
                     review_tokens = review_backend.generated_tokens
                     review_tool_calls = review_result.tool_calls_used
+                    review_invalid_actions = review_result.invalid_actions_used
+                    review_tests_executed = review_result.tests_executed
+                    review_termination = review_result.termination_reason.value
                     diff = _final_patch(diff, git_diff(workspace.root))
                 if review_observer is not None and hasattr(review_observer, "finish"):
                     if review_result is not None:
@@ -285,9 +367,10 @@ class LocalCodePatchProducer:
         produced = (
             bool(patch)
             and patch.lstrip().startswith("diff --git ")
-            and result.tests_executed > 0
+            and (single_shot or result.tests_executed > 0)
         )
-        termination = result.termination_reason.value
+        agent_termination = result.termination_reason.value
+        termination = review_termination or agent_termination
         return PatchAttempt(
             instance_id=issue.instance_id,
             model_name_or_path=self.model,
@@ -297,14 +380,16 @@ class LocalCodePatchProducer:
             reason=(
                 None
                 if produced
-                else f"agent terminated with {termination}; executed tests={result.tests_executed}"
+                else f"agent terminated with {agent_termination}; executed tests={result.tests_executed}"
             ),
             tokens_used=loop_backend.generated_tokens + review_tokens,
             tool_calls=result.tool_calls_used + review_tool_calls,
             wall_seconds=round(time.monotonic() - started, 6),
             termination_reason=termination,
-            invalid_actions=result.invalid_actions_used,
-            tests_executed=result.tests_executed,
+            invalid_actions=result.invalid_actions_used + review_invalid_actions,
+            tests_executed=result.tests_executed + review_tests_executed,
+            agent_termination_reason=agent_termination,
+            review_termination_reason=review_termination,
         )
 
 
@@ -327,9 +412,39 @@ def _review_issue_text(issue: str, diff_content: str, max_diff_chars: int = 12_0
 def _final_patch(pre_review: ToolResult, reviewed: ToolResult) -> ToolResult:
     """Keep the reviewed diff only when it is a valid, untruncated git diff."""
     content = reviewed.content
-    if content and content.lstrip().startswith("diff --git ") and not reviewed.truncated:
+    if (
+        content
+        and content.lstrip().startswith("diff --git ")
+        and not reviewed.truncated
+        and not _diff_changes_tests(content)
+    ):
         return reviewed
     return pre_review
+
+
+def _diff_changes_tests(content: str) -> bool:
+    from .engineering_registry import _DIFF_PATH, _is_test_path
+
+    return any(_is_test_path(path) for pair in _DIFF_PATH.findall(content) for path in pair)
+
+
+def _tool_document_subset(document: dict[str, Any], names: set[str]) -> dict[str, Any]:
+    tools = document.get("tools")
+    if not isinstance(tools, list):
+        raise ValueError("tool document must contain a tools list")
+    selected = [
+        tool
+        for tool in tools
+        if isinstance(tool, dict)
+        and isinstance(tool.get("function"), dict)
+        and tool["function"].get("name") in names
+    ]
+    if len(selected) != len(names):
+        raise ValueError("tool document does not contain the required treatment tools")
+    return {
+        "schema_version": document.get("schema_version", 1),
+        "tools": selected,
+    }
 
 
 def _clone_at_commit(repository: str, commit: str, destination: Path) -> None:

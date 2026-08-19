@@ -122,6 +122,35 @@ class EngineeringLoopTests(unittest.TestCase):
         self.assertEqual(registry.executed, ["apply_patch", "run_tests"])
         self.assertEqual(result.tests_executed, 1)
 
+    def test_all_successful_edit_tools_satisfy_the_patch_requirement(self) -> None:
+        edit_actions = (
+            tool(
+                "edit_file",
+                {"path": "src/parser.py", "old_string": "old", "new_string": "new"},
+            ),
+            tool("write_file", {"path": "src/parser.py", "content": "new file"}),
+        )
+
+        for edit_action in edit_actions:
+            with self.subTest(edit_action=edit_action):
+                registry = FakeEngineeringRegistry([0])
+                result = AgentLoop(
+                    FakeBackend([edit_action, final()]),
+                    DecisionValidator.from_path(SCHEMAS),
+                    registry,
+                    LoopBudgets(max_turns=2, max_tool_calls=3, auto_test_after_edit=True),
+                    clock=lambda: NOW,
+                    monotonic=lambda: 0.0,
+                    completion_requirements=CompletionRequirements(
+                        require_patch=True,
+                        require_test_execution=True,
+                    ),
+                ).run(run_id="non-patch-edit", issue="Fix parser")
+
+                self.assertEqual(result.termination_reason, TerminationReason.FINAL_ANSWER)
+                self.assertEqual(result.invalid_actions_used, 0)
+                self.assertEqual(result.tests_executed, 1)
+
     def test_new_patch_invalidates_old_test_success_and_allows_retest(self) -> None:
         registry = FakeEngineeringRegistry([0, 0])
 

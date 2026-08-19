@@ -16,6 +16,12 @@ _INSTANCE_ID = re.compile(r"^[A-Za-z0-9._-]+__[A-Za-z0-9._-]+-\d+$")
 _REPOSITORY = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 _COMMIT = re.compile(r"^[0-9A-Fa-f]{7,40}$")
 _CONFIGURATION_IDS = ("B0", "A1", "A2", "A3")
+_CONFIGURATION_KINDS = {
+    "B0": "single_shot_base",
+    "A1": "simple_agent",
+    "A2": "retrieval_agent",
+    "A3": "agent_plus_review",
+}
 _KINDS = frozenset(
     {
         "single_shot_base",
@@ -132,6 +138,8 @@ class PatchAttempt:
     termination_reason: str | None = None
     invalid_actions: int = 0
     tests_executed: int = 0
+    agent_termination_reason: str | None = None
+    review_termination_reason: str | None = None
 
     @property
     def valid_patch(self) -> bool:
@@ -151,6 +159,8 @@ class PatchAttempt:
             "termination_reason": self.termination_reason,
             "invalid_actions": self.invalid_actions,
             "tests_executed": self.tests_executed,
+            "agent_termination_reason": self.agent_termination_reason,
+            "review_termination_reason": self.review_termination_reason,
             "valid_patch": self.valid_patch,
         }
 
@@ -277,6 +287,8 @@ class RealBenchmarkCaseResult:
     termination_reason: str | None
     invalid_actions: int
     tests_executed: int
+    agent_termination_reason: str | None
+    review_termination_reason: str | None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -295,6 +307,8 @@ class RealBenchmarkCaseResult:
             "termination_reason": self.termination_reason,
             "invalid_actions": self.invalid_actions,
             "tests_executed": self.tests_executed,
+            "agent_termination_reason": self.agent_termination_reason,
+            "review_termination_reason": self.review_termination_reason,
         }
 
 
@@ -472,6 +486,11 @@ def load_real_benchmark_manifest(manifest_path: str | Path) -> RealBenchmarkMani
         raise RealBenchmarkError(
             f"real benchmark configuration order must be {_CONFIGURATION_IDS}; observed {observed_ids}"
         )
+    observed_kinds = {
+        configuration.configuration_id: configuration.kind for configuration in configurations
+    }
+    if observed_kinds != _CONFIGURATION_KINDS:
+        raise RealBenchmarkError("real benchmark configuration IDs and kinds do not match the ladder")
 
     raw_instances = document["instances"]
     if not isinstance(raw_instances, list) or len(raw_instances) != 20:
@@ -812,6 +831,8 @@ def _case_result(
         termination_reason=attempt.termination_reason,
         invalid_actions=attempt.invalid_actions,
         tests_executed=attempt.tests_executed,
+        agent_termination_reason=attempt.agent_termination_reason,
+        review_termination_reason=attempt.review_termination_reason,
     )
 
 
@@ -938,12 +959,15 @@ def _validate_attempt(
         or float(attempt.wall_seconds) < 0
     ):
         raise RealBenchmarkError("patch attempt wall_seconds is invalid")
-    if attempt.termination_reason is not None and (
-        not isinstance(attempt.termination_reason, str)
-        or not attempt.termination_reason
-        or len(attempt.termination_reason) > 100
+    for name, value in (
+        ("termination_reason", attempt.termination_reason),
+        ("agent_termination_reason", attempt.agent_termination_reason),
+        ("review_termination_reason", attempt.review_termination_reason),
     ):
-        raise RealBenchmarkError("patch attempt termination_reason is invalid")
+        if value is not None and (
+            not isinstance(value, str) or not value or len(value) > 100
+        ):
+            raise RealBenchmarkError(f"patch attempt {name} is invalid")
     for name, value in (
         ("invalid_actions", attempt.invalid_actions),
         ("tests_executed", attempt.tests_executed),
@@ -963,6 +987,8 @@ def _validate_attempt(
         termination_reason=attempt.termination_reason,
         invalid_actions=attempt.invalid_actions,
         tests_executed=attempt.tests_executed,
+        agent_termination_reason=attempt.agent_termination_reason,
+        review_termination_reason=attempt.review_termination_reason,
     )
 
 

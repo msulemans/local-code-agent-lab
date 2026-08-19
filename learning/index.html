@@ -33,16 +33,16 @@
       <div class="hero-copy">
         <p class="eyebrow">Phase 3 · Build your own coding agent</p>
         <h1>Teach the machine<br><em>to look before it touches.</em></h1>
-        <p class="hero-lede">You are not wrapping an API. You are building the system that turns a local coding model into a controlled engineer: repository tools, evidence, budgets, retries, tests, review, and a patch an independent evaluator can judge.</p>
+        <p class="hero-lede">You are not wrapping an API. You are building the system that turns either a local or hosted model into a controlled engineer: repository tools, evidence, budgets, retries, tests, review, and a patch an independent evaluator can judge.</p>
         <div class="hero-actions">
           <a class="primary-action" href="#anatomy">Open the field manual <span aria-hidden="true">↓</span></a>
           <button class="quiet-action" id="resumeButton" type="button">Resume my last lesson</button>
         </div>
         <dl class="status-ledger" aria-label="Current LocalCode project status">
-          <div><dt>Runtime</dt><dd>Python 3.11</dd></div>
-          <div><dt>Offline proof</dt><dd>007 guarded edit/test loop + TUI shell</dd></div>
+          <div><dt>Language</dt><dd>Python 3.11</dd></div>
+          <div><dt>Runtime</dt><dd>B0/A1/A2/A3 implemented</dd></div>
           <div><dt>Available</dt><dd>6 bounded tools</dd></div>
-          <div><dt>Model</dt><dd>Qwen3.5 9B verified, unrun</dd></div>
+          <div><dt>Real evidence</dt><dd>A3 officially resolved 1/1</dd></div>
         </dl>
       </div>
 
@@ -141,7 +141,7 @@
       <div class="section-heading">
         <p class="eyebrow">Lesson 03 · Agent loop</p>
         <h2>Watch evidence change the next decision.</h2>
-        <p>Step through LocalCode’s architecture. The runtime can inspect, patch, run one named sandboxed test command, inspect the diff, retry, and terminate. The multi-turn Ollama transport contract passes with fake responses, and the experiment layer now includes a deterministic reviewer. Real Qwen execution is still blocked by host swap pressure.</p>
+        <p>Step through LocalCode’s architecture. The runtime can inspect, patch, run one named sandboxed test command, inspect the diff, retry, and terminate. Ollama and OpenAI now use the same decision protocol; the hosted A3 pilot crossed this loop and the official evaluator resolved one real issue.</p>
       </div>
 
       <div class="loop-workbench">
@@ -204,7 +204,7 @@
         <i aria-hidden="true">≠</i>
         <div><span>EVALUATOR-ONLY</span><strong>Gold patch + hidden test patch + post-fix state</strong></div>
       </div>
-      <p class="deep-note">SWE-bench “resolved” is an independent evaluator outcome, not the agent’s self-report. On this Mac, ARM image support and Docker’s current 7.75 GiB allocation remain benchmark risks even though the host has 207 GiB free.</p>
+      <p class="deep-note">SWE-bench “resolved” is an independent evaluator outcome, not the agent’s self-report. The A3 Requests pilot is officially resolved 1/1, but one issue is pathway evidence—not a representative benchmark score. Local model quality and host memory remain separate experimental variables.</p>
       <button class="lesson-complete" type="button" data-complete="benchmark"><span>+</span> Mark lesson complete</button>
     </section>
 

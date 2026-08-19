@@ -7,8 +7,12 @@ import unittest
 
 from localcode.actions import ActionValidationError
 from localcode.decisions import DecisionValidator
-from localcode.engineering_registry import EngineeringToolRegistry
-from localcode.tools import ToolResult
+from localcode.engineering_registry import (
+    EngineeringToolRegistry,
+    ProductionReviewRegistry,
+    ToolSubsetRegistry,
+)
+from localcode.tools import ToolError, ToolResult
 from localcode.workspace import create_workspace
 
 
@@ -52,6 +56,17 @@ class FakeTestRunner:
 
 
 class EngineeringRegistryTests(unittest.TestCase):
+    def test_tool_subset_registry_exposes_and_enforces_exact_surface(self) -> None:
+        validator = DecisionValidator.from_path(SCHEMAS)
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = create_workspace(FIXTURE, Path(temporary) / "workspace")
+            registry = ToolSubsetRegistry(EngineeringToolRegistry(workspace), {"apply_patch"})
+
+            self.assertEqual(registry.tool_names, ("apply_patch",))
+            action = validator.validate(decision("read_file", {"path": "src/tiny_parser.py"}))
+            with self.assertRaisesRegex(ValueError, "outside the tool subset"):
+                registry.execute(action)
+
     def test_exact_eight_tool_surface_applies_patch_tests_and_reads_diff(self) -> None:
         validator = DecisionValidator.from_path(SCHEMAS)
         fake_tests = FakeTestRunner()
@@ -87,6 +102,42 @@ class EngineeringRegistryTests(unittest.TestCase):
                     {"command_name": "python-unittest", "max_output_bytes": 1_048_576},
                 )
             )
+
+    def test_review_registry_keeps_tests_readable_but_rejects_test_edits(self) -> None:
+        validator = DecisionValidator.from_path(SCHEMAS)
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = create_workspace(FIXTURE, Path(temporary) / "workspace")
+            registry = ProductionReviewRegistry(EngineeringToolRegistry(workspace, FakeTestRunner()))
+
+            read = registry.execute(
+                validator.validate(decision("read_file", {"path": "tests/test_tiny_parser.py"}))
+            )
+            with self.assertRaisesRegex(ToolError, "must repair production code"):
+                registry.execute(
+                    validator.validate(
+                        decision(
+                            "edit_file",
+                            {
+                                "path": "tests/test_tiny_parser.py",
+                                "old_string": "assert",
+                                "new_string": "assert True or",
+                            },
+                        )
+                    )
+                )
+            with self.assertRaisesRegex(ToolError, "may not modify test files"):
+                registry.execute(
+                    validator.validate(
+                        decision(
+                            "apply_patch",
+                            {
+                                "patch": "diff --git a/tests/test_tiny_parser.py b/tests/test_tiny_parser.py\n"
+                            },
+                        )
+                    )
+                )
+
+        self.assertIn("test_absent_text_is_empty", read.content)
 
         with self.assertRaises(ActionValidationError):
             validator.validate(

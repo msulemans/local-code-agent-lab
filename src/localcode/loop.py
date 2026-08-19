@@ -420,7 +420,7 @@ class ReadOnlyAgentLoop:
             else:
                 event_type = EventType.TOOL_RESULT
                 summary = f"Tool {decision.tool} completed."
-                if decision.tool == "apply_patch":
+                if decision.tool in {"apply_patch", "edit_file", "write_file"}:
                     patch_applied = True
                     tests_passed = False
                     action_counts.clear()
@@ -679,7 +679,7 @@ def _error_observation(kind: str, code: str, message: str) -> ToolResult:
 
 
 def _state_for_tool(tool: str) -> str:
-    if tool == "apply_patch":
+    if tool in {"apply_patch", "edit_file", "write_file"}:
         return "editing"
     if tool == "run_tests":
         return "verifying"

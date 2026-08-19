@@ -41,9 +41,9 @@ const anatomy = [
   },
   {
     id: "model",
-    label: "Local model",
+    label: "Inference model",
     role: "Probabilistic strategist",
-    summary: "A local coding instruct model predicts the next structured action or a final response from the context it receives.",
+    summary: "A local or hosted coding model predicts the next structured action or a final response from the context it receives. Both transports cross the same validator and local controller.",
     owns: "Hypotheses, action proposals, and concise rationale.",
     never: "Direct filesystem or shell authority, benchmark truth, or policy enforcement.",
     example: "Propose search_code(query='parse_value', path='.')",
@@ -251,7 +251,7 @@ const milestones = [
     title: "Local model bake-off · stages A–B",
     story: "In candidate 1 v1, 1/20 observed before 4.15 GiB swap growth triggered the safety stop. Its clean v2 completed all prompts but failed quality. Candidate 2 then made one native tool call before 2.53 GiB swap growth triggered the same frozen limit from a clean host.",
     evidence: "20 prompts frozen · candidate 1: 0/12 schema, 1/16 decisions, 3/4 reasoning · candidate 2: 1/1 schema observed, 2.53 GiB swap · 0 tools executed",
-    decision: "Neither original candidate passes. The separate Qwen3.5 9B extension is downloaded and fully hash-verified; a clean restart baseline is required before its one guarded run.",
+    decision: "Neither original candidate passes. Keep this as local-model capability evidence; hosted results must be reported as a separate model treatment.",
   },
   {
     id: "005",
@@ -295,16 +295,16 @@ const milestones = [
   },
   {
     id: "009",
-    state: "One solve · multi-repo execution validated",
+    state: "Hosted A3 officially resolved 1/1",
     title: "Real SWE-bench evaluation boundary",
-    story: "A2 resolved the Flask pilot and now executes across Requests, Pylint, and Sphinx. D-042 removed a stale cross-instance resource baseline. A Sphinx gold control then exposed ARM-local dependency drift, so the evaluator image was pinned to docutils 0.16 and roman 4.2 before the saved model patch was scored again.",
-    evidence: "m040 resolved 1/1 · m043 completed both repositories without backend errors · m047 Sphinx gold resolved 1/1 · m048 model patch failed only its target test while 27 regression tests passed · 193 unit tests pass",
-    decision: "Keep the real score at one resolved pilot. Treat Pylint as a model-format failure and Sphinx as a genuine wrong-subsystem patch. Improve retrieval/call-site evidence before adding A3 review or attempting the frozen 20.",
+    story: "The real runner now supports the same bounded runtime through Ollama or OpenAI. A2 produced a valid Requests patch but introduced a peer-to-peer regression. A3 reviewed both relevant call sites, revised the patch, and crossed the official evaluator successfully. Tests are read-only during review.",
+    evidence: "m-online-terra-requests-a3-v2 · psf__requests-2931 resolved 1/1 · target and all peer-to-peer tests passed · 1,960 generated tokens · 11 total tool calls · about 44.4 seconds",
+    decision: "This proves the complete pathway, not a leaderboard score. Next run a small cross-repository B0/A1/A2/A3 ladder with one fixed model and frozen budgets.",
   },
 ];
 
 const configurations = [
-  { id: "B0", label: "Single-shot base", score: 7, change: "No tools or retry", body: "The fixed local model sees the issue and a bounded repository map, then gets one chance to return a patch. On the current micro suite this solved 7/8 and missed only ratio-retry." },
+  { id: "B0", label: "Single-shot base", score: 7, change: "One patch decision", body: "The fixed model sees the issue and a bounded repository map, then gets one apply_patch decision with no inspection loop, tests, or retry. On the current micro suite this solved 7/8 and missed only ratio-retry." },
   { id: "A1", label: "Simple agent", score: 8, change: "+ tool loop", body: "The same model can list, search, read, edit, test, observe failures, and retry under a fixed total budget. The added loop recovered the ratio-retry case and reached 8/8." },
   { id: "A2", label: "Retrieval agent", score: 8, change: "+ ranked context", body: "A1 gains deliberate repository mapping, symbol/caller/test proximity, deduplication, and context allocation. On the current eight-case suite this matched A1 at 8/8." },
   { id: "A3", label: "Agent + review", score: 8, change: "+ fresh critique", body: "A2 gains a fresh reviewer that sees issue, diff, and test evidence. On the current suite every A3 review accepted the A2 result, so solved count remained 8/8." },

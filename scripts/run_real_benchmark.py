@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import replace
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -57,7 +58,7 @@ def main() -> int:
     parser.add_argument("--dataset-name", default=None)
     parser.add_argument("--control", choices=("empty", "gold"), default="empty")
     parser.add_argument("--control-id", default=None, help="run gold for only one pinned instance")
-    parser.add_argument("--producer", choices=("control", "ollama"), default="control")
+    parser.add_argument("--producer", choices=("control", "ollama", "openai"), default="control")
     parser.add_argument("--model", default="qwen3.5:9b-q4_K_M")
     parser.add_argument(
         "--tool-schemas",
@@ -109,12 +110,24 @@ def main() -> int:
         help="Ollama reasoning mode; use medium for gpt-oss",
     )
     parser.add_argument(
+        "--reasoning-effort",
+        choices=("low", "medium", "high", "xhigh"),
+        default="medium",
+        help="OpenAI reasoning effort (ignored by Ollama)",
+    )
+    parser.add_argument(
         "--tui",
         action="store_true",
         default=False,
         help="render each agent and review phase live through the terminal UI",
     )
     arguments = parser.parse_args()
+
+    if arguments.producer == "openai" and not os.environ.get("OPENAI_API_KEY", "").strip():
+        parser.error(
+            "--producer openai requires OPENAI_API_KEY; export it in the shell, "
+            "never put it in a repository file or command argument"
+        )
 
     progress_observer = (
         (lambda line: print(f"PROGRESS {line}", flush=True)) if arguments.progress else None
@@ -149,7 +162,7 @@ def main() -> int:
             ),
         )
     resolver = JsonDatasetIssueResolver(arguments.dataset)
-    if arguments.producer == "ollama":
+    if arguments.producer in {"ollama", "openai"}:
         tool_document = json.loads(Path(arguments.tool_schemas).read_text(encoding="utf-8"))
         producer = LocalCodePatchProducer(
             model=arguments.model,
@@ -160,6 +173,8 @@ def main() -> int:
             max_context_chars=arguments.max_context_chars,
             keep_alive=arguments.keep_alive,
             think=False if arguments.thinking == "off" else arguments.thinking,
+            backend_provider=arguments.producer,
+            reasoning_effort=arguments.reasoning_effort,
             observer_factory=_tui_factory if arguments.tui else None,
         )
     else:

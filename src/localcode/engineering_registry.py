@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+from pathlib import PurePosixPath
+import re
 from typing import Callable
 
 from .actions import ValidatedAction
 from .patches import apply_patch
 from .test_runner import TestRunner
-from .tools import ToolResult, git_diff, list_files, read_file, search_code
+from .tools import ToolError, ToolResult, git_diff, list_files, read_file, search_code
 from .workspace import Workspace, edit_file, write_file
 
 
 EngineeringTool = Callable[..., ToolResult]
+_DIFF_PATH = re.compile(r"^diff --git a/([^\s]+) b/([^\s]+)$", re.MULTILINE)
 
 
 class EngineeringToolRegistry:
@@ -64,3 +67,67 @@ class EngineeringToolRegistry:
 
     def _search_code(self, **arguments) -> ToolResult:
         return search_code(self.workspace.root, **arguments)
+
+
+class ToolSubsetRegistry:
+    """Expose an exact treatment-specific subset of an existing registry."""
+
+    def __init__(self, registry: EngineeringToolRegistry, allowed_tools: set[str]) -> None:
+        unknown = allowed_tools.difference(registry.tool_names)
+        if unknown:
+            raise ValueError(f"tool subset contains unknown tools: {sorted(unknown)}")
+        self._registry = registry
+        self._tool_names = tuple(sorted(allowed_tools))
+
+    @property
+    def tool_names(self) -> tuple[str, ...]:
+        return self._tool_names
+
+    def execute(self, action: ValidatedAction) -> ToolResult:
+        if action.tool not in self._tool_names:
+            raise ValueError(f"validated action is outside the tool subset: {action.tool}")
+        return self._registry.execute(action)
+
+
+class ProductionReviewRegistry:
+    """Keep tests readable and runnable while forbidding review-time test edits."""
+
+    def __init__(self, registry: EngineeringToolRegistry) -> None:
+        self._registry = registry
+
+    @property
+    def tool_names(self) -> tuple[str, ...]:
+        return self._registry.tool_names
+
+    def execute(self, action: ValidatedAction) -> ToolResult:
+        arguments = action.arguments_dict()
+        if action.tool in {"edit_file", "write_file"}:
+            path = arguments.get("path")
+            if isinstance(path, str) and _is_test_path(path):
+                raise ToolError(
+                    "review_test_edit_forbidden",
+                    "review may read and run tests but must repair production code, not edit tests",
+                )
+        elif action.tool == "apply_patch":
+            patch = arguments.get("patch")
+            if isinstance(patch, str) and any(
+                _is_test_path(path)
+                for pair in _DIFF_PATH.findall(patch)
+                for path in pair
+            ):
+                raise ToolError(
+                    "review_test_edit_forbidden",
+                    "review patch may not modify test files",
+                )
+        return self._registry.execute(action)
+
+
+def _is_test_path(path: str) -> bool:
+    parts = PurePosixPath(path).parts
+    name = parts[-1].casefold() if parts else ""
+    return (
+        any(part.casefold() in {"test", "tests"} for part in parts[:-1])
+        or name.startswith("test_")
+        or name.endswith("_test.py")
+        or name in {"conftest.py", "test_requests.py"}
+    )

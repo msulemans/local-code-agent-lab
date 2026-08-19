@@ -223,6 +223,15 @@ class RealBenchmarkTests(unittest.TestCase):
             with self.assertRaisesRegex(RealBenchmarkError, "exactly 20 instances"):
                 load_real_benchmark_manifest(path)
 
+    def test_manifest_rejects_configuration_kind_mismatch(self) -> None:
+        document = manifest_document()
+        document["configurations"][0]["kind"] = "simple_agent"
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "manifest.json"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            with self.assertRaisesRegex(RealBenchmarkError, "do not match the ladder"):
+                load_real_benchmark_manifest(path)
+
     def test_prepare_writes_exact_prediction_jsonl_and_attempt_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             manifest_path = Path(temporary) / "manifest.json"
