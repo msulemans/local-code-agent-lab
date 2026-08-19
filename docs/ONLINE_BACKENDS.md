@@ -140,3 +140,19 @@ official evaluator reported **resolved 1/1**.
 This closes the repaired single-issue pathway gate. Do not repeat this Requests
 run. The next benchmark question is whether the same fixed treatment generalizes
 across a small matched multi-repository subset.
+
+## First generalization result
+
+`m-luna-generalization-a3-v1` measured Flask, Pylint, and Sphinx under A3:
+
+- Flask resolved with a focused patch.
+- Pylint remained unresolved with a valid but incomplete patch. A same-instance
+  gold control resolved, proving the environment was sound and the missing
+  dependency/configuration plus migration behavior belonged to the fix.
+- Sphinx reached the correct file and an edit, but automatic testing exceeded
+  the 12-call tool budget and crashed event construction before export.
+
+The observed summary is 1/3, but Sphinx is a controller failure rather than a
+model score. The controller now reserves the automatic-test slot and uses 14
+tool slots for real agent phases. The bounded next gate is Sphinx alone under a
+new run ID; Flask and Pylint must not be repurchased in that retry.

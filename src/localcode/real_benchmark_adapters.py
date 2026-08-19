@@ -67,7 +67,7 @@ class LocalCodePatchProducer:
         context_tokens: int = 32_768,
         max_output_tokens: int = 2_048,
         max_turns: int = 12,
-        max_tool_calls: int = 12,
+        max_tool_calls: int = 14,
         max_context_chars: int = 32_000,
         allow_retained_swap: bool = False,
         keep_alive: int = 300,

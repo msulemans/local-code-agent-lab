@@ -295,11 +295,11 @@ const milestones = [
   },
   {
     id: "009",
-    state: "Post-repair pathway resolved 1/1",
+    state: "Generalization diagnosed · 1 resolved",
     title: "Real SWE-bench evaluation boundary",
-    story: "A three-repository ladder measured 0/3 and exposed real harness defects. B0 now ranks the complete bounded map, A3 carries current test evidence, edits invalidate stale evidence, and real public tests run inside pinned SWE-bench images. Tests are read-only during review. Luna then crossed the repaired A3 pathway: agent edit, Docker test, fresh review, second test, final diff, and independent resolution.",
-    evidence: "m-online-terra-requests-a3-v2 first resolved 1/1 · m-ladder3-terra-v1 diagnosed 0/3 · m-luna-requests-a3-fixed-v1 post-repair resolved 1/1 · 0 invalid actions · 2 tests · 14 tools · 2,528 tokens · 60.4 seconds",
-    decision: "Pathway correctness is closed. Do not rerun Requests; next measure generalization on a matched multi-repository subset before the frozen 20.",
+    story: "Luna generalized the repaired A3 path to Flask. Pylint produced an incomplete patch, confirmed by a resolving gold control. Sphinx reached the relevant edit but exposed a controller defect: automatic testing exceeded the declared tool budget and made remaining budget negative. The controller now reserves the verification slot before accepting an edit. Tests are read-only during review.",
+    evidence: "m-luna-generalization-a3-v1 · Flask resolved · Pylint FIX_INCOMPLETE with gold 1/1 · Sphinx budget crash fixed · 243 unit tests green",
+    decision: "Retry only Sphinx with a new run ID. Do not repay for Flask, Pylint, or Requests; do not start the frozen 20.",
   },
 ];
 

@@ -149,6 +149,43 @@ class EngineeringLoopTests(unittest.TestCase):
         self.assertEqual(result.termination_reason, TerminationReason.FINAL_ANSWER)
         self.assertEqual(registry.executed, ["apply_patch", "repository-tests"])
 
+    def test_auto_test_never_pushes_tool_budget_negative(self) -> None:
+        registry = FakeEngineeringRegistry([0])
+        result = AgentLoop(
+            FakeBackend([tool("apply_patch", {"patch": "patch-one"})]),
+            DecisionValidator.from_path(SCHEMAS),
+            registry,
+            LoopBudgets(max_turns=1, max_tool_calls=1, auto_test_after_edit=True),
+            clock=lambda: NOW,
+            monotonic=lambda: 0.0,
+            completion_requirements=CompletionRequirements(require_patch=True),
+        ).run(run_id="reserved-auto-test", issue="Fix parser")
+
+        self.assertEqual(result.termination_reason, TerminationReason.TOOL_EXHAUSTION)
+        self.assertEqual(result.tool_calls_used, 0)
+        self.assertEqual(registry.executed, [])
+        for event in result.events:
+            self.assertGreaterEqual(dict(event.budgets_remaining)["tool_calls"], 0)
+
+    def test_edit_and_auto_test_may_exactly_consume_tool_budget(self) -> None:
+        registry = FakeEngineeringRegistry([0])
+        result = AgentLoop(
+            FakeBackend([tool("apply_patch", {"patch": "patch-one"})]),
+            DecisionValidator.from_path(SCHEMAS),
+            registry,
+            LoopBudgets(max_turns=1, max_tool_calls=2, auto_test_after_edit=True),
+            clock=lambda: NOW,
+            monotonic=lambda: 0.0,
+            completion_requirements=CompletionRequirements(require_patch=True),
+        ).run(run_id="exact-auto-test", issue="Fix parser")
+
+        self.assertEqual(result.termination_reason, TerminationReason.TOOL_EXHAUSTION)
+        self.assertEqual(result.tool_calls_used, 2)
+        self.assertEqual(result.tests_executed, 1)
+        self.assertEqual(registry.executed, ["apply_patch", "run_tests"])
+        for event in result.events:
+            self.assertGreaterEqual(dict(event.budgets_remaining)["tool_calls"], 0)
+
     def test_all_successful_edit_tools_satisfy_the_patch_requirement(self) -> None:
         edit_actions = (
             tool(

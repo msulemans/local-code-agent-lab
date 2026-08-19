@@ -403,7 +403,13 @@ class ReadOnlyAgentLoop:
                     tool_calls_used,
                     invalid_actions_used,
                 )
-            if tool_calls_used >= self._budgets.max_tool_calls:
+            auto_test_will_follow = (
+                self._budgets.auto_test_after_edit
+                and decision.tool in ("apply_patch", "edit_file", "write_file")
+                and "run_tests" in self._validator.tool_names
+            )
+            required_tool_slots = 2 if auto_test_will_follow else 1
+            if tool_calls_used + required_tool_slots > self._budgets.max_tool_calls:
                 return self._terminate(
                     events,
                     observations,
@@ -476,10 +482,8 @@ class ReadOnlyAgentLoop:
             )
 
             if (
-                self._budgets.auto_test_after_edit
-                and decision.tool in ("apply_patch", "edit_file", "write_file")
+                auto_test_will_follow
                 and event_type == EventType.TOOL_RESULT
-                and "run_tests" in self._validator.tool_names
             ):
                 # Deterministic verification: after every successful edit the
                 # controller runs the registered tests itself, so a model that

@@ -307,6 +307,7 @@ class RealBenchmarkAdapterTests(unittest.TestCase):
         self.assertFalse(b0[1].auto_test_after_edit)
         self.assertIsInstance(b0[2], SingleShotContextCompiler)
         self.assertGreater(a1[1].max_turns, 1)
+        self.assertEqual(a1[1].max_tool_calls, 14)
         self.assertTrue(a1[1].auto_test_after_edit)
         self.assertIsInstance(a1[2], SimpleContextCompiler)
         self.assertIsInstance(a2[2], RetrievalContextCompiler)

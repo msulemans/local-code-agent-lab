@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
 Last updated: 2026-08-19 (Australia/Sydney)
-Status: Milestone 009's complete issue-to-evaluator path is verified after the real-test repairs. Luna A3 run `m-luna-requests-a3-fixed-v1` officially resolved `psf__requests-2931` (1/1) through the compatible public-test Docker path; the earlier failed ladder remains retained diagnostic evidence.
+Status: Milestone 009's complete issue-to-evaluator path is verified and its first Luna generalization gate is diagnosed. `m-luna-generalization-a3-v1` resolved Flask, produced an incomplete Pylint patch, and exposed one Sphinx controller-budget defect that is now fixed and unit-tested.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -40,8 +40,29 @@ compatibility evidence boundary.
 Milestone 009 runtime closure. B0 is a genuine one-decision, one-patch
 baseline; A1 adds the bounded tool loop; A2 adds ranked repository context; A3
 adds a fresh read/test/revision review. The repaired A3 path is officially
-resolved on one real issue. The next experiment is a matched multi-repository
-comparison using one model and frozen budgets; do not rerun the Requests proof.
+resolved on Requests and Flask. The next experiment is a Sphinx-only retry of
+the corrected controller, not another complete three-repository run.
+
+### Luna three-repository generalization gate (2026-08-19)
+
+- `m-luna-generalization-a3-v1` measured A3 on Flask, Pylint, and Sphinx.
+- Flask officially resolved 1/1 with a focused one-file patch: 5 total tools,
+  1 public test execution, 604 generated tokens, and 23.664017 seconds.
+- Pylint produced a valid one-file patch but the target test failed because the
+  change omitted the required `appdirs` dependency/configuration and legacy
+  `.pylint.d` migration warning. Gold control
+  `m-luna-generalization-pylint-gold-v1` resolved 1/1, proving this was
+  `FIX_INCOMPLETE`, not evaluator incompatibility.
+- Sphinx found and edited the relevant file, then its automatic public test
+  became tool call 13 under a 12-call limit. The event serializer rejected the
+  resulting `tool_calls=-1` budget and the producer incorrectly recorded an
+  environment failure with no patch.
+- The controller now reserves two slots before accepting an edit that requires
+  automatic verification, so budgets cannot become negative. Real agent phases
+  receive 14 tool slots to accommodate the trusted automatic test. Two
+  regressions cover insufficient and exactly-consumed budgets.
+- Verification after the fix: 243 unit tests passed with 8 expected sandbox
+  skips; learning UI, compileall, and diff checks passed.
 
 ### Post-repair Luna verification (2026-08-19)
 
@@ -1691,6 +1712,7 @@ Status: repository and static learning UI publicly verified.
 | D-051 | Carry public-test evidence into A3 and invalidate it after every review edit | A3 reviewers were required to test but could not see that the agent already had; the old historical counter also allowed a post-test edit to finish without retesting | fixed 2026-08-19; seeded and stale-evidence regressions added |
 | D-052 | Run real agent-visible public tests in pinned SWE-bench instance images by default | Host Python 3.11 produced dependency/import noise for legacy repositories, so the loop optimized against the wrong environment | fixed 2026-08-19; no hidden evaluator material is mounted |
 | D-053 | Drain oversized public-test output while retaining a bounded tail and true exit status | Killing at 65,536 bytes returned SIGKILL/SIGPIPE instead of the repository's real result; Sphinx naturally emits more than the observation budget | fixed 2026-08-19; live Sphinx proof returned exit 1 and final summary |
+| D-054 | Reserve the automatic-test tool slot before accepting an edit and give real agent phases 14 total tool slots | In `m-luna-generalization-a3-v1`, Sphinx used its 12th slot for an edit, automatic testing became call 13, and event construction crashed on a negative remaining budget | fixed 2026-08-19; insufficient/exact-budget regressions plus 243-test suite pass |
 
 ## Run ledger
 
