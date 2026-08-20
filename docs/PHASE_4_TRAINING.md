@@ -278,6 +278,29 @@ unchanged. The v2 treatment keeps the target and executable promotion gate,
 but caps sequences at 768 tokens and trains four LoRA layers. This retains 468
 train and 80 validation examples while shortening each GPU backward step.
 
+If Metal stops after saving one or more declared checkpoints, do not restart
+the optimizer. Validate and executable-test the preserved weights with:
+
+```bash
+caffeinate -dimsu env PYTHONPATH=src \
+  .venv-mlx/bin/python scripts/recover_m016b_checkpoint.py \
+  --source-run-id m016b-lora-v2 \
+  --run-id m016b-lora-v2-recovery-v1
+```
+
+Checkpoint 100 was a recovered negative (`0/6`): it emitted bare diffs, but
+all six were rejected as malformed patches. V3 therefore continues those
+hashed weights in seven separate 100-update MLX processes. MLX restores adapter
+weights but not optimizer state, so the frozen treatment explicitly records an
+optimizer reset between stages. This keeps each Metal process bounded and does
+not mislabel the result as uninterrupted V2 training.
+
+```bash
+caffeinate -dimsu env PYTHONPATH=src \
+  .venv-mlx/bin/python scripts/run_m016b_staged_training.py \
+  --run-id m016b-lora-v3
+```
+
 The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).

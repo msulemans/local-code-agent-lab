@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "benchmarks/training/m016_lora_v1.json"
 M016B_CONFIG = ROOT / "benchmarks/training/m016b_lora_v1.json"
 M016B_V2_CONFIG = ROOT / "benchmarks/training/m016b_lora_v2.json"
+M016B_V3_CONFIG = ROOT / "benchmarks/training/m016b_lora_v3.json"
 RECOVERY_RESULT = ROOT / "benchmarks/training/m016_recovery_result_v1.json"
 
 
@@ -47,6 +48,15 @@ class TrainingRunTests(unittest.TestCase):
         self.assertEqual(second["promotion_gate"], first["promotion_gate"])
         self.assertEqual(second["untouched_baseline"], first["untouched_baseline"])
         self.assertEqual(second["data"]["sealed_examples_loaded"], 0)
+
+    def test_m016b_v3_declares_staged_optimizer_reset_and_checkpoint_lineage(self) -> None:
+        document = json.loads(M016B_V3_CONFIG.read_text(encoding="utf-8"))
+        self.assertEqual(document["source_checkpoint"]["iteration"], 100)
+        self.assertEqual(document["stage_policy"]["additional_stages"], 7)
+        self.assertEqual(document["stage_policy"]["iterations_per_stage"], 100)
+        self.assertEqual(document["stage_policy"]["optimizer_state_between_stages"], "reset")
+        self.assertEqual(document["stage_policy"]["cumulative_checkpoints"], list(range(100, 801, 100)))
+        self.assertEqual(document["sealed_examples_loaded"], 0)
 
     def test_m016_config_freezes_data_diagnostic_full_run_and_promotion(self) -> None:
         document = json.loads(CONFIG.read_text(encoding="utf-8"))

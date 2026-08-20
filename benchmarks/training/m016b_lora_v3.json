@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m016b-qwen25-coder-executable-lora-v3-staged",
+  "base_treatment": "benchmarks/training/m016b_lora_v2.json",
+  "source_run_id": "m016b-lora-v2",
+  "source_checkpoint": {
+    "iteration": 100,
+    "path": "adapters/m016b-lora-v2/full/0000100_adapters.safetensors",
+    "bytes": 5281601,
+    "sha256": "cc99fa7f6663b3e3828ae302cb6ab6bf8197a8e3d4a125af3bfdfba266195762"
+  },
+  "stage_policy": {
+    "additional_stages": 7,
+    "iterations_per_stage": 100,
+    "cumulative_checkpoints": [100, 200, 300, 400, 500, 600, 700, 800],
+    "optimizer_state_between_stages": "reset",
+    "maximum_wall_seconds_per_stage": 900
+  },
+  "selection": "lowest full 80-row validation loss, then earliest cumulative checkpoint",
+  "promotion": "strict executable solves must exceed untouched 0/6",
+  "sealed_examples_loaded": 0
+}
