@@ -341,6 +341,14 @@ const milestones = [
     evidence: "4,628 raw → 1,553 selected · 468 bounded train + 80 validation · checkpoint 100 loss 1.754 vs checkpoint 200 loss 1.794 · selected adapter 0/6 · sealed loaded 0",
     decision: "Preserve the negative result. Do not continue the same 1.5B four-layer recipe or open sealed data; next use a stronger base model or add a patch-validity curriculum before executable evaluation.",
   },
+  {
+    id: "017",
+    state: "Qwen 7B selected · trusted edit 4/6",
+    title: "Separate model reasoning from patch serialization",
+    story: "The pinned 4-bit Qwen2.5-Coder 7B model often found the correct repair but hallucinated raw Git hunk counts. With a trusted corrected-file edit action, the controller writes only the registered path, produces the diff, and runs tests. This moved the same untouched model from strict-diff 0/6 to executable 4/6 without training.",
+    evidence: "exact 4.296 GB snapshot pinned · strict diff 0/6 · trusted edit 4/6 · 4.883 GB peak · 11.37 s · sealed loaded 0",
+    decision: "Use Qwen 7B with typed trusted editing in the agent loop. Stop tuning prompts on these six development cases; next test bounded retry/review on separate registered tasks before deciding on QLoRA.",
+  },
 ];
 
 const configurations = [

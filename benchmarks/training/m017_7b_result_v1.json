@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m017-qwen25-coder-7b-action-representation",
+  "model_id": "mlx-community/Qwen2.5-Coder-7B-Instruct-4bit",
+  "model_revision": "019cc73c45c770444708a6dd8690c66243cc5c80",
+  "verdict": "model_selected_trusted_edit_baseline_positive",
+  "runs": [
+    {
+      "run_id": "m017-qwen25-7b-base-v1",
+      "treatment": "strict_diff_with_snapshot_eos_mismatch",
+      "solved": 0,
+      "registered": 6,
+      "record_sha256": "7882f58a96f9108e127dba8674656e4b71c2afd31b84ebfb220676a1b594c804"
+    },
+    {
+      "run_id": "m017-qwen25-7b-base-v2",
+      "treatment": "strict_diff_with_correct_chat_stop",
+      "solved": 0,
+      "registered": 6,
+      "record_sha256": "8efb15cfe8f6091872f62c4c838f876bc0c91a42688d9b1fa3137d39e14d91fc"
+    },
+    {
+      "run_id": "m017-qwen25-7b-edit-v1",
+      "treatment": "trusted_corrected_file_edit",
+      "solved": 4,
+      "registered": 6,
+      "peak_memory_gb": 4.882904,
+      "wall_seconds": 11.371122,
+      "record_sha256": "bb3d2f3fa341a8dc9d4ef9e21d0784c12ead23402d420985cab927538375c4d1"
+    },
+    {
+      "run_id": "m017-qwen25-7b-edit-v2",
+      "treatment": "development_prompt_boundary_diagnostic",
+      "solved": 2,
+      "registered": 6,
+      "record_sha256": "d454884c7016e8bd041e99d456641acc17e8bc138d8aa98b5b41687281dc0d13"
+    }
+  ],
+  "selected_baseline_run_id": "m017-qwen25-7b-edit-v1",
+  "selected_baseline_solved": 4,
+  "sealed_examples_loaded": 0,
+  "decision": "Use Qwen 7B with trusted typed editing in the bounded agent loop. Stop tuning prompts on these six cases; next measure retry and review on separate registered tasks before QLoRA."
+}

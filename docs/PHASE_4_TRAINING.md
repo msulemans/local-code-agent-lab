@@ -356,6 +356,14 @@ delimited file content and states that corrected-file tags contain Python only.
 This is a prompt-boundary correction; the controller still performs no output
 repair.
 
+Stop after this diagnostic: V2 fell to `2/6` because several responses changed
+to an unregistered envelope tag. Continuing to tune prompts against the same
+six cases would overfit the development gate. The frozen M017 result therefore
+selects Qwen 7B with the first trusted-edit treatment at `4/6`, compared with
+`0/6` for raw strict diffs. Next, use typed editing inside the bounded retry
+loop and evaluate on separately registered tasks before deciding on QLoRA.
+Evidence is frozen in `benchmarks/training/m017_7b_result_v1.json`.
+
 The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).

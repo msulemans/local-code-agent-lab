@@ -22,6 +22,7 @@ M016B_V2_CONFIG = ROOT / "benchmarks/training/m016b_lora_v2.json"
 M016B_V3_CONFIG = ROOT / "benchmarks/training/m016b_lora_v3.json"
 RECOVERY_RESULT = ROOT / "benchmarks/training/m016_recovery_result_v1.json"
 M016B_RECOVERY_RESULT = ROOT / "benchmarks/training/m016b_recovery_result_v1.json"
+M017_RESULT = ROOT / "benchmarks/training/m017_7b_result_v1.json"
 
 
 class TrainingRunTests(unittest.TestCase):
@@ -95,6 +96,14 @@ class TrainingRunTests(unittest.TestCase):
         self.assertEqual(document["executable_evaluation"]["solved"], 0)
         self.assertFalse(document["executable_evaluation"]["improved_over_untouched"])
         self.assertEqual(document["sealed_examples_loaded"], 0)
+
+    def test_m017_selects_qwen_7b_trusted_edit_without_sealed_or_prompt_overfit(self) -> None:
+        document = json.loads(M017_RESULT.read_text(encoding="utf-8"))
+        self.assertEqual(document["verdict"], "model_selected_trusted_edit_baseline_positive")
+        self.assertEqual(document["selected_baseline_run_id"], "m017-qwen25-7b-edit-v1")
+        self.assertEqual(document["selected_baseline_solved"], 4)
+        self.assertEqual(document["sealed_examples_loaded"], 0)
+        self.assertIn("Stop tuning prompts", document["decision"])
 
     def test_training_metrics_drive_overfit_gate(self) -> None:
         output = (
