@@ -172,7 +172,11 @@ The registered policy lives in
 the CommitPackFT Python shard, normalizes 2,000 deterministic
 `broken_to_corrected` examples, and writes a rejection report. Bulk raw and
 processed data remain ignored and reconstructable; no trained adapter is
-claimed yet. See [the Phase 4 lesson](docs/PHASE_4_TRAINING.md).
+claimed yet. Milestone 015 has now pinned Qwen2.5-Coder-1.5B-Instruct and the
+MLX environment, recorded an untouched validation-loss baseline, and passed a
+two-update LoRA save/reload probe at 4.046 GB peak active memory. Full training
+waits for the executable base-model baseline. See
+[the Phase 4 lesson](docs/PHASE_4_TRAINING.md).
 
 Real agent runs now execute repository-owned public tests in the pinned
 SWE-bench instance image by default. The runner prepares selected images,

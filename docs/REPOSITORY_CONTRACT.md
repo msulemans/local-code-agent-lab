@@ -40,7 +40,9 @@ or change runtime policy.
 - a versioned Phase 4 training record, split, provenance, checksum, and
   evaluation-leakage contract; and
 - a pinned, checksum-verified, deterministic repair-source normalizer and local
-  2,000-example seed-corpus reconstruction path.
+  2,000-example seed-corpus reconstruction path; and
+- a pinned Qwen 1.5B/MLX environment, development-only chat export, untouched
+  loss baseline, and bounded LoRA save/reload feasibility probe.
 
 ## What deliberately does not exist yet
 
@@ -50,6 +52,7 @@ or change runtime policy.
 - committed bulk Phase 4 source or normalized data;
 - an untouched Phase 4 base-model baseline;
 - a trained coding adapter; or
+- an executable base-versus-adapter Phase 4 result; or
 - a sealed Phase 4 evaluation result.
 
 Keeping these absent preserves attribution: offline controller and safety

@@ -61,7 +61,7 @@ assert.match(js, /Preflight blocks unsafe inference/);
 assert.match(js, /atomic recorder preserves every CLI outcome/);
 assert.match(html, /B0\/A1\/A2\/A3 implemented/);
 assert.match(html, /0 → 0 → 0 → 0 of 3/);
-assert.match(html, /2,000 examples verified/);
+assert.match(html, /MLX numerical gate passed/);
 assert.match(html, /The first retrieval context treatment/);
 assert.match(html, /issue → repo map → ranked excerpts → loop context/);
 assert.match(js, /id: "apply_patch"/);
@@ -91,6 +91,9 @@ assert.match(js, /Why split Phase 4 data by repair lineage/);
 assert.match(js, /Real corpus verified/);
 assert.match(js, /56,025 raw → 25,989 candidates → 2,000 examples/);
 assert.match(js, /Why reject CommitPackFT rows naming many repositories/);
+assert.match(js, /Numerical gate passed/);
+assert.match(js, /baseline loss 1\.383/);
+assert.match(js, /Why is the two-update LoRA adapter not yet CodeLM/);
 assert.match(js, /One patch decision/);
 
 console.log(`learning UI contract passed: ${ids.length} unique static IDs`);

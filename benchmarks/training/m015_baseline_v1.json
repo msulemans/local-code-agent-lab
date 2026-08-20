@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m015-qwen25-coder-1.5b-v1",
+  "model": {
+    "model_id": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "revision": "cc932d8a05bf5a3dcd700f50584714d17fc4d03a",
+    "license": "Apache-2.0",
+    "role": "untouched_instruction_tuned_base"
+  },
+  "environment": {
+    "python": "3.11",
+    "mlx": "0.32.1",
+    "mlx_lm": "0.31.3",
+    "requirements_lock": "environment/mlx-training-requirements.lock"
+  },
+  "data": {
+    "corpus_sha256": "4d7629c1a026559859abc3c28c596a18e21cc478b7ea8c6f7a65ccf99d53fafb",
+    "task_types": [
+      "broken_to_corrected"
+    ],
+    "train_examples": 1594,
+    "train_sha256": "df38066b12376de0807da7bd562b78bd32d49956657a456f7d21fe55f0efd0f0",
+    "validation_examples": 211,
+    "validation_sha256": "891b846a7b8a66d0fbeb37b2e4f2929a2f2c0564dd48119597de240d7b1fe124",
+    "sealed_examples_withheld": 195,
+    "sealed_examples_exported": 0
+  },
+  "probe": {
+    "fine_tune_type": "lora",
+    "optimizer": "adam",
+    "mask_prompt": true,
+    "num_layers": 8,
+    "batch_size": 1,
+    "iterations": 2,
+    "validation_batches": 2,
+    "learning_rate": 0.0001,
+    "max_sequence_length": 1024,
+    "gradient_checkpointing": true,
+    "seed": 42,
+    "adapter_path_template": "adapters/{run_id}"
+  },
+  "stop_rules": [
+    "stop if the pinned model cannot load on Metal",
+    "stop if loss or gradients are non-finite",
+    "stop if peak active memory exceeds 24 GiB",
+    "stop if the two-update probe cannot save and reload an adapter",
+    "do not read or export the sealed-test split"
+  ]
+}

@@ -116,10 +116,21 @@ tests remain authoritative for model promotion and LocalCode evaluation.
 
 ## What comes next
 
-Milestone 015 will select and baseline a pretrained coding model. Before full
-training, one tiny batch must tokenize, run forward and backward, and save a
-loadable adapter on this Mac. The sealed test stays unopened until one adapter
-is selected on validation.
+Milestone 015 selected the Apache-2.0 Qwen2.5-Coder-1.5B-Instruct checkpoint at
+revision `cc932d8a05bf5a3dcd700f50584714d17fc4d03a`. MLX-LM 0.31.3 with MLX
+0.32.1 passed a real Metal calculation, an untouched 211-row validation-loss
+baseline (`1.383`, perplexity `3.988`), and a two-update LoRA probe. The probe
+used 2.638M trainable parameters, finite losses `0.512 → 0.491`, 4.046 GB peak
+active memory, and produced a loadable 10.56 MB adapter.
+
+The development export contains 1,594 train and 211 validation rows; all 195
+sealed rows are withheld. No development row exceeds 849 model tokens, so the
+1,024-token ceiling loses no development example. The adapter probe is a
+feasibility artifact, not a trained CodeLM and not a promotion result.
+
+Next, finish the executable base-model baseline. Only then may Milestone 016
+start the longer train-only LoRA run. The sealed test stays unavailable until
+one adapter is selected using validation evidence.
 
 ## Explain-back questions
 

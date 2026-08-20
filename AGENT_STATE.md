@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
 Last updated: 2026-08-20 (Australia/Sydney)
-Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestones 013–014 now have a leakage-safe contract and a verified 2,000-example repair corpus; no base-model baseline or trained adapter is claimed yet.
+Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestones 013–014 are complete, and Milestone 015 has passed its pinned MLX environment, untouched validation-loss baseline, and two-update LoRA feasibility gates. An executable base-model baseline is still required before full training.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -37,9 +37,46 @@ starting with data provenance and leakage boundaries before model work.
 
 ## Current milestone
 
-Milestone 014 pinned acquisition and corpus build. Phase 3 runtime engineering
-is complete; the frozen-20 score remains unmeasured. Phase 4 now has a verified
-seed corpus and proceeds to an untouched pretrained baseline before training.
+Milestone 015 untouched pretrained baseline. The pinned checkpoint and MLX
+training path work on this M2 Max, but full training remains blocked until the
+same untouched model has an executable development baseline.
+
+### Phase 4 Milestone 015 — MLX baseline and numerical feasibility (2026-08-20, partial)
+
+- Pinned `Qwen/Qwen2.5-Coder-1.5B-Instruct` at exact revision
+  `cc932d8a05bf5a3dcd700f50584714d17fc4d03a` under Apache-2.0. The ignored
+  local snapshot contains 33 hashed files totalling 3,098,976,996 bytes.
+- Created isolated Python 3.11 `.venv-mlx` with locked `mlx==0.32.1`,
+  `mlx-lm==0.31.3`, and all transitive dependencies. A real Metal matrix
+  calculation returned the expected sum `3680.0`; the restricted-runner
+  `No Metal device`/`IndexError: vector` result is preserved as sandbox
+  evidence, not mistaken for missing M2 Max support.
+- Exported MLX chat data deterministically: 1,594 train and 211 validation
+  examples. Train SHA-256 is
+  `df38066b12376de0807da7bd562b78bd32d49956657a456f7d21fe55f0efd0f0`;
+  validation SHA-256 is
+  `891b846a7b8a66d0fbeb37b2e4f2929a2f2c0564dd48119597de240d7b1fe124`.
+  All 195 sealed examples were withheld and zero were exported.
+- Pinned-tokenizer inspection read development splits only. Train length was
+  106–849 tokens (p50 489, p95 709); validation was 116–745 (p50 507, p95
+  719). Therefore the 1,024-token ceiling preserves every development row.
+- Untouched run `m015-base-v1` evaluated all 211 validation rows in 59.10 s:
+  loss `1.383`, perplexity `3.988`, zero sealed rows. The host already retained
+  24.5 GiB swap; the run added 1.84 GiB, so this is model-quality evidence but
+  not a clean memory benchmark.
+- Two-update run `m015-probe-v1` trained 2.638M/1,543.714M parameters (0.171%).
+  Train loss remained finite and moved `0.512 → 0.491`; peak active MLX memory
+  was 4.046 GB. The final 10,563,230-byte adapter SHA-256 is
+  `d3885e63f78946dbb327a45a81c2954454916830d24f485edc01fdbc3f4bd885`.
+- Fresh-process run `m015-reload-v1` loaded that adapter successfully and
+  evaluated two validation batches (loss `1.787`, perplexity `5.970`) with zero
+  swap growth. This is a round-trip check, not a promoted model result.
+- Verification passed: 260 Python unit tests with 8 expected restricted-runner
+  skips, the learning-UI contract with 50 unique static IDs, JavaScript syntax,
+  Python byte compilation, and `git diff --check`.
+- Remaining gate: create a pinned development-only executable repair set and
+  measure the untouched base model on it. Do not start the long LoRA training
+  run or open the 195-example sealed split before that result exists.
 
 ### Phase 4 Milestone 014 — pinned acquisition and corpus build (2026-08-20)
 
