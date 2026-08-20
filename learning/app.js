@@ -335,11 +335,11 @@ const milestones = [
   },
   {
     id: "016B",
-    state: "Executable-aligned data ready",
+    state: "Strict baseline complete · training ready",
     title: "Train on test-breaking mutations, not ordinary commits",
     story: "M016b pins one official SWE-smith Python shard. Every accepted task has failing-test evidence. Trusted normalization reverses the test-breaking mutation into the repair diff while showing the model only the issue, failing test names, and broken post-mutation hunk—not the original correct lines.",
-    evidence: "4,628 raw → 2,530 candidates → 1,553 selected · 10 permissive repositories · 755 train + 131 validation within 1,024 tokens · 66 sealed withheld before tokenization · corpus SHA-256 50600e20…82f4",
-    decision: "Measure the untouched issue-to-diff baseline on the unchanged six executable fixtures. Only then freeze the LoRA schedule; tests, not validation loss alone, decide promotion.",
+    evidence: "4,628 raw → 1,553 selected · 755 train + 131 validation · 66 sealed withheld · untouched strict-diff baseline 0/6 · all six invalid-format predictions · peak 3.421 GB · 9.81 s",
+    decision: "Run the frozen 800-update LoRA treatment, select only by the 131-row validation split, then require at least 1/6 strict executable repairs for promotion. Never select on the six development cases.",
   },
 ];
 

@@ -240,7 +240,38 @@ caffeinate -dimsu env PYTHONPATH=src \
 ```
 
 The frozen data evidence is `benchmarks/training/m016b_data_v1.json`. The
-source dataset is documented by the official
+untouched strict issue-to-diff baseline measured `0/6`: all six responses were
+rejected because they were not bare valid unified diffs. This is a protocol and
+repair-quality baseline, not a runtime failure. Its immutable record is
+`runs/training/m016b-patch-base-v1/run.json`.
+
+The M016b LoRA treatment is frozen in
+`benchmarks/training/m016b_lora_v1.json`. It trains for at most 800 updates,
+selects among eight 100-update checkpoints using only the 131-row validation
+split, and then runs the selected adapter on the unchanged six executable
+development cases. Promotion requires at least one strict diff that applies,
+changes the disposable fixture, and passes its registered test command.
+
+Validate the contract without training:
+
+```bash
+PYTHONPATH=src .venv-mlx/bin/python scripts/run_m016b_training.py \
+  --run-id m016b-lora-v1 --validate-only
+```
+
+Run the bounded training treatment in a normal macOS Terminal:
+
+```bash
+caffeinate -dimsu env PYTHONPATH=src \
+  .venv-mlx/bin/python scripts/run_m016b_training.py \
+  --run-id m016b-lora-v1
+```
+
+The command first runs a 40-update diagnostic and stops if loss or memory gates
+fail. The full treatment has a two-hour wall limit and preserves every
+100-update checkpoint plus its streamed metrics for diagnosis or recovery.
+
+The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).
 

@@ -17,10 +17,23 @@ from localcode.training_run import (
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "benchmarks/training/m016_lora_v1.json"
+M016B_CONFIG = ROOT / "benchmarks/training/m016b_lora_v1.json"
 RECOVERY_RESULT = ROOT / "benchmarks/training/m016_recovery_result_v1.json"
 
 
 class TrainingRunTests(unittest.TestCase):
+    def test_m016b_config_uses_executable_data_and_strict_patch_gate(self) -> None:
+        document = json.loads(M016B_CONFIG.read_text(encoding="utf-8"))
+        self.assertEqual(document["schema_version"], 1)
+        self.assertEqual(document["untouched_baseline"]["solved"], 0)
+        self.assertEqual(document["data"]["train_examples"], 755)
+        self.assertEqual(document["data"]["validation_examples"], 131)
+        self.assertEqual(document["data"]["sealed_examples_withheld"], 66)
+        self.assertEqual(document["data"]["sealed_examples_loaded"], 0)
+        self.assertEqual(document["full_training"]["checkpoint_iterations"], list(range(100, 801, 100)))
+        self.assertTrue(document["promotion_gate"]["requires_valid_diff"])
+        self.assertTrue(document["promotion_gate"]["requires_test_execution"])
+
     def test_m016_config_freezes_data_diagnostic_full_run_and_promotion(self) -> None:
         document = json.loads(CONFIG.read_text(encoding="utf-8"))
         self.assertEqual(document["schema_version"], 1)
