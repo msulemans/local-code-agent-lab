@@ -330,8 +330,8 @@ const milestones = [
     state: "Controlled training ready",
     title: "Train, select, then test one LoRA adapter",
     story: "One bounded command first proves that eight train rows can overfit, then performs 1,600 updates using train only. Eight saved checkpoints are each measured over the full 211-row validation split. The lowest validation loss selects one adapter, which then faces the unchanged executable suite.",
-    evidence: "40-update diagnostic · ≥10% loss improvement gate · 1,600 train updates · 8 full-validation checkpoint measurements · 24 GB ceiling · untouched comparison 4/6 · sealed loaded 0",
-    decision: "Run m016-lora-v1 in normal Terminal. Promote only if the selected adapter exceeds 4/6; otherwise preserve the negative result and do not open the sealed split.",
+    evidence: "v1 validation 0.208 → 0.010 · train minimum 0.009 · peak 4.377 GB · shuffled-batch false negative corrected · 1,600 train updates · 8 full-validation checkpoints · sealed loaded 0",
+    decision: "Run immutable attempt m016-lora-v2. Promote only if the selected adapter exceeds 4/6; otherwise preserve the negative result and do not open the sealed split.",
   },
 ];
 
@@ -478,6 +478,7 @@ const flashcards = [
   ["Why is the two-update LoRA adapter not yet CodeLM?", "It proves gradients, memory, saving, and reloading. Two examples cannot establish learned repair ability, and no executable base-versus-adapter comparison has happened yet."],
   ["Why can zero solved cases still be a successful baseline run?", "The baseline measures untouched behavior. Zero is a model-quality result if all six predictions were evaluated; it is not equivalent to tests being unable to run."],
   ["Why evaluate every saved M016 checkpoint on validation?", "Training loss selects memorization, not generalization. Full validation loss chooses one stopping point before executable comparison and before the sealed split is opened."],
+  ["Why did the first M016 diagnostic stop despite validation loss collapsing?", "The gate compared losses from different shuffled mini-batches. The corrected gate compares the same frozen eight-row validation set and uses minimum observed train loss only as supporting overfit evidence."],
   ["Why reduce the sequence ceiling from 2,048 to 1,024?", "Pinned-tokenizer inspection found every development row at 849 tokens or fewer. A 1,024 ceiling preserves all evidence while reducing memory and compute."],
 ];
 

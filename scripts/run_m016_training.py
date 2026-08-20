@@ -19,6 +19,7 @@ import time
 from localcode.training_baseline import build_case_messages, evaluate_prediction, load_executable_suite
 from localcode.training_run import (
     diagnostic_passed,
+    parse_overfit_validation_metrics,
     parse_train_metrics,
     parse_validation_metric,
     select_validation_checkpoint,
@@ -109,8 +110,10 @@ def main() -> int:
             diagnostic_command, int(config["diagnostic"]["maximum_wall_seconds"])
         )
         diagnostic_metrics = parse_train_metrics(diagnostic_process.stdout)
+        diagnostic_validation = parse_overfit_validation_metrics(diagnostic_process.stdout)
         diagnostic_ok = diagnostic_process.returncode == 0 and diagnostic_passed(
             diagnostic_metrics,
+            diagnostic_validation,
             required_relative_improvement=float(
                 config["diagnostic"]["minimum_relative_loss_improvement"]
             ),
@@ -121,6 +124,7 @@ def main() -> int:
             "command": diagnostic_command,
             "process_exit_code": diagnostic_process.returncode,
             "metrics": [asdict(metric) for metric in diagnostic_metrics],
+            "same_row_validation_metrics": [asdict(metric) for metric in diagnostic_validation],
             "stdout": diagnostic_process.stdout,
             "stderr": diagnostic_process.stderr,
         }

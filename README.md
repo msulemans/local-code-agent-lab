@@ -183,7 +183,7 @@ six-case comparison. Run it in normal Terminal:
 
 ```bash
 PYTHONPATH=src .venv-mlx/bin/python scripts/run_m016_training.py \
-  --run-id m016-lora-v1
+  --run-id m016-lora-v2
 ```
 
 See

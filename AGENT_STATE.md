@@ -47,8 +47,10 @@ Terminal diagnostic and training measurement.
   1,024-token ceiling, eight LoRA layers, masked prompt loss, and 24 GB peak
   active-memory stop. It loads zero sealed examples.
 - One command first overfits the pinned first eight train rows for 40 updates.
-  Full training cannot start unless finite training loss improves by at least
-  10% and memory stays within the ceiling.
+  Full training cannot start unless the same eight-row validation loss and at
+  least one observed training loss improve by 10%, while all losses remain
+  finite and memory stays within the ceiling. Shuffled individual mini-batches
+  are not compared as if they contained the same examples.
 - The full treatment is 1,600 batch-one updates using train only. It saves eight
   checkpoints at 200-update intervals, evaluates each checkpoint against all
   211 validation rows, and selects the lowest validation loss with an earliest-
@@ -56,8 +58,16 @@ Terminal diagnostic and training measurement.
 - The selected adapter then runs the unchanged six executable development
   cases. More than the untouched 4/6 is a positive result; 4/6 or lower is a
   preserved negative result, not a reason to change the suite after seeing it.
+- Attempt `m016-lora-v1` exposed a runner false negative after 40 updates. The
+  same-row validation loss improved `0.208 → 0.010` (95.2%), observed training
+  loss reached `0.009`, and peak active memory was 4.377 GB, but the old gate
+  incorrectly compared different shuffled first/final mini-batches (`0.099`
+  and `0.125`). Full training correctly did not start; sealed loaded remained 0.
+- The gate now uses the repeated same-row validation metric plus minimum
+  observed train loss. A regression proves that a noisy final mini-batch cannot
+  erase genuine overfit evidence. `m016-lora-v2` is the new immutable attempt.
 - `--validate-only` verified the exact local model, data, base-run digest, and
-  available `m016-lora-v1` ID without loading Metal: status `m016_ready`, 1,594
+  available `m016-lora-v2` ID without loading Metal: status `m016_ready`, 1,594
   train, 211 validation, baseline 4/6, sealed loaded 0.
 - Verification passed: 270 Python unit tests in `.venv-realbench` with 8
   expected restricted-runner skips, the 50-ID learning UI contract, JavaScript

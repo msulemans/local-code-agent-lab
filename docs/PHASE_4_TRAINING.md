@@ -150,12 +150,19 @@ is preserved as a valid negative result. Run it in normal Terminal:
 
 ```bash
 PYTHONPATH=src .venv-mlx/bin/python scripts/run_m016_training.py \
-  --run-id m016-lora-v1
+  --run-id m016-lora-v2
 ```
 
 The command streams progress and has a two-hour hard ceiling; approximately
 45–70 minutes is expected on the verified M2 Max path. The sealed test stays
 unavailable until this command selects one adapter using validation evidence.
+
+The first diagnostic attempt stopped before full training because its gate
+compared two different shuffled mini-batches. That was a runner error, not a
+model failure: validation on the same eight rows improved `0.208 → 0.010`,
+training reached `0.009`, and peak memory was 4.377 GB. The corrected v2 gate
+requires same-row validation improvement and at least one lower observed train
+loss; it does not pretend that the final random mini-batch equals the first.
 
 ## Explain-back questions
 

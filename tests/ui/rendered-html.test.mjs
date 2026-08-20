@@ -98,6 +98,8 @@ assert.match(js, /Why can zero solved cases still be a successful baseline run/)
 assert.match(js, /id: "016"/);
 assert.match(js, /1,600 train updates/);
 assert.match(js, /Why evaluate every saved M016 checkpoint on validation/);
+assert.match(js, /v1 validation 0\.208 → 0\.010/);
+assert.match(js, /Why did the first M016 diagnostic stop despite validation loss collapsing/);
 assert.match(js, /Why is the two-update LoRA adapter not yet CodeLM/);
 assert.match(js, /One patch decision/);
 
