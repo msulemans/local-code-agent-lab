@@ -22,7 +22,8 @@ SYSTEM_PROMPT = (
 )
 EDIT_SYSTEM_PROMPT = (
     "You repair one Python repository file. Return exactly one complete corrected file "
-    "between <corrected_file> and </corrected_file>. Return no Markdown or explanation."
+    "between <corrected_file> and </corrected_file>. The tags must contain only the "
+    "Python file content: never include a path, label, delimiter, Markdown, or explanation."
 )
 
 
@@ -98,7 +99,10 @@ def build_edit_messages(case: ExecutableCase, failure: ToolResult) -> tuple[dict
             "content": (
                 f"Issue:\n{case.issue.rstrip()}\n\n"
                 f"Failing test output (exit {exit_code}):\n{failure.content.rstrip()}\n\n"
-                f"Broken repository file:\nFile: {case.source_path}\n{case.broken_source}"
+                f"Target path metadata (never copy into file): {case.source_path}\n"
+                "<broken_file_content>\n"
+                f"{case.broken_source}"
+                "</broken_file_content>"
             ),
         },
     )

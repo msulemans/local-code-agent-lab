@@ -17,7 +17,7 @@ from localcode.training_baseline import evaluate_prediction, load_executable_sui
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG = ROOT / "benchmarks/training/m017_7b_edit_baseline_v1.json"
+CONFIG = ROOT / "benchmarks/training/m017_7b_edit_baseline_v2.json"
 RUN_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{2,79}$")
 
 
@@ -30,10 +30,14 @@ def main() -> int:
     if RUN_ID.fullmatch(arguments.run_id) is None:
         raise SystemExit("run ID must contain 3-80 lowercase safe characters")
 
-    treatment = json.loads(CONFIG.read_text(encoding="utf-8"))
+    prompt_treatment = json.loads(CONFIG.read_text(encoding="utf-8"))
+    treatment = json.loads((ROOT / prompt_treatment["base_config"]).read_text(encoding="utf-8"))
     model_config = json.loads((ROOT / treatment["model_config"]).read_text(encoding="utf-8"))
     generation = json.loads((ROOT / treatment["generation_config"]).read_text(encoding="utf-8"))
-    if any(document["sealed_examples_loaded"] != 0 for document in (treatment, model_config, generation)):
+    if any(
+        document["sealed_examples_loaded"] != 0
+        for document in (prompt_treatment, treatment, model_config, generation)
+    ):
         raise SystemExit("M017 edit baseline refuses non-zero sealed evidence")
     model_path = verify_model_pin(model_config["model"], project_root=ROOT)
     suite = load_executable_suite(ROOT / treatment["executable_suite"], ROOT)
@@ -45,7 +49,7 @@ def main() -> int:
 
     record: dict[str, object] = {
         "schema_version": 1, "run_id": arguments.run_id, "state": "running",
-        "experiment_id": treatment["experiment_id"], "model_id": model_config["model"]["model_id"],
+        "experiment_id": prompt_treatment["experiment_id"], "model_id": model_config["model"]["model_id"],
         "model_revision": model_config["model"]["revision"], "quantization_bits": 4,
         "adapter_path": None, "action_representation": "trusted_corrected_file_edit",
         "generation_stop": generation["generation_stop"], "suite_id": suite.suite_id,

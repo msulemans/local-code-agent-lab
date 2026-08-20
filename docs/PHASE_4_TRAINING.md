@@ -350,6 +350,12 @@ caffeinate -dimsu env PYTHONPATH=src \
   --run-id m017-qwen25-7b-edit-v1
 ```
 
+Edit V1 solved `4/6`. Both failures contained the correct code but copied the
+prompt's `File: path` label into Python source. V2 separates path metadata from
+delimited file content and states that corrected-file tags contain Python only.
+This is a prompt-boundary correction; the controller still performs no output
+repair.
+
 The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).

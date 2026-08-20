@@ -37,6 +37,8 @@ class PatchBaselineTests(unittest.TestCase):
         self.assertIn(case.issue.rstrip(), edit_messages[1]["content"])
         self.assertIn(case.broken_source, edit_messages[1]["content"])
         self.assertIn("<corrected_file>", edit_messages[0]["content"])
+        self.assertIn("never copy into file", edit_messages[1]["content"])
+        self.assertIn("<broken_file_content>", edit_messages[1]["content"])
 
     def test_strict_diff_format_rejects_markdown_and_multiple_files(self) -> None:
         with self.assertRaisesRegex(ExecutableBaselineError, "only one unified diff"):
