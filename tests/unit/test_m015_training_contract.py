@@ -7,6 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "benchmarks/training/m015_baseline_v1.json"
+EXECUTABLE_SUITE = ROOT / "benchmarks/training/m015_executable_dev_v1.json"
 
 
 class M015TrainingContractTests(unittest.TestCase):
@@ -29,6 +30,13 @@ class M015TrainingContractTests(unittest.TestCase):
         self.assertIn("mlx==0.32.1\n", lock)
         self.assertIn("mlx-lm==0.31.3\n", lock)
         self.assertIn("transformers==5.15.1\n", lock)
+
+    def test_executable_baseline_is_development_only_and_deterministic(self) -> None:
+        document = json.loads(EXECUTABLE_SUITE.read_text(encoding="utf-8"))
+        self.assertEqual(document["purpose"], "development_only_untouched_base_baseline")
+        self.assertEqual(document["generation"]["temperature"], 0)
+        self.assertEqual(len(document["cases"]), 6)
+        self.assertIn("must not load", document["sealed_split_policy"])
 
 
 if __name__ == "__main__":

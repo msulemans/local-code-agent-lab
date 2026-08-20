@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "suite_id": "m015-executable-dev-v1",
+  "purpose": "development_only_untouched_base_baseline",
+  "model_config": "benchmarks/training/m015_baseline_v1.json",
+  "generation": {
+    "temperature": 0,
+    "max_output_tokens": 512,
+    "max_prediction_bytes": 16384
+  },
+  "cases": [
+    {
+      "case_id": "parser-none",
+      "fixture": "tests/fixtures/micro_repos/parser_none",
+      "issue_path": "ISSUE.md",
+      "issue_sha256": "cf436ff6ef77bbfb24deb3053fbb1d3305909db699a1d713c49d8700ca300910",
+      "source_path": "src/tiny_parser.py",
+      "source_sha256": "5ae32531e306ebb46a2953069220b7512f80bb0e957897734bf642cc324dcdb2",
+      "test_path": "tests/test_tiny_parser.py",
+      "test_sha256": "f54ce16c7f9edbd67fb8d610af994ef58770ed29e7bc060a6d36fb8e8976c4f4",
+      "test_command": "python-unittest"
+    },
+    {
+      "case_id": "discount-boundary",
+      "fixture": "tests/fixtures/micro_repos/discount_boundary",
+      "issue_path": "ISSUE.md",
+      "issue_sha256": "1913e4eb484f87ffdab49c2b2bc4ba6d73b6c6e15b100bc5e81e7873616f482c",
+      "source_path": "src/pricing.py",
+      "source_sha256": "f9fea0ebedc98ef874270a68da139ac8f2f17f5654b4b31f67c24f0cac9c097d",
+      "test_path": "tests/test_pricing.py",
+      "test_sha256": "8c28f69a28896ad451bdfd9dcf5ed0e6ff40bae381b311044d62bec72744700d",
+      "test_command": "python-unittest"
+    },
+    {
+      "case_id": "display-whitespace",
+      "fixture": "tests/fixtures/micro_repos/display_whitespace",
+      "issue_path": "ISSUE.md",
+      "issue_sha256": "6041c34f39e29912323f299ae3b7d82fb599c15a4b582516334d20aa845acddb",
+      "source_path": "src/profiles.py",
+      "source_sha256": "f7e03fed00dacb503b61134e81c347a7917943367bdb98bcc31028877875e268",
+      "test_path": "tests/test_profiles.py",
+      "test_sha256": "2d483e9f3309e6fbef077198ba85bea804013059b60e053e49c68756f177f440",
+      "test_command": "python-unittest"
+    },
+    {
+      "case_id": "label-syntax",
+      "fixture": "tests/fixtures/micro_repos/label_syntax",
+      "issue_path": "ISSUE.md",
+      "issue_sha256": "079e8ec9d5437d64f97da630a98edb56026d4adca2a93dd20585b674cbfb584e",
+      "source_path": "src/labels.py",
+      "source_sha256": "cb88f0967e8952bd48eae6d406488e9fc1cc87fa877e65f2ffdb4d7485282c48",
+      "test_path": "tests/test_labels.py",
+      "test_sha256": "1afde9c42211a406e0e27780624483e0f1bdbc562ffd72deb34da8c0dc4892ca",
+      "test_command": "python-unittest"
+    },
+    {
+      "case_id": "fallback-port",
+      "fixture": "tests/fixtures/micro_repos/fallback_port",
+      "issue_path": "ISSUE.md",
+      "issue_sha256": "eb474f31cdc74f9e964e4ca901af2bbed851e38d9d1c31f67ab500569016221e",
+      "source_path": "src/settings.py",
+      "source_sha256": "2abb2f7b1dd7bd84d90caad3c4cdaaf1b8386e9413e5851dfeea7d7757f593f1",
+      "test_path": "tests/test_settings.py",
+      "test_sha256": "5a46b156a60d2e6d161502410b551ecb64bef30dd34994bc0866a8b6da6c5d25",
+      "test_command": "python-unittest"
+    },
+    {
+      "case_id": "ratio-retry",
+      "fixture": "tests/fixtures/micro_repos/ratio_retry",
+      "issue_path": "ISSUE.md",
+      "issue_sha256": "eb4d63609a30d109a852ac68301157f1bf817d7e1b8b0c49c969c3835de2d548",
+      "source_path": "src/metrics.py",
+      "source_sha256": "e5331a792c256c4c35dd7f34582429be8753ccbcac4833a93cb17f09677d84b6",
+      "test_path": "tests/test_metrics.py",
+      "test_sha256": "74a39ae291eacd6e82a9d6a4daf199c11fb8f86ba1d605793347c5f2ba3ee7cc",
+      "test_command": "python-unittest"
+    }
+  ],
+  "sealed_split_policy": "The runner must not load repair-training-v1 sealed_test records."
+}

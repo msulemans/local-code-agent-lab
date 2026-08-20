@@ -15,6 +15,7 @@ boundaries below remain the foundation for every newer capability.
 | `models/`, `checkpoints/`, `adapters/` | Local weight artifacts | Ignored; identity and hashes belong in manifests |
 | `data/raw/`, `data/processed/` | Reconstructable bulk data | Ignored; source revisions and checksums belong in manifests |
 | `benchmarks/training_data/` | Versioned training-data policy | Trusted contract only; it contains no bulk corpus or evaluation answers |
+| `benchmarks/training/` | Versioned model and executable-development manifests | Trusted identities, limits, and pins; no model output or sealed examples |
 
 Repository files and issue descriptions presented to the future model are
 untrusted content. They may describe actions, but they cannot grant permission
@@ -42,7 +43,9 @@ or change runtime policy.
 - a pinned, checksum-verified, deterministic repair-source normalizer and local
   2,000-example seed-corpus reconstruction path; and
 - a pinned Qwen 1.5B/MLX environment, development-only chat export, untouched
-  loss baseline, and bounded LoRA save/reload feasibility probe.
+  loss baseline, and bounded LoRA save/reload feasibility probe; and
+- a pinned six-case executable development runner that hides tests from the
+  model and evaluates one generated replacement file in a disposable copy.
 
 ## What deliberately does not exist yet
 
@@ -50,7 +53,7 @@ or change runtime policy.
 - network access from repository tests;
 - file creation, deletion, rename, mode change, or binary patch support;
 - committed bulk Phase 4 source or normalized data;
-- an untouched Phase 4 base-model baseline;
+- a measured untouched Phase 4 executable base-model baseline;
 - a trained coding adapter; or
 - an executable base-versus-adapter Phase 4 result; or
 - a sealed Phase 4 evaluation result.

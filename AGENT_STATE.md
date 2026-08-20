@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
 Last updated: 2026-08-20 (Australia/Sydney)
-Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestones 013–014 are complete, and Milestone 015 has passed its pinned MLX environment, untouched validation-loss baseline, and two-update LoRA feasibility gates. An executable base-model baseline is still required before full training.
+Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestones 013–014 are complete, and Milestone 015 has passed its pinned MLX environment, untouched validation-loss baseline, and two-update LoRA feasibility gates. Its pinned six-case executable base-model runner is ready for one normal-Terminal measurement before full training.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -38,8 +38,9 @@ starting with data provenance and leakage boundaries before model work.
 ## Current milestone
 
 Milestone 015 untouched pretrained baseline. The pinned checkpoint and MLX
-training path work on this M2 Max, but full training remains blocked until the
-same untouched model has an executable development baseline.
+training path work on this M2 Max. The executable development runner is now
+implemented and locally contract-tested; full training remains blocked until
+the untouched model's six-case run is measured in normal Terminal.
 
 ### Phase 4 Milestone 015 — MLX baseline and numerical feasibility (2026-08-20, partial)
 
@@ -74,9 +75,17 @@ same untouched model has an executable development baseline.
 - Verification passed: 260 Python unit tests with 8 expected restricted-runner
   skips, the learning-UI contract with 50 unique static IDs, JavaScript syntax,
   Python byte compilation, and `git diff --check`.
-- Remaining gate: create a pinned development-only executable repair set and
-  measure the untouched base model on it. Do not start the long LoRA training
-  run or open the 195-example sealed split before that result exists.
+- Added `m015-executable-dev-v1`: six one-file Python repairs pin issue, broken
+  source, and evaluator test bytes. The model sees only the issue and broken
+  file. Greedy raw output must satisfy one strict corrected-file envelope;
+  trusted code evaluates it in a disposable Git copy, records exact test/diff
+  evidence, and distinguishes a measured 0/6 from infrastructure failure.
+- Runner verification passed: 267 Python unit tests in `.venv-realbench` with
+  8 expected restricted-runner skips, plus the 50-ID learning UI contract,
+  JavaScript syntax, Python byte compilation, and diff checks.
+- Remaining gate: run `scripts/run_m015_executable_baseline.py` with the
+  untouched local checkpoint in normal Terminal. Do not start the long LoRA
+  training run or open the 195-example sealed split before that result exists.
 
 ### Phase 4 Milestone 014 — pinned acquisition and corpus build (2026-08-20)
 

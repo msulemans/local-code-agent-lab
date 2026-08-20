@@ -175,7 +175,17 @@ processed data remain ignored and reconstructable; no trained adapter is
 claimed yet. Milestone 015 has now pinned Qwen2.5-Coder-1.5B-Instruct and the
 MLX environment, recorded an untouched validation-loss baseline, and passed a
 two-update LoRA save/reload probe at 4.046 GB peak active memory. Full training
-waits for the executable base-model baseline. See
+waits for the executable base-model baseline. Its six-case runner is now
+versioned: the untouched model sees only the issue and broken file, while
+trusted code executes hidden fixture tests in disposable copies. Run it in a
+normal Terminal:
+
+```bash
+PYTHONPATH=src .venv-mlx/bin/python scripts/run_m015_executable_baseline.py \
+  --run-id m015-exec-base-v1
+```
+
+See
 [the Phase 4 lesson](docs/PHASE_4_TRAINING.md).
 
 Real agent runs now execute repository-owned public tests in the pinned

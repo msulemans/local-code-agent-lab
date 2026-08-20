@@ -128,9 +128,26 @@ sealed rows are withheld. No development row exceeds 849 model tokens, so the
 1,024-token ceiling loses no development example. The adapter probe is a
 feasibility artifact, not a trained CodeLM and not a promotion result.
 
-Next, finish the executable base-model baseline. Only then may Milestone 016
-start the longer train-only LoRA run. The sealed test stays unavailable until
-one adapter is selected using validation evidence.
+The executable baseline is now frozen as six development-only, one-file Python
+repairs. Every case pins the issue, broken source, and evaluator test by
+SHA-256. The model prompt contains the behavior report and broken file only;
+the test source is never included. Greedy generation must produce one strict
+`corrected_file` envelope, which trusted code writes into a disposable Git
+copy before running the registered sandboxed test command. Raw output, diff,
+test evidence, model identity, token counts, peak memory, and zero sealed rows
+are preserved under an immutable run ID.
+
+Run the untouched executable baseline in normal Terminal:
+
+```bash
+PYTHONPATH=src .venv-mlx/bin/python scripts/run_m015_executable_baseline.py \
+  --run-id m015-exec-base-v1
+```
+
+A score of zero is still a valid baseline; model failure is different from an
+evaluation-infrastructure error. Only after this command records a `measured`
+run may Milestone 016 start the longer train-only LoRA run. The sealed test
+stays unavailable until one adapter is selected using validation evidence.
 
 ## Explain-back questions
 

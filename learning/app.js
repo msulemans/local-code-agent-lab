@@ -319,11 +319,11 @@ const milestones = [
   },
   {
     id: "015",
-    state: "Numerical gate passed",
+    state: "Executable baseline ready",
     title: "Untouched Qwen baseline and MLX LoRA feasibility",
-    story: "The 1.5B Qwen checkpoint is pinned rather than selected because it happened to be installed. A separate Python 3.11 MLX environment proves Metal computation, exports only train and validation chat rows, measures every development sequence, records the untouched loss baseline, performs exactly two optimizer updates, hashes the adapter, and reloads it in a fresh process. The sealed split remains unavailable.",
-    evidence: "Qwen2.5-Coder-1.5B · MLX 0.32.1 · baseline loss 1.383 · train loss 0.512 → 0.491 · peak 4.046 GB · 10.56 MB adapter reloaded · sealed exported 0",
-    decision: "The Mac can train this model comfortably. The probe is not CodeLM: finish an executable untouched baseline before starting the longer train-only run.",
+    story: "The 1.5B Qwen checkpoint is pinned rather than selected because it happened to be installed. A separate Python 3.11 MLX environment proves Metal computation, exports only train and validation chat rows, measures every development sequence, records the untouched loss baseline, performs exactly two optimizer updates, hashes the adapter, and reloads it in a fresh process. A six-case executable runner now gives the untouched model only the issue and broken file, then tests its replacement inside a disposable copy. The sealed split remains unavailable.",
+    evidence: "Qwen2.5-Coder-1.5B · MLX 0.32.1 · baseline loss 1.383 · train loss 0.512 → 0.491 · peak 4.046 GB · six pinned executable dev cases · hidden tests · sealed loaded 0",
+    decision: "Run the executable baseline in normal Terminal. A measured 0/6 is useful evidence; an infrastructure error is not. Start longer training only after the run is measured.",
   },
 ];
 
@@ -468,6 +468,7 @@ const flashcards = [
   ["Why reject CommitPackFT rows naming many repositories?", "The same commit can appear across many forks, so choosing one repository would invent provenance. Schema v1 accepts only a single unambiguous owner/repository."],
   ["Does a before/after commit pair prove a bug was fixed?", "No. It is useful repair-shaped supervision, but only executable tests can establish behavioral correctness. Promotion therefore uses test-backed validation."],
   ["Why is the two-update LoRA adapter not yet CodeLM?", "It proves gradients, memory, saving, and reloading. Two examples cannot establish learned repair ability, and no executable base-versus-adapter comparison has happened yet."],
+  ["Why can zero solved cases still be a successful baseline run?", "The baseline measures untouched behavior. Zero is a model-quality result if all six predictions were evaluated; it is not equivalent to tests being unable to run."],
   ["Why reduce the sequence ceiling from 2,048 to 1,024?", "Pinned-tokenizer inspection found every development row at 849 tokens or fewer. A 1,024 ceiling preserves all evidence while reducing memory and compute."],
 ];
 
