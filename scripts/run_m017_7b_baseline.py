@@ -17,7 +17,7 @@ from localcode.training_baseline import load_executable_suite
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG = ROOT / "benchmarks/training/m017_7b_baseline_v1.json"
+CONFIG = ROOT / "benchmarks/training/m017_7b_baseline_v2.json"
 RUN_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{2,79}$")
 
 
@@ -31,8 +31,14 @@ def main() -> int:
     if RUN_ID.fullmatch(arguments.run_id) is None:
         raise SystemExit("run ID must contain 3-80 lowercase safe characters")
 
-    config = json.loads(CONFIG.read_text(encoding="utf-8"))
-    if config["schema_version"] != 1 or config["sealed_examples_loaded"] != 0:
+    treatment = json.loads(CONFIG.read_text(encoding="utf-8"))
+    config = json.loads((ROOT / treatment["base_config"]).read_text(encoding="utf-8"))
+    if (
+        config["schema_version"] != 1
+        or config["sealed_examples_loaded"] != 0
+        or treatment["schema_version"] != 1
+        or treatment["sealed_examples_loaded"] != 0
+    ):
         raise SystemExit("invalid M017 contract or sealed boundary")
     model_path = verify_model_pin(config["model"], project_root=ROOT)
     suite = load_executable_suite(ROOT / config["executable_suite"], ROOT)
@@ -51,9 +57,10 @@ def main() -> int:
 
     record: dict[str, object] = {
         "schema_version": 1, "run_id": arguments.run_id, "state": "running",
-        "experiment_id": config["experiment_id"], "treatment": config["treatment"],
+        "experiment_id": treatment["experiment_id"], "treatment": config["treatment"],
         "model_id": config["model"]["model_id"], "model_revision": config["model"]["revision"],
         "quantization_bits": config["model"]["quantization_bits"], "adapter_path": None,
+        "generation_stop": treatment["generation_stop"],
         "suite_id": suite.suite_id, "registered": len(suite.cases), "solved": None,
         "cases": [], "sealed_examples_loaded": 0, "wall_seconds": None,
         "peak_memory_gb": None, "error": None,
@@ -68,6 +75,11 @@ def main() -> int:
 
         mlx_core.reset_peak_memory()
         model, tokenizer = load(str(model_path), lazy=False)
+        stop = treatment["generation_stop"]
+        actual_stop_id = tokenizer.convert_tokens_to_ids(stop["token"])
+        if actual_stop_id != stop["token_id"]:
+            raise ValueError("pinned generation stop token ID mismatch")
+        tokenizer.add_eos_token(stop["token"])
         sampler = make_sampler(temp=0.0)
         for index, case in enumerate(suite.cases, 1):
             case_started = time.monotonic()

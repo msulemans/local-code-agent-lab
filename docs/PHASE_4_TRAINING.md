@@ -330,6 +330,13 @@ Do not start QLoRA until this run distinguishes base-model capacity from the
 previous training recipe. A valid positive result requires an applicable diff
 and passing registered tests, not merely plausible text.
 
+The first 7B run exposed a conversion mismatch: `config.json` declared EOS
+151643, while the tokenizer's `<|im_end|>` is 151645. Five useful-looking
+repairs therefore included a literal `<|im_end|>` suffix and were correctly
+rejected. M017 v2 explicitly registers tokenizer token 151645 as a generation
+stop and reruns under a new immutable run ID; it does not strip model output
+after generation.
+
 The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).

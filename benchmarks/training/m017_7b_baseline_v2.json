@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m017-qwen25-coder-7b-strict-patch-baseline-v2-eos",
+  "base_config": "benchmarks/training/m017_7b_baseline_v1.json",
+  "generation_stop": {
+    "token": "<|im_end|>",
+    "token_id": 151645,
+    "reason": "The MLX snapshot model config declares 151643 while its tokenizer and chat template declare im_end 151645."
+  },
+  "superseded_run": {
+    "run_id": "m017-qwen25-7b-base-v1",
+    "solved": 0,
+    "reason": "Five semantically useful diffs were contaminated by a leaked im_end token."
+  },
+  "sealed_examples_loaded": 0
+}
