@@ -75,8 +75,12 @@ def main() -> int:
         )
         if source_record.get("state") != "failed" or source_record.get("sealed_examples_loaded") != 0:
             raise ValueError("source must be a failed zero-sealed M016b run")
-        if source_record.get("experiment_id") != config["experiment_id"]:
-            raise ValueError("source run does not belong to the active M016b experiment")
+        allowed_experiments = {
+            config["experiment_id"],
+            "m016b-qwen25-coder-executable-lora-v3-staged",
+        }
+        if source_record.get("experiment_id") not in allowed_experiments:
+            raise ValueError("source run does not belong to an executable-aligned M016b experiment")
 
         source_adapter = ROOT / "adapters" / arguments.source_run_id / "full"
         expected = tuple(int(value) for value in config["full_training"]["checkpoint_iterations"])

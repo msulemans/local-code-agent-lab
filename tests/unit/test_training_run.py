@@ -21,6 +21,7 @@ M016B_CONFIG = ROOT / "benchmarks/training/m016b_lora_v1.json"
 M016B_V2_CONFIG = ROOT / "benchmarks/training/m016b_lora_v2.json"
 M016B_V3_CONFIG = ROOT / "benchmarks/training/m016b_lora_v3.json"
 RECOVERY_RESULT = ROOT / "benchmarks/training/m016_recovery_result_v1.json"
+M016B_RECOVERY_RESULT = ROOT / "benchmarks/training/m016b_recovery_result_v1.json"
 
 
 class TrainingRunTests(unittest.TestCase):
@@ -81,6 +82,19 @@ class TrainingRunTests(unittest.TestCase):
             document["untouched_baseline"]["executable_solved"],
             document["executable_evaluation"]["solved"],
         )
+
+    def test_m016b_result_selects_full_validation_then_preserves_negative_gate(self) -> None:
+        document = json.loads(M016B_RECOVERY_RESULT.read_text(encoding="utf-8"))
+        self.assertEqual(document["verdict"], "recovered_negative")
+        self.assertFalse(document["original_800_step_treatment_complete"])
+        self.assertEqual(document["selected_adapter"]["iteration"], 100)
+        self.assertLess(
+            document["checkpoint_validation"][0]["loss"],
+            document["checkpoint_validation"][1]["loss"],
+        )
+        self.assertEqual(document["executable_evaluation"]["solved"], 0)
+        self.assertFalse(document["executable_evaluation"]["improved_over_untouched"])
+        self.assertEqual(document["sealed_examples_loaded"], 0)
 
     def test_training_metrics_drive_overfit_gate(self) -> None:
         output = (

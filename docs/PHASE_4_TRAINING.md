@@ -301,6 +301,17 @@ caffeinate -dimsu env PYTHONPATH=src \
   --run-id m016b-lora-v3
 ```
 
+The same recovery command also accepts a failed V3 run and compares every
+cumulative checkpoint it actually preserved. This prevents a later Metal stop
+from forcing either a restart or an arbitrary last-checkpoint choice.
+
+The recovered V3 result is negative. Full validation selected checkpoint 100
+(`1.754`) over checkpoint 200 (`1.794`), and the selected adapter solved `0/6`.
+It learned bare diff syntax, but all six outputs were still invalid patches and
+never reached test execution. Do not promote it, continue the same recipe, or
+open the sealed split. The frozen verdict is
+`benchmarks/training/m016b_recovery_result_v1.json`.
+
 The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).

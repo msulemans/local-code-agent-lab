@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m016b-qwen25-coder-executable-lora",
+  "verdict": "recovered_negative",
+  "untouched_baseline": {
+    "run_id": "m016b-patch-base-v1",
+    "executable_solved": 0,
+    "registered": 6
+  },
+  "attempts": [
+    {
+      "run_id": "m016b-lora-v1",
+      "state": "failed",
+      "reason": "Metal Impacting Interactivity during diagnostic after update 5",
+      "record_sha256": "832350851d0dd886febd04ae3d555a2359e1423ce8490c9d1f2a68339e600223"
+    },
+    {
+      "run_id": "m016b-lora-v2",
+      "state": "failed_with_checkpoint",
+      "reason": "Metal Impacting Interactivity after saving update 100",
+      "record_sha256": "ac8e1556e1ac2acaa388f40abe458e192e9e5634c21037a17ae26a2b1981f33d"
+    },
+    {
+      "run_id": "m016b-lora-v3",
+      "state": "failed_with_two_checkpoints",
+      "reason": "staged update 200 completed; next stage stopped at local update 40",
+      "record_sha256": "f93753ab51e8d01590bc5ac17ada40d306c9f89971ffc28b3733234eaba29b26"
+    }
+  ],
+  "recovery_run_id": "m016b-lora-v3-recovery-v1",
+  "recovery_record_sha256": "756ceafd528f55fc41bfaba0449c9b3071df9092d76f93d053f0fe87e74f95e7",
+  "original_800_step_treatment_complete": false,
+  "checkpoint_validation": [
+    {"iteration": 100, "loss": 1.754, "perplexity": 5.780},
+    {"iteration": 200, "loss": 1.794, "perplexity": 6.012}
+  ],
+  "selected_adapter": {
+    "iteration": 100,
+    "bytes": 5281601,
+    "sha256": "cc99fa7f6663b3e3828ae302cb6ab6bf8197a8e3d4a125af3bfdfba266195762"
+  },
+  "executable_evaluation": {
+    "solved": 0,
+    "registered": 6,
+    "improved_over_untouched": false,
+    "failure_summary": "All selected-adapter predictions were bare diffs but rejected as invalid patches before tests."
+  },
+  "sealed_examples_loaded": 0,
+  "decision": "Do not promote or continue this 1.5B four-layer LoRA recipe. Preserve the evidence and move to a stronger base model or a patch-validity curriculum before any sealed evaluation."
+}
