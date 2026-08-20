@@ -319,11 +319,19 @@ const milestones = [
   },
   {
     id: "015",
-    state: "Executable baseline ready",
+    state: "Executable baseline complete · 4/6",
     title: "Untouched Qwen baseline and MLX LoRA feasibility",
     story: "The 1.5B Qwen checkpoint is pinned rather than selected because it happened to be installed. A separate Python 3.11 MLX environment proves Metal computation, exports only train and validation chat rows, measures every development sequence, records the untouched loss baseline, performs exactly two optimizer updates, hashes the adapter, and reloads it in a fresh process. A six-case executable runner now gives the untouched model only the issue and broken file, then tests its replacement inside a disposable copy. The sealed split remains unavailable.",
-    evidence: "Qwen2.5-Coder-1.5B · MLX 0.32.1 · baseline loss 1.383 · train loss 0.512 → 0.491 · peak 4.046 GB · six pinned executable dev cases · hidden tests · sealed loaded 0",
-    decision: "Run the executable baseline in normal Terminal. A measured 0/6 is useful evidence; an infrastructure error is not. Start longer training only after the run is measured.",
+    evidence: "Qwen2.5-Coder-1.5B · validation loss 1.383 · executable base 4/6 · peak 3.286 GB · 7.56 s · parser and whitespace preservation failures · sealed loaded 0",
+    decision: "Freeze the 4/6 baseline and its two incomplete repairs. Do not tune the suite; compare the selected adapter against the same cases.",
+  },
+  {
+    id: "016",
+    state: "Controlled training ready",
+    title: "Train, select, then test one LoRA adapter",
+    story: "One bounded command first proves that eight train rows can overfit, then performs 1,600 updates using train only. Eight saved checkpoints are each measured over the full 211-row validation split. The lowest validation loss selects one adapter, which then faces the unchanged executable suite.",
+    evidence: "40-update diagnostic · ≥10% loss improvement gate · 1,600 train updates · 8 full-validation checkpoint measurements · 24 GB ceiling · untouched comparison 4/6 · sealed loaded 0",
+    decision: "Run m016-lora-v1 in normal Terminal. Promote only if the selected adapter exceeds 4/6; otherwise preserve the negative result and do not open the sealed split.",
   },
 ];
 
@@ -469,6 +477,7 @@ const flashcards = [
   ["Does a before/after commit pair prove a bug was fixed?", "No. It is useful repair-shaped supervision, but only executable tests can establish behavioral correctness. Promotion therefore uses test-backed validation."],
   ["Why is the two-update LoRA adapter not yet CodeLM?", "It proves gradients, memory, saving, and reloading. Two examples cannot establish learned repair ability, and no executable base-versus-adapter comparison has happened yet."],
   ["Why can zero solved cases still be a successful baseline run?", "The baseline measures untouched behavior. Zero is a model-quality result if all six predictions were evaluated; it is not equivalent to tests being unable to run."],
+  ["Why evaluate every saved M016 checkpoint on validation?", "Training loss selects memorization, not generalization. Full validation loss chooses one stopping point before executable comparison and before the sealed split is opened."],
   ["Why reduce the sequence ceiling from 2,048 to 1,024?", "Pinned-tokenizer inspection found every development row at 849 tokens or fewer. A 1,024 ceiling preserves all evidence while reducing memory and compute."],
 ];
 

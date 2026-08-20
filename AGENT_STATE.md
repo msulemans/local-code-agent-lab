@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
 Last updated: 2026-08-20 (Australia/Sydney)
-Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestones 013–014 are complete, and Milestone 015 has passed its pinned MLX environment, untouched validation-loss baseline, and two-update LoRA feasibility gates. Its pinned six-case executable base-model runner is ready for one normal-Terminal measurement before full training.
+Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestones 013–015 are complete. The untouched Qwen executable baseline is 4/6, and the bounded Milestone 016 diagnostic, training, validation-selection, and executable-comparison runner is ready for normal Terminal.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -37,12 +37,33 @@ starting with data provenance and leakage boundaries before model work.
 
 ## Current milestone
 
-Milestone 015 untouched pretrained baseline. The pinned checkpoint and MLX
-training path work on this M2 Max. The executable development runner is now
-implemented and locally contract-tested; full training remains blocked until
-the untouched model's six-case run is measured in normal Terminal.
+Milestone 016 controlled adapter training. Its complete train-only pipeline is
+implemented and preflight-verified; the remaining gate is the real normal-
+Terminal diagnostic and training measurement.
 
-### Phase 4 Milestone 015 — MLX baseline and numerical feasibility (2026-08-20, partial)
+### Phase 4 Milestone 016 — controlled LoRA runner (2026-08-20, ready)
+
+- Frozen M016 keeps the same Qwen revision, train/validation hashes, seed,
+  1,024-token ceiling, eight LoRA layers, masked prompt loss, and 24 GB peak
+  active-memory stop. It loads zero sealed examples.
+- One command first overfits the pinned first eight train rows for 40 updates.
+  Full training cannot start unless finite training loss improves by at least
+  10% and memory stays within the ceiling.
+- The full treatment is 1,600 batch-one updates using train only. It saves eight
+  checkpoints at 200-update intervals, evaluates each checkpoint against all
+  211 validation rows, and selects the lowest validation loss with an earliest-
+  iteration tie break.
+- The selected adapter then runs the unchanged six executable development
+  cases. More than the untouched 4/6 is a positive result; 4/6 or lower is a
+  preserved negative result, not a reason to change the suite after seeing it.
+- `--validate-only` verified the exact local model, data, base-run digest, and
+  available `m016-lora-v1` ID without loading Metal: status `m016_ready`, 1,594
+  train, 211 validation, baseline 4/6, sealed loaded 0.
+- Verification passed: 270 Python unit tests in `.venv-realbench` with 8
+  expected restricted-runner skips, the 50-ID learning UI contract, JavaScript
+  syntax, trusted Python byte compilation, CLI validation, and diff checks.
+
+### Phase 4 Milestone 015 — MLX and executable base baseline (2026-08-20, complete)
 
 - Pinned `Qwen/Qwen2.5-Coder-1.5B-Instruct` at exact revision
   `cc932d8a05bf5a3dcd700f50584714d17fc4d03a` under Apache-2.0. The ignored
@@ -83,9 +104,13 @@ the untouched model's six-case run is measured in normal Terminal.
 - Runner verification passed: 267 Python unit tests in `.venv-realbench` with
   8 expected restricted-runner skips, plus the 50-ID learning UI contract,
   JavaScript syntax, Python byte compilation, and diff checks.
-- Remaining gate: run `scripts/run_m015_executable_baseline.py` with the
-  untouched local checkpoint in normal Terminal. Do not start the long LoRA
-  training run or open the 195-example sealed split before that result exists.
+- Untouched executable run `m015-exec-base-v1` was measured on all six frozen
+  cases: **4/6 solved**, 3.285905 GB peak active memory, 7.556283 seconds, zero
+  sealed examples, and all source fixtures unchanged. Record SHA-256 is
+  `b0cda05d2811fd2cc7e0f51feccb05235e1b0d5ca2bf8037f6a89f0bb5e8829e`.
+- Failures are frozen evidence: parser-none handled `None` but removed existing
+  trimming; display-whitespace handled double spaces but missed tabs and outer
+  whitespace. Do not tune the prompt or suite against these failures.
 
 ### Phase 4 Milestone 014 — pinned acquisition and corpus build (2026-08-20)
 

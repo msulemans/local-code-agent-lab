@@ -137,17 +137,25 @@ copy before running the registered sandboxed test command. Raw output, diff,
 test evidence, model identity, token counts, peak memory, and zero sealed rows
 are preserved under an immutable run ID.
 
-Run the untouched executable baseline in normal Terminal:
+The untouched normal-Terminal run completed all six cases and solved 4/6 in
+7.56 seconds at 3.286 GB peak active memory. It preserved trimming incorrectly
+in `parser-none` and normalized only double spaces in `display-whitespace`;
+those failures are frozen evidence rather than prompts to tune the suite.
+
+Milestone 016 now runs a tiny overfit diagnostic before allowing the 1,600-
+update train-only treatment. It evaluates every 200-update checkpoint against
+all 211 validation rows, selects the lowest validation loss, and compares that
+adapter against the unchanged 4/6 executable baseline. A non-improving adapter
+is preserved as a valid negative result. Run it in normal Terminal:
 
 ```bash
-PYTHONPATH=src .venv-mlx/bin/python scripts/run_m015_executable_baseline.py \
-  --run-id m015-exec-base-v1
+PYTHONPATH=src .venv-mlx/bin/python scripts/run_m016_training.py \
+  --run-id m016-lora-v1
 ```
 
-A score of zero is still a valid baseline; model failure is different from an
-evaluation-infrastructure error. Only after this command records a `measured`
-run may Milestone 016 start the longer train-only LoRA run. The sealed test
-stays unavailable until one adapter is selected using validation evidence.
+The command streams progress and has a two-hour hard ceiling; approximately
+45–70 minutes is expected on the verified M2 Max path. The sealed test stays
+unavailable until this command selects one adapter using validation evidence.
 
 ## Explain-back questions
 

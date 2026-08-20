@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m016-qwen25-coder-lora-v1",
+  "base_config": "benchmarks/training/m015_baseline_v1.json",
+  "executable_suite": "benchmarks/training/m015_executable_dev_v1.json",
+  "untouched_baseline": {
+    "run_id": "m015-exec-base-v1",
+    "record_sha256": "b0cda05d2811fd2cc7e0f51feccb05235e1b0d5ca2bf8037f6a89f0bb5e8829e",
+    "solved": 4,
+    "registered": 6
+  },
+  "data": {
+    "directory": "data/processed/mlx-m015",
+    "train_examples": 1594,
+    "train_sha256": "df38066b12376de0807da7bd562b78bd32d49956657a456f7d21fe55f0efd0f0",
+    "validation_examples": 211,
+    "validation_sha256": "891b846a7b8a66d0fbeb37b2e4f2929a2f2c0564dd48119597de240d7b1fe124",
+    "sealed_examples_loaded": 0
+  },
+  "shared": {
+    "fine_tune_type": "lora",
+    "optimizer": "adam",
+    "mask_prompt": true,
+    "num_layers": 8,
+    "batch_size": 1,
+    "learning_rate": 0.0001,
+    "max_sequence_length": 1024,
+    "gradient_checkpointing": true,
+    "seed": 42,
+    "maximum_peak_memory_gb": 24
+  },
+  "diagnostic": {
+    "train_prefix_examples": 8,
+    "prefix_sha256": "3d9e8afa94b166f116bfb85dbdbed31f9ffc47c43c5117cfc55c083c72688a78",
+    "iterations": 40,
+    "validation_batches": 8,
+    "steps_per_report": 5,
+    "steps_per_evaluation": 10,
+    "save_every": 40,
+    "minimum_relative_loss_improvement": 0.1,
+    "maximum_wall_seconds": 600
+  },
+  "full_training": {
+    "iterations": 1600,
+    "validation_batches_during_training": 25,
+    "steps_per_report": 20,
+    "steps_per_evaluation": 200,
+    "save_every": 200,
+    "checkpoint_iterations": [200, 400, 600, 800, 1000, 1200, 1400, 1600],
+    "checkpoint_selection": "lowest_full_validation_loss",
+    "maximum_wall_seconds": 7200
+  },
+  "promotion_gate": {
+    "metric": "executable_development_solves",
+    "must_exceed": 4,
+    "maximum": 6,
+    "negative_result_is_valid": true
+  },
+  "sealed_split_policy": "Do not load, evaluate, or inspect the 195 sealed-test examples during M016."
+}

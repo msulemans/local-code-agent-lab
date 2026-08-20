@@ -53,7 +53,6 @@ or change runtime policy.
 - network access from repository tests;
 - file creation, deletion, rename, mode change, or binary patch support;
 - committed bulk Phase 4 source or normalized data;
-- a measured untouched Phase 4 executable base-model baseline;
 - a trained coding adapter; or
 - an executable base-versus-adapter Phase 4 result; or
 - a sealed Phase 4 evaluation result.

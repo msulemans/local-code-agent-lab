@@ -175,14 +175,15 @@ processed data remain ignored and reconstructable; no trained adapter is
 claimed yet. Milestone 015 has now pinned Qwen2.5-Coder-1.5B-Instruct and the
 MLX environment, recorded an untouched validation-loss baseline, and passed a
 two-update LoRA save/reload probe at 4.046 GB peak active memory. Full training
-waits for the executable base-model baseline. Its six-case runner is now
-versioned: the untouched model sees only the issue and broken file, while
-trusted code executes hidden fixture tests in disposable copies. Run it in a
-normal Terminal:
+was gated on a six-case executable base-model baseline. The untouched model
+solved 4/6 at 3.286 GB peak active memory; it preserved zero sealed examples.
+Milestone 016 now freezes one bounded command for the overfit diagnostic,
+train-only LoRA run, complete-validation checkpoint selection, and unchanged
+six-case comparison. Run it in normal Terminal:
 
 ```bash
-PYTHONPATH=src .venv-mlx/bin/python scripts/run_m015_executable_baseline.py \
-  --run-id m015-exec-base-v1
+PYTHONPATH=src .venv-mlx/bin/python scripts/run_m016_training.py \
+  --run-id m016-lora-v1
 ```
 
 See

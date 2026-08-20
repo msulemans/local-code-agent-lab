@@ -31,6 +31,7 @@ class RepositoryContractTests(unittest.TestCase):
             "training_data.py",
             "training_baseline.py",
             "training_export.py",
+            "training_run.py",
             "training_sources.py",
             "tui.py",
             "workspace.py",
