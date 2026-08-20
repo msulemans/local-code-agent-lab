@@ -312,6 +312,24 @@ never reached test execution. Do not promote it, continue the same recipe, or
 open the sealed split. The frozen verdict is
 `benchmarks/training/m016b_recovery_result_v1.json`.
 
+## M017: stronger untouched coding base
+
+M017 changes only the base checkpoint first. The exact MLX-community
+Qwen2.5-Coder-7B-Instruct 4-bit snapshot is pinned by revision, byte counts,
+and SHA-256 in `benchmarks/training/m017_7b_baseline_v1.json`. It receives the
+same six prompts and strict executable gate as the 1.5B model; no adapter or
+sealed training example is loaded.
+
+```bash
+caffeinate -dimsu env PYTHONPATH=src \
+  .venv-mlx/bin/python scripts/run_m017_7b_baseline.py \
+  --run-id m017-qwen25-7b-base-v1
+```
+
+Do not start QLoRA until this run distinguishes base-model capacity from the
+previous training recipe. A valid positive result requires an applicable diff
+and passing registered tests, not merely plausible text.
+
 The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).
