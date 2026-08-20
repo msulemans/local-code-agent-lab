@@ -327,11 +327,11 @@ const milestones = [
   },
   {
     id: "016",
-    state: "Controlled training ready",
+    state: "Checkpoint recovery ready",
     title: "Train, select, then test one LoRA adapter",
-    story: "One bounded command first proves that eight train rows can overfit, then performs 1,600 updates using train only. Eight saved checkpoints are each measured over the full 211-row validation split. The lowest validation loss selects one adapter, which then faces the unchanged executable suite.",
-    evidence: "v1 validation 0.208 → 0.010 · train minimum 0.009 · peak 4.377 GB · shuffled-batch false negative corrected · 1,600 train updates · 8 full-validation checkpoints · sealed loaded 0",
-    decision: "Run immutable attempt m016-lora-v2. Promote only if the selected adapter exceeds 4/6; otherwise preserve the negative result and do not open the sealed split.",
+    story: "The v2 diagnostic passed, then the planned 1,600 train updates reached update 980 before macOS Metal stopped a command buffer for impacting interactivity. It was not an OOM: peak active memory was only 4.739 GB. Four complete checkpoints through update 800 remain usable, so a bounded recovery now performs the validation selection and executable comparison without retraining.",
+    evidence: "v1 validation 0.208 → 0.010, confirmed by corrected v2 diagnostic · step 800 saved at 171,707 supervised tokens · last metric step 980 at 214,285 · checkpoints 200/400/600/800 · peak 4.739 GB · sealed loaded 0",
+    decision: "Validate and test the four completed checkpoints. Keep the original 1,600-step treatment marked incomplete; promote a recovered adapter only if it exceeds the frozen 4/6 executable baseline, and keep sealed data closed.",
   },
 ];
 
@@ -479,6 +479,7 @@ const flashcards = [
   ["Why can zero solved cases still be a successful baseline run?", "The baseline measures untouched behavior. Zero is a model-quality result if all six predictions were evaluated; it is not equivalent to tests being unable to run."],
   ["Why evaluate every saved M016 checkpoint on validation?", "Training loss selects memorization, not generalization. Full validation loss chooses one stopping point before executable comparison and before the sealed split is opened."],
   ["Why did the first M016 diagnostic stop despite validation loss collapsing?", "The gate compared losses from different shuffled mini-batches. The corrected gate compares the same frozen eight-row validation set and uses minimum observed train loss only as supporting overfit evidence."],
+  ["Why recover M016 checkpoints instead of resuming from step 800?", "MLX saved adapter weights but not the Adam optimizer state. Resuming would reset optimizer state and create a different segmented treatment. Recovery keeps the completed weights, selects them honestly on validation, and labels the original 1,600-step run incomplete."],
   ["Why reduce the sequence ceiling from 2,048 to 1,024?", "Pinned-tokenizer inspection found every development row at 849 tokens or fewer. A 1,024 ceiling preserves all evidence while reducing memory and compute."],
 ];
 

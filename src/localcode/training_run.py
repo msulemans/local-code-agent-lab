@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 import re
 from typing import Iterable
 
@@ -12,6 +13,7 @@ _TRAIN = re.compile(
 )
 _OVERFIT_VALIDATION = re.compile(r"Iter (\d+): Val loss ([0-9.]+)")
 _VALIDATION = re.compile(r"Test loss ([0-9.]+), Test ppl ([0-9.]+)\.")
+_CHECKPOINT = re.compile(r"^(\d{7})_adapters\.safetensors$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,3 +88,26 @@ def select_validation_checkpoint(metrics: Iterable[ValidationMetric]) -> Validat
     if any(value.loss != value.loss or value.loss < 0 for value in values):
         raise ValueError("checkpoint validation losses must be finite and non-negative")
     return min(values, key=lambda value: (value.loss, value.iteration))
+
+
+def available_checkpoint_iterations(
+    directory: str | Path,
+    expected_iterations: Iterable[int],
+) -> tuple[int, ...]:
+    """Return complete, expected MLX checkpoints without accepting stray files."""
+
+    root = Path(directory)
+    expected = tuple(expected_iterations)
+    if not root.is_dir() or not (root / "adapter_config.json").is_file():
+        raise ValueError("checkpoint directory must contain adapter_config.json")
+    if not expected or len(set(expected)) != len(expected) or any(value <= 0 for value in expected):
+        raise ValueError("expected checkpoint iterations must be positive and unique")
+    discovered = {
+        int(match.group(1))
+        for path in root.iterdir()
+        if path.is_file() and (match := _CHECKPOINT.fullmatch(path.name)) is not None
+    }
+    unexpected = discovered.difference(expected)
+    if unexpected:
+        raise ValueError(f"unexpected checkpoint iterations: {sorted(unexpected)}")
+    return tuple(value for value in expected if value in discovered)

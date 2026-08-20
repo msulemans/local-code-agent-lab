@@ -181,6 +181,11 @@ Gate: a tiny overfit diagnostic passes, the full run stays within the declared
 resource ceiling, and the selected adapter improves the registered validation
 metric over the untouched base. Otherwise preserve the negative result.
 
+An interrupted run may evaluate its fully written checkpoints in a separate
+immutable recovery record, but it must not be reported as completion of the
+configured training length. Adapter-only continuation also resets Adam state,
+so it is a new treatment rather than an exact resume.
+
 ## 017 — One sealed evaluation and LocalCode comparison
 
 Open the sealed test exactly once after configuration selection. Compare the

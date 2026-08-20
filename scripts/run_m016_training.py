@@ -141,10 +141,9 @@ def main() -> int:
             full_command, int(config["full_training"]["maximum_wall_seconds"])
         )
         full_metrics = parse_train_metrics(full_process.stdout)
-        if full_process.returncode != 0 or not full_metrics:
-            raise RuntimeError("full LoRA process failed or produced no training metrics")
-        if max(metric.peak_memory_gb for metric in full_metrics) > config["shared"]["maximum_peak_memory_gb"]:
-            raise RuntimeError("full LoRA process exceeded the frozen peak-memory ceiling")
+        # Preserve streamed evidence even when MLX or Metal terminates before
+        # the configured final checkpoint. Recovery must not depend on a
+        # transient terminal transcript.
         record["full_training"] = {
             "command": full_command,
             "process_exit_code": full_process.returncode,
@@ -152,6 +151,11 @@ def main() -> int:
             "stdout": full_process.stdout,
             "stderr": full_process.stderr,
         }
+        _write(run_dir, record)
+        if full_process.returncode != 0 or not full_metrics:
+            raise RuntimeError("full LoRA process failed or produced no training metrics")
+        if max(metric.peak_memory_gb for metric in full_metrics) > config["shared"]["maximum_peak_memory_gb"]:
+            raise RuntimeError("full LoRA process exceeded the frozen peak-memory ceiling")
         record["state"] = "checkpoint_selection_running"
         _write(run_dir, record)
 

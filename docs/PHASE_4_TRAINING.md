@@ -164,6 +164,30 @@ training reached `0.009`, and peak memory was 4.377 GB. The corrected v2 gate
 requires same-row validation improvement and at least one lower observed train
 loss; it does not pretend that the final random mini-batch equals the first.
 
+The v2 full run then reached update 980 before macOS Metal stopped one command
+buffer with `Impacting Interactivity`. This was not an out-of-memory failure:
+peak active memory was 4.739 GB. Four complete checkpoints remain at updates
+200, 400, 600, and 800; update 800 represents 171,707 supervised target tokens,
+while the last reported training metric at update 980 represents 214,285.
+
+Do not restart training just to recover evidence already on disk. The recovery
+runner hashes those four checkpoints, evaluates each against all 211 validation
+rows, selects by the same frozen lowest-loss rule, and runs the unchanged six
+executable development cases:
+
+```bash
+caffeinate -dimsu env PYTHONPATH=src \
+  .venv-mlx/bin/python scripts/recover_m016_checkpoints.py \
+  --source-run-id m016-lora-v2 \
+  --run-id m016-lora-v2-recovery-v1
+```
+
+This is a shortened-checkpoint recovery, not completion of the configured
+1,600-update treatment. Its record keeps `original_1600_step_treatment_complete`
+false and keeps the sealed split closed. It answers the immediate scientific
+question—whether any safely saved adapter improves on 4/6—without resetting the
+optimizer or silently changing the training treatment.
+
 ## Explain-back questions
 
 1. Why must variants of one repair share a lineage split?

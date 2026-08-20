@@ -6,6 +6,7 @@ import unittest
 
 from localcode.training_run import (
     ValidationMetric,
+    available_checkpoint_iterations,
     diagnostic_passed,
     parse_overfit_validation_metrics,
     parse_train_metrics,
@@ -57,6 +58,23 @@ class TrainingRunTests(unittest.TestCase):
         self.assertEqual(selected.iteration, 200)
         with self.assertRaisesRegex(ValueError, "unique"):
             select_validation_checkpoint([parsed, parsed])
+
+    def test_completed_checkpoint_discovery_is_ordered_and_strict(self) -> None:
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "adapter_config.json").write_text("{}", encoding="utf-8")
+            (directory / "0000400_adapters.safetensors").write_bytes(b"four")
+            (directory / "0000200_adapters.safetensors").write_bytes(b"two")
+            (directory / "adapters.safetensors").write_bytes(b"alias")
+            self.assertEqual(
+                available_checkpoint_iterations(directory, (200, 400, 600)),
+                (200, 400),
+            )
+            (directory / "0000500_adapters.safetensors").write_bytes(b"stray")
+            with self.assertRaisesRegex(ValueError, "unexpected"):
+                available_checkpoint_iterations(directory, (200, 400, 600))
 
 
 if __name__ == "__main__":
