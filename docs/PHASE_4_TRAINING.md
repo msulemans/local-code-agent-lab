@@ -271,6 +271,13 @@ The command first runs a 40-update diagnostic and stops if loss or memory gates
 fail. The full treatment has a two-hour wall limit and preserves every
 100-update checkpoint plus its streamed metrics for diagnosis or recovery.
 
+The first v1 diagnostic produced healthy early loss and memory evidence but
+macOS stopped its Metal command buffer after update 5 as `Impacting
+Interactivity`. It is retained as a failed systems result, not retried
+unchanged. The v2 treatment keeps the target and executable promotion gate,
+but caps sequences at 768 tokens and trains four LoRA layers. This retains 468
+train and 80 validation examples while shortening each GPU backward step.
+
 The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).

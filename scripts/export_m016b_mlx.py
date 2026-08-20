@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export the M016b corpus under the pinned Qwen 1,024-token ceiling."""
+"""Export the M016b corpus under a declared pinned-Qwen token ceiling."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ def main() -> int:
     parser.add_argument("--corpus", default=str(ROOT / "data/processed/executable-repair-v2.jsonl"))
     parser.add_argument("--output", default=str(ROOT / "data/processed/mlx-m016b"))
     parser.add_argument("--report", default=str(ROOT / "data/processed/mlx-m016b-report.json"))
+    parser.add_argument("--maximum-sequence-tokens", type=int, default=1024)
     arguments = parser.parse_args()
     if Path(sys.prefix).resolve() != (ROOT / ".venv-mlx").resolve():
         raise SystemExit("M016b export must run with .venv-mlx/bin/python")
@@ -37,7 +38,7 @@ def main() -> int:
         load_training_jsonl(arguments.corpus),
         output_directory=arguments.output,
         token_counter=count,
-        maximum_sequence_tokens=1024,
+        maximum_sequence_tokens=arguments.maximum_sequence_tokens,
     )
     report = summary.to_dict()
     report.update({

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m016b-qwen25-coder-executable-lora-v2-short-command-buffer",
+  "supersedes": "benchmarks/training/m016b_lora_v1.json",
+  "change_reason": "The v1 diagnostic hit the macOS Metal Impacting Interactivity watchdog after update 5. V2 shortens individual GPU work without changing the target or promotion gate.",
+  "base_config": "benchmarks/training/m015_baseline_v1.json",
+  "data_evidence": "benchmarks/training/m016b_data_v1.json",
+  "executable_suite": "benchmarks/training/m015_executable_dev_v1.json",
+  "untouched_baseline": {
+    "run_id": "m016b-patch-base-v1",
+    "record_sha256": "1c444231367d0d42d2400f8b228870e8699801ba625d32ae24f9feef749eeb48",
+    "solved": 0,
+    "registered": 6
+  },
+  "data": {
+    "directory": "data/processed/mlx-m016b-768",
+    "train_examples": 468,
+    "train_sha256": "53e195d21d2e218289d43f4e4f8a43213b32dc2f87f75845f5c89daf58a9ca64",
+    "validation_examples": 80,
+    "validation_sha256": "dabbebf2599e52d54ea7ed73965514a8cb4ec6024602e00adfe4729dab696b28",
+    "sealed_examples_withheld": 66,
+    "sealed_examples_loaded": 0
+  },
+  "shared": {
+    "fine_tune_type": "lora",
+    "optimizer": "adam",
+    "mask_prompt": true,
+    "num_layers": 4,
+    "batch_size": 1,
+    "learning_rate": 0.0001,
+    "max_sequence_length": 768,
+    "gradient_checkpointing": true,
+    "seed": 42,
+    "maximum_peak_memory_gb": 24
+  },
+  "diagnostic": {
+    "train_prefix_examples": 8,
+    "prefix_sha256": "52fe1bb25ce2204ba8b3b658e7ed675f4b1433f829fadde87d22e65ec2c65542",
+    "iterations": 40,
+    "validation_batches": 8,
+    "steps_per_report": 5,
+    "steps_per_evaluation": 10,
+    "save_every": 40,
+    "minimum_relative_loss_improvement": 0.1,
+    "maximum_wall_seconds": 900
+  },
+  "full_training": {
+    "iterations": 800,
+    "validation_batches_during_training": 25,
+    "steps_per_report": 20,
+    "steps_per_evaluation": 100,
+    "save_every": 100,
+    "checkpoint_iterations": [100, 200, 300, 400, 500, 600, 700, 800],
+    "checkpoint_selection": "lowest_full_validation_loss",
+    "maximum_wall_seconds": 7200
+  },
+  "promotion_gate": {
+    "metric": "strict_patch_executable_development_solves",
+    "must_exceed": 0,
+    "maximum": 6,
+    "requires_valid_diff": true,
+    "requires_test_execution": true,
+    "negative_result_is_valid": true
+  },
+  "sealed_split_policy": "Do not load, tokenize, evaluate, or inspect the 66 sealed examples during M016b."
+}

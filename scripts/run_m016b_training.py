@@ -32,7 +32,7 @@ from localcode.training_run import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG_PATH = ROOT / "benchmarks/training/m016b_lora_v1.json"
+CONFIG_PATH = ROOT / "benchmarks/training/m016b_lora_v2.json"
 MODEL_PATH = ROOT / "models/qwen25-coder-1.5b-instruct-m015"
 MODEL_MANIFEST = ROOT / "models/m015-local-model.json"
 RUN_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{2,79}$")
