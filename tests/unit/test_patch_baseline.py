@@ -5,6 +5,7 @@ import unittest
 
 from localcode.patch_baseline import (
     build_patch_messages,
+    build_edit_messages,
     evaluate_patch_prediction,
     extract_unified_diff,
 )
@@ -31,6 +32,11 @@ class PatchBaselineTests(unittest.TestCase):
         self.assertIn(case.broken_source, user)
         self.assertIn("TypeError", user)
         self.assertNotIn((case.fixture / case.test_path).read_text(), user)
+
+        edit_messages = build_edit_messages(case, failure)
+        self.assertIn(case.issue.rstrip(), edit_messages[1]["content"])
+        self.assertIn(case.broken_source, edit_messages[1]["content"])
+        self.assertIn("<corrected_file>", edit_messages[0]["content"])
 
     def test_strict_diff_format_rejects_markdown_and_multiple_files(self) -> None:
         with self.assertRaisesRegex(ExecutableBaselineError, "only one unified diff"):

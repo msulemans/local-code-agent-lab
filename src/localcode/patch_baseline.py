@@ -20,6 +20,10 @@ SYSTEM_PROMPT = (
     "You repair Python repositories. Return only one valid unified diff that "
     "fixes the issue, without Markdown fences or explanation."
 )
+EDIT_SYSTEM_PROMPT = (
+    "You repair one Python repository file. Return exactly one complete corrected file "
+    "between <corrected_file> and </corrected_file>. Return no Markdown or explanation."
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,6 +74,25 @@ def build_patch_messages(case: ExecutableCase, failure: ToolResult) -> tuple[dic
         raise ExecutableBaselineError("failure_evidence", "patch prompt requires a failing test")
     return (
         {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                f"Issue:\n{case.issue.rstrip()}\n\n"
+                f"Failing test output (exit {exit_code}):\n{failure.content.rstrip()}\n\n"
+                f"Broken repository file:\nFile: {case.source_path}\n{case.broken_source}"
+            ),
+        },
+    )
+
+
+def build_edit_messages(case: ExecutableCase, failure: ToolResult) -> tuple[dict[str, str], ...]:
+    """Use identical repair evidence while delegating diff construction to trusted code."""
+
+    exit_code = int(failure.metadata_dict()["exit_code"])
+    if exit_code == 0:
+        raise ExecutableBaselineError("failure_evidence", "edit prompt requires a failing test")
+    return (
+        {"role": "system", "content": EDIT_SYSTEM_PROMPT},
         {
             "role": "user",
             "content": (

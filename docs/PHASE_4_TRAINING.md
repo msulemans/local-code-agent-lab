@@ -337,6 +337,19 @@ rejected. M017 v2 explicitly registers tokenizer token 151645 as a generation
 stop and reruns under a new immutable run ID; it does not strip model output
 after generation.
 
+Because the 7B responses contained correct repair intent but unreliable hunk
+counts, the next controlled treatment changes only the action representation.
+The model returns a complete corrected file; trusted code validates the
+envelope, writes only the registered source path in a disposable workspace,
+produces the Git diff, and runs the same tests. This matches LocalCode's
+`edit_file` architecture without repairing model semantics.
+
+```bash
+caffeinate -dimsu env PYTHONPATH=src \
+  .venv-mlx/bin/python scripts/run_m017_7b_edit_baseline.py \
+  --run-id m017-qwen25-7b-edit-v1
+```
+
 The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).

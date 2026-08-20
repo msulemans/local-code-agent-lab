@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m017-qwen25-coder-7b-trusted-edit-baseline-v1",
+  "model_config": "benchmarks/training/m017_7b_baseline_v1.json",
+  "generation_config": "benchmarks/training/m017_7b_baseline_v2.json",
+  "executable_suite": "benchmarks/training/m015_executable_dev_v1.json",
+  "input_evidence": "issue plus observed failing test output plus broken file",
+  "model_output": "complete corrected file envelope",
+  "trusted_controller_output": "validated write and git diff",
+  "comparison": "same model and evidence as strict diff; only action representation changes",
+  "sealed_examples_loaded": 0
+}
