@@ -301,6 +301,14 @@ const milestones = [
     evidence: "m-luna-matched3-ladder-v1 · gold 3/3 · B0/A1/A2/A3 all 0/3 · valid patches 0/1/3/2 · A3 not promoted",
     decision: "Preserve the negative result and do not tune against inspected gold patches. Phase 3 runtime engineering is complete; continue to the Phase 4 training-data pipeline, with the frozen 20 left as future benchmark work.",
   },
+  {
+    id: "013",
+    state: "Phase 4 contract passed",
+    title: "Leakage-safe repair training data",
+    story: "Before downloading a corpus or model, LocalCode freezes what one repair example means. Four task types share immutable provenance, reviewed licences, bounded inputs and targets, deterministic lineage-group splits, exact-content overlap checks, and canonical hashes. The pinned SWE-bench evaluation IDs and exact base revisions are automatic denylists.",
+    evidence: "schema v1 · four task types · SHA-256 80/10/10 lineage split · 20 evaluation IDs + 20 revisions denied · offline contract CLI",
+    decision: "Proceed to source acquisition only after registering licence, revision, checksum, bounded reconstruction, and rejection accounting. No corpus, baseline, or adapter exists yet.",
+  },
 ];
 
 const configurations = [
@@ -438,6 +446,9 @@ const flashcards = [
   ["Why compare B0, A1, A2, and A3 on the same issues?", "Holding model, tasks, and budgets fixed lets us attribute paired outcome changes to the loop, retrieval, or review rather than to an easier subset or more compute."],
   ["What makes this more than an API wrapper?", "We own the controller, tool schemas, validation, context assembly, safety policy, event history, budgets, retry logic, evaluation integration, and UI. The model backend supplies only local token generation."],
   ["Why is the terminal UI just an observer?", "A UI should explain the run, not change it. If presentation code can call tools, retry actions, or decide success, the headless result and TUI result no longer measure the same runtime."],
+  ["Why split Phase 4 data by repair lineage?", "One fix can generate issue, broken-code, and test-failure variants. Hashing their shared lineage sends every variant to one split so validation or sealed test cannot reward memorization of a training sibling."],
+  ["Why deny evaluation base revisions as well as issue IDs?", "A source may rename or omit the benchmark ID while still containing the exact pre-fix repository state and answer. Blocking both identities closes that simple leakage path."],
+  ["When may Phase 4 open the sealed test?", "Exactly once after the adapter, checkpoint, prompt, and decoding settings are selected using training and validation only. Sealed results report; they never tune."],
 ];
 
 const quiz = [

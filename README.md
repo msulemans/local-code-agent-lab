@@ -162,6 +162,15 @@ localization, and the remaining limit is repair comprehension/review quality.
 Hosted runs freeze the same sampling settings, but seed equality is claimed
 only when the backend supports deterministic seeding.
 
+Phase 4 now begins with a leakage-safe training-data contract rather than a
+model download. `src/localcode/training_data.py` defines four repair task types,
+canonical immutable records, deterministic lineage-group splits, licence and
+source-revision provenance, exact-content overlap detection, corpus hashes, and
+automatic denial of every pinned SWE-bench evaluation ID and base revision.
+The registered policy lives in
+`benchmarks/training_data/manifest_v1.json`; no repair corpus or trained adapter
+is claimed yet. See [the Phase 4 lesson](docs/PHASE_4_TRAINING.md).
+
 Real agent runs now execute repository-owned public tests in the pinned
 SWE-bench instance image by default. The runner prepares selected images,
 mounts only the candidate diff, disables container networking, and retains a

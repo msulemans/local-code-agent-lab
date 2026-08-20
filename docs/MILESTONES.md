@@ -134,6 +134,74 @@ does not replace this milestone's larger failure explorer, run comparison,
 glossary, or reproduction guide. A small terminal shell and
 headless-versus-TUI equivalence test were brought forward during Milestone 007.
 
+## Phase 4 — Train a coding model
+
+Phase 4 improves the model component without changing the trusted LocalCode
+runtime. It starts from a capable pretrained coding checkpoint and trains a
+small adapter; it does not train a language model from scratch.
+
+## 013 — Leakage-safe training-data contract
+
+Freeze versioned records for `issue_to_diff`, `broken_to_corrected`,
+`test_failure_to_patch`, and `function_to_implementation`. Require source
+revision and reviewed licence provenance, deterministic lineage-group splits,
+canonical hashes, exact-content overlap checks, and automatic exclusion of all
+pinned evaluation IDs and base revisions.
+
+Gate: malformed records, unsafe paths, unreviewed licences, split drift,
+cross-split duplicates, and evaluation leakage are rejected deterministically;
+the contract CLI passes before any corpus is downloaded.
+
+## 014 — Pinned source acquisition and corpus build
+
+Select legally usable public repair sources, pin source revisions and file
+checksums, stream or download only the registered shards, normalize them into
+schema v1, and publish counts/rejection reasons without committing bulk data.
+
+Gate: reconstruction is deterministic; every accepted record has provenance;
+train/validation/sealed-test lineage and exact-content overlap are zero; no
+Milestone 009 evaluation instance or exact base revision appears.
+
+## 015 — Untouched pretrained baseline
+
+Choose the smallest instruction-tuned coding checkpoint that passes format and
+memory gates. Evaluate it once on validation tasks using executable tests and
+save the untouched checkpoint identity, prompt, decoding settings, and result.
+
+Gate: baseline evaluation is reproducible and no training begins unless one
+tiny batch can tokenize, forward, backward, and save an adapter on this Mac.
+
+## 016 — Controlled adapter training
+
+Fine-tune with LoRA/QLoRA or the Apple-Silicon equivalent using train only.
+Select checkpoint and stopping point using validation only. Preserve loss,
+throughput, memory, checkpoints, configuration, and source hashes.
+
+Gate: a tiny overfit diagnostic passes, the full run stays within the declared
+resource ceiling, and the selected adapter improves the registered validation
+metric over the untouched base. Otherwise preserve the negative result.
+
+## 017 — One sealed evaluation and LocalCode comparison
+
+Open the sealed test exactly once after configuration selection. Compare the
+base checkpoint and selected adapter both as direct repair models and inside
+the same frozen LocalCode treatment. Executable tests remain authoritative.
+
+Gate: report raw solves, valid patches, regressions, compute, and confidence
+limits. Do not tune after sealed-test inspection or mix these tasks with the
+pinned SWE-bench evaluation set.
+
+## 018 — Package the adapter and learning lab
+
+Record base-model licence, adapter licence, hashes, training manifest, hardware,
+limitations, load command, and a small reproducible demo. Extend the learning
+UI with data lineage, loss curves, baseline-versus-adapter evidence, and honest
+failed experiments.
+
+Gate: a clean environment can verify the manifest, load the base plus adapter,
+run the demo, and reproduce the reported small evaluation without secrets or
+untracked source data.
+
 ## Proposed 3–5 day prototype sprint
 
 This schedule is for a working teaching prototype, not a credible completed

@@ -14,6 +14,7 @@ boundaries below remain the foundation for every newer capability.
 | `runs/` | Immutable local event traces and artifacts | Ignored; never used as source instructions |
 | `models/`, `checkpoints/`, `adapters/` | Local weight artifacts | Ignored; identity and hashes belong in manifests |
 | `data/raw/`, `data/processed/` | Reconstructable bulk data | Ignored; source revisions and checksums belong in manifests |
+| `benchmarks/training_data/` | Versioned training-data policy | Trusted contract only; it contains no bulk corpus or evaluation answers |
 
 Repository files and issue descriptions presented to the future model are
 untrusted content. They may describe actions, but they cannot grant permission
@@ -30,20 +31,24 @@ or change runtime policy.
 - strict unified-diff application to existing tracked UTF-8 files;
 - one named Python test command with timeout, output, environment, process, and
   macOS sandbox limits;
-- a six-tool engineering registry and completion rules requiring a current
-  passing test result; and
+- an engineering registry and completion rules requiring current test evidence;
 - eight complete deterministic repairs driven by fake model decisions,
-  including failed-test observation, patch revision, and multi-file editing.
+  including failed-test observation, patch revision, and multi-file editing;
+- local and hosted inference adapters behind the same controller protocol;
+- pinned Docker public-test and official SWE-bench evaluation boundaries;
+- a measured B0/A1/A2/A3 real-issue pilot; and
+- a versioned Phase 4 training record, split, provenance, checksum, and
+  evaluation-leakage contract.
 
 ## What deliberately does not exist yet
 
-- a passing real-model integration run;
 - an unrestricted terminal or arbitrary model-selected command;
 - network access from repository tests;
 - file creation, deletion, rename, mode change, or binary patch support;
-- a fresh independent reviewer;
-- a benchmark adapter; or
-- real-model benchmark scoring.
+- a downloaded Phase 4 repair corpus;
+- an untouched Phase 4 base-model baseline;
+- a trained coding adapter; or
+- a sealed Phase 4 evaluation result.
 
 Keeping these absent preserves attribution: offline controller and safety
 failures remain distinct from local-model quality and benchmark resolution.

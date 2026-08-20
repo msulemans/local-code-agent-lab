@@ -28,6 +28,7 @@ class RepositoryContractTests(unittest.TestCase):
             "review.py",
             "retrieval.py",
             "test_runner.py",
+            "training_data.py",
             "tui.py",
             "workspace.py",
         }

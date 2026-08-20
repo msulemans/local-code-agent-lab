@@ -61,6 +61,7 @@ assert.match(js, /Preflight blocks unsafe inference/);
 assert.match(js, /atomic recorder preserves every CLI outcome/);
 assert.match(html, /B0\/A1\/A2\/A3 implemented/);
 assert.match(html, /0 → 0 → 0 → 0 of 3/);
+assert.match(html, /Training-data contract ready/);
 assert.match(html, /The first retrieval context treatment/);
 assert.match(html, /issue → repo map → ranked excerpts → loop context/);
 assert.match(js, /id: "apply_patch"/);
@@ -84,6 +85,9 @@ assert.match(js, /B0\/A1\/A2\/A3 all 0\/3/);
 assert.match(js, /valid patches 0\/1\/3\/2/);
 assert.match(js, /reviewer protected a wrong core idea/i);
 assert.match(js, /More valid patches still produced zero solves/);
+assert.match(js, /Phase 4 contract passed/);
+assert.match(js, /20 evaluation IDs \+ 20 revisions denied/);
+assert.match(js, /Why split Phase 4 data by repair lineage/);
 assert.match(js, /One patch decision/);
 
 console.log(`learning UI contract passed: ${ids.length} unique static IDs`);

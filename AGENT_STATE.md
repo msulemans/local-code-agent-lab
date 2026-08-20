@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
 Last updated: 2026-08-20 (Australia/Sydney)
-Status: Milestone 009's complete issue-to-evaluator path and fresh matched B0/A1/A2/A3 pilot are verified. The matched three-issue Luna ladder resolved 0/3 in every treatment after all gold controls resolved 3/3.
+Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestone 013 now has a leakage-safe training-data contract; no corpus, baseline, or trained adapter is claimed yet.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -32,18 +32,42 @@ hosted comparison model through the same decision protocol.
 
 ## Current phase
 
-Phase 3 — Build the local coding-agent runtime while preserving the model
-compatibility evidence boundary.
+Phase 4 — Train a coding model to improve the completed LocalCode runtime,
+starting with data provenance and leakage boundaries before model work.
 
 ## Current milestone
 
-Milestone 009 runtime closure. B0 is a genuine one-decision, one-patch
-baseline; A1 adds the bounded tool loop; A2 adds ranked repository context; A3
-adds a fresh read/test/revision review. The repaired A3 path is officially
-resolved on Requests and Flask. A fresh matched ladder over Matplotlib, xarray,
-and pytest is now complete. It produced no official solve in any treatment, so
-do not buy another Luna rerun of these issues or promote A3. Phase 3 runtime
-engineering is complete; the frozen-20 score remains unmeasured.
+Milestone 013 training-data contract. Phase 3 runtime engineering is complete;
+the frozen-20 score remains unmeasured. Phase 4 must not download a corpus or
+train until schema-v1 provenance, deterministic splits, overlap checks, licence
+review, and evaluation denylists pass.
+
+### Phase 4 Milestone 013 — training-data contract (2026-08-20)
+
+- Registered four repair tasks: `issue_to_diff`, `broken_to_corrected`,
+  `test_failure_to_patch`, and `function_to_implementation`.
+- Added immutable canonical schema-v1 records with strict duplicate/unknown
+  field rejection, safe changed paths, bounded input/target sizes, target-diff
+  path agreement, optional typed failing-test evidence, and stable record hash.
+- Added deterministic SHA-256 lineage splitting with seed `20260820` and fixed
+  80/10/10 train/validation/sealed-test buckets. Related repair variants cannot
+  cross splits; exact input and target content cannot cross splits even when a
+  source gives them different lineage IDs.
+- Every record requires repository, exact revision, source ID, licence string,
+  and an explicit `license_reviewed=true`. Unreviewed records are rejected.
+- The policy reads the pinned SWE-bench manifest and rejects all 20 evaluation
+  instance IDs and all 20 exact base revisions from every Phase 4 split.
+- `scripts/check_training_data_contract.py` validates the manifest offline and
+  can validate a prepared JSONL corpus. Current expected status is
+  `contract_ready_no_corpus`; bulk source data remains ignored.
+- Verification passed: 252 Python unit tests with 8 expected skips, the
+  rendered learning-UI contract with 50 unique static IDs, JavaScript syntax,
+  Python byte compilation, and `git diff --check`.
+- Phase 4 milestones 013–018 now cover contract, acquisition, untouched
+  baseline, controlled adapter training, one sealed evaluation, and packaging.
+- Next gate: Milestone 014 must register legally usable public sources with
+  pinned revisions/checksums and build a small deterministic corpus plus a
+  rejection report. Do not select or download the training model yet.
 
 ### Fresh matched treatment ladder (2026-08-20)
 
