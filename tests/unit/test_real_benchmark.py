@@ -20,6 +20,7 @@ from localcode.real_benchmark import (
 
 
 ROOT = Path(__file__).resolve().parents[2]
+REGISTERED_MANIFEST = ROOT / "benchmarks/real_benchmark/manifest_v1.json"
 
 
 def manifest_document() -> dict[str, object]:
@@ -200,6 +201,13 @@ class FailingEvaluator:
 
 
 class RealBenchmarkTests(unittest.TestCase):
+    def test_registered_fairness_claim_bounds_backend_seed_support(self) -> None:
+        manifest = load_real_benchmark_manifest(REGISTERED_MANIFEST)
+        controls = "\n".join(manifest.fairness_controls)
+
+        self.assertIn("seed where supported", controls)
+        self.assertNotIn("backend, and seed", controls)
+
     def test_manifest_loads_exactly_twenty_instances_and_four_configurations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "manifest.json"

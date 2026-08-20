@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
-Last updated: 2026-08-19 (Australia/Sydney)
-Status: Milestone 009's complete issue-to-evaluator path is verified. The first Luna A3 generalization gate is complete at 1/3: Flask resolved; Pylint and Sphinx produced valid but incomplete fixes, each confirmed against a resolving gold control.
+Last updated: 2026-08-20 (Australia/Sydney)
+Status: Milestone 009's complete issue-to-evaluator path and fresh matched B0/A1/A2/A3 pilot are verified. The matched three-issue Luna ladder resolved 0/3 in every treatment after all gold controls resolved 3/3.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -40,10 +40,46 @@ compatibility evidence boundary.
 Milestone 009 runtime closure. B0 is a genuine one-decision, one-patch
 baseline; A1 adds the bounded tool loop; A2 adds ranked repository context; A3
 adds a fresh read/test/revision review. The repaired A3 path is officially
-resolved on Requests and Flask. The Sphinx-only retry proved the controller
-repair and isolated a model/reviewer failure. Do not buy another retry of these
-same three issues; the next experiment must use fresh issues or a frozen matched
-treatment comparison.
+resolved on Requests and Flask. A fresh matched ladder over Matplotlib, xarray,
+and pytest is now complete. It produced no official solve in any treatment, so
+do not buy another Luna rerun of these issues or promote A3. Phase 3 runtime
+engineering is complete; the frozen-20 score remains unmeasured.
+
+### Fresh matched treatment ladder (2026-08-20)
+
+- Gold calibration `m-matched3-gold-v1` resolved all three fresh instances:
+  `matplotlib__matplotlib-20676`, `pydata__xarray-3993`, and
+  `pytest-dev__pytest-7324`. No model/API tokens were used for calibration.
+- `m-luna-matched3-ladder-v1` ran the same ordered instances through B0, A1,
+  A2, and A3 with `gpt-5.6-luna`, medium reasoning, pinned Docker public tests,
+  one worker, and the same registered budgets. Official result:
+  **B0 0/3, A1 0/3, A2 0/3, A3 0/3**; every adjacent gained/lost set was empty.
+- B0 produced 0 valid patches (5,090 tokens, 1 tool). A1 produced 1 valid patch
+  (3,774 tokens, 32 tools). A2 localized all three issues and produced 3 valid
+  patches (5,716 tokens, 17 tools), but all were `FIX_INCOMPLETE`. A3 produced
+  2 valid patches (7,061 tokens, 26 tools); Matplotlib and pytest remained
+  incomplete or regressed, and xarray ended in a typed backend error after an
+  unreadable provider response.
+- Gold comparison shows comprehension gaps rather than evaluator failures:
+  Matplotlib required initial handle positions from current axis bounds;
+  xarray required a backward-compatible `coord` migration with `dim` warning;
+  pytest required both prefixing AST identifiers and stripping the prefix at
+  matcher lookup. Luna repeatedly implemented only part or a different version
+  of those contracts.
+- A2 improved localization and valid-patch production but not the primary
+  resolved metric. A3 added compute without a solve and harmed regression
+  behavior on its Matplotlib and pytest candidates. It is not promoted.
+- The hosted Responses backend does not guarantee deterministic seed support.
+  Fairness metadata now says identical sampling settings with a seed only where
+  the backend supports it. Therefore this run is an observed matched pilot, not
+  a claim that A3 reviewed the bit-identical A2 candidate.
+- Decision: preserve this negative result and stop tuning on these gold answers.
+  The next engineering layer is Phase 4's issue/diff/test training-data pipeline;
+  a frozen-20 Luna score is optional future benchmark work, not a prerequisite
+  for declaring the Phase 3 runtime built.
+- Verification after recording the result and correcting fairness metadata:
+  244 unit tests passed with 8 expected sandbox skips; the 50-ID learning UI
+  contract, JavaScript syntax, Python compilation, and diff checks passed.
 
 ### Sphinx retry and generalization verdict (2026-08-19)
 

@@ -295,11 +295,11 @@ const milestones = [
   },
   {
     id: "009",
-    state: "Generalization complete · 1/3 resolved",
+    state: "Matched ladder complete · 0/3 throughout",
     title: "Real SWE-bench evaluation boundary",
-    story: "Luna resolved Flask. Pylint produced an incomplete patch. The first Sphinx attempt exposed a controller budget defect; after that was fixed, the Sphinx-only retry completed testing and review but made a global semantic change instead of the required narrow None special case. Resolving gold controls for both failures prove the evaluator path is sound.",
-    evidence: "A3 generalization 1/3 · Flask resolved · Pylint and Sphinx FIX_INCOMPLETE · both gold controls 1/1 · Sphinx retry used 15 tools with no budget crash",
-    decision: "Do not repay for these same issues. Preserve 1/3 as the measured result; use fresh issues or a frozen matched treatment comparison next.",
+    story: "After Requests proved the full pathway and the first A3 generalization gate resolved Flask, a fresh matched ladder ran B0, A1, A2, and A3 over Matplotlib, xarray, and pytest. Gold controls resolved every issue. Luna resolved none: retrieval found the right locations and raised valid-patch production to 3/3, but the patches missed required behavior; review added compute and regressions without a solve.",
+    evidence: "m-luna-matched3-ladder-v1 · gold 3/3 · B0/A1/A2/A3 all 0/3 · valid patches 0/1/3/2 · A3 not promoted",
+    decision: "Preserve the negative result and do not tune against inspected gold patches. Phase 3 runtime engineering is complete; continue to the Phase 4 training-data pipeline, with the frozen 20 left as future benchmark work.",
   },
 ];
 
@@ -412,6 +412,13 @@ const failures = [
     symptom: "The Sphinx reviewer accepted a global class-to-object role change, but the target test still failed while all 27 regression tests passed.",
     diagnosis: "The issue named one None special case, while the candidate changed every annotation. The review prompt incorrectly discouraged replacing the candidate's core fix. A resolving gold control confirmed that only None needed the object role.",
     lesson: "A reviewer must treat the candidate's central idea as untrusted. Compare semantic scope with the exact issue, prefer narrow special-case behavior when required, and acknowledge existing test evidence without mistaking baseline failures for target proof.",
+  },
+  {
+    type: "benchmark",
+    title: "More valid patches still produced zero solves",
+    symptom: "A2 localized all three fresh issues and emitted three valid diffs, yet its official score remained 0/3. A3 spent more tools and tokens but also remained 0/3.",
+    diagnosis: "Each repair captured only part of the contract: Matplotlib used the wrong initialization mechanism, xarray omitted backward-compatible migration behavior, and pytest changed only one side of an identifier transformation. A3 also introduced regression failures. Gold controls resolved 3/3, clearing the evaluator.",
+    lesson: "Track localization and valid-patch rates as secondary metrics, but promote a treatment only on executable resolution and regressions. A sound benchmark is allowed to report that added scaffolding did not overcome the model's comprehension ceiling.",
   },
 ];
 

@@ -101,6 +101,14 @@ automatic testing and review. Its broad `class` to `obj` change still failed
 the target test; the gold patch showed the required narrow `None` special case.
 This is model/reviewer evidence, not an evaluator or controller failure.
 
+The next fresh matched pilot, `m-luna-matched3-ladder-v1`, completed all four
+treatments over Matplotlib, xarray, and pytest. Gold controls resolved 3/3;
+Luna measured `0/3 → 0/3 → 0/3 → 0/3`. A2 produced a valid patch for every
+issue but missed required semantics. A3 added compute without a solve and
+harmed regression behavior in two produced candidates. The correct conclusion
+is not that the experiment failed: LocalCode measured a model-quality ceiling
+through a sound evaluator boundary.
+
 ## Explain-back check
 
 1. Why is a gold control allowed to read `patch` while an agent resolver is not?

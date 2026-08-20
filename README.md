@@ -121,7 +121,7 @@ The experiment layer is now wired to the same frozen micro-suite manifest.
 order: `B0`, `A1`, `A2`, `A3`. Today the runner measures `B0` as a true
 single-shot baseline with one bounded patch attempt, plus the implemented loop
 configurations (`A1` simple context and `A2` retrieval context), and `A3` as a
-bounded review pass over the `A2` result. This gives one place to compare
+bounded review pass over its own A2-style candidate. This gives one place to compare
 solved counts, paired transitions, and case-level evidence as more treatments
 land.
 
@@ -151,6 +151,16 @@ phases without negative budgets, but Luna globally weakened annotation roles
 where the required fix narrowly special-cased `None`. The reviewer is now
 explicitly allowed to replace a wrong core idea and must compare patch scope
 with the exact issue and existing public-test evidence.
+
+A fresh matched Matplotlib/xarray/pytest ladder then measured the complete
+`B0 → A1 → A2 → A3` sequence in one run. Gold controls resolved 3/3, while Luna
+resolved **0/3 in every treatment**. A2 increased valid patches from 0 (B0) and
+1 (A1) to 3, but none passed the official target behavior. A3 produced only 2
+valid patches, added compute, and introduced regression failures. This is a
+useful negative result: the runtime and evaluator work, retrieval improves
+localization, and the remaining limit is repair comprehension/review quality.
+Hosted runs freeze the same sampling settings, but seed equality is claimed
+only when the backend supports deterministic seeding.
 
 Real agent runs now execute repository-owned public tests in the pinned
 SWE-bench instance image by default. The runner prepares selected images,

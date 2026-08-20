@@ -92,7 +92,7 @@ def main() -> int:
         },
         "fairness_controls": [
             "Same pinned instance IDs and base commits",
-            "Same model checkpoint, quantization, backend, and seed",
+            "Same model checkpoint, quantization, backend, and sampling settings; seed where supported",
             "Same generated-token, tool-call, test, patch, and wall budgets",
             "Same network policy and Docker evaluator resources",
             "Gold and evaluator-only fields are hidden from agent context",

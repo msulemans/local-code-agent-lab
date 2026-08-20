@@ -166,3 +166,27 @@ told never to undo the candidate's core fix. Review now treats that idea as
 untrusted, checks narrow named behavior against broad semantic changes, and
 must acknowledge supplied public-test evidence. Do not rerun the same three
 paid issues merely to tune against their gold answers.
+
+## Fresh matched B0/A1/A2/A3 result
+
+Gold calibration `m-matched3-gold-v1` resolved Matplotlib 20676, xarray 3993,
+and pytest 7324 (3/3). The paid run `m-luna-matched3-ladder-v1` then measured
+all four configurations over those same instances in one invocation:
+
+| Treatment | Resolved | Valid patches | Tokens | Tools |
+|---|---:|---:|---:|---:|
+| B0 | 0/3 | 0 | 5,090 | 1 |
+| A1 | 0/3 | 1 | 3,774 | 32 |
+| A2 | 0/3 | 3 | 5,716 | 17 |
+| A3 | 0/3 | 2 | 7,061 | 26 |
+
+A2 found the right implementation and formed a patch in all three cases, but
+each missed part of the behavioral contract. A3 did not recover a solve and
+introduced regression failures in its Matplotlib and pytest candidates; xarray
+ended with a typed unreadable-provider-response backend error. Preserve the
+result and do not rerun against the now-inspected gold patches.
+
+The Responses API adapter freezes model and sampling settings but does not
+guarantee a deterministic seed. The registered fairness statement now says
+"seed where supported." Consequently, A3 is a matched operational treatment,
+not proof that its first phase reproduced the bit-identical A2 patch.
