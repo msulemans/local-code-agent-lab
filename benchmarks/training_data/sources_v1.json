@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "source_id": "commitpackft-python-v1",
+      "provider": "huggingface",
+      "dataset": "bigcode/commitpackft",
+      "dataset_revision": "fc56fe33c030c6daa414c2b112c932b8eed085e6",
+      "dataset_license": "MIT",
+      "artifact_path": "data/python/data.jsonl",
+      "artifact_url": "https://huggingface.co/datasets/bigcode/commitpackft/resolve/fc56fe33c030c6daa414c2b112c932b8eed085e6/data/python/data.jsonl",
+      "artifact_bytes": 135858935,
+      "artifact_sha256": "d167da37e1058371c48e057cd8815d03700c867dd8bcf58e61420d4dcd288d73",
+      "language": "Python",
+      "reviewed_sample_licenses": [
+        "apache-2.0",
+        "bsd-2-clause",
+        "bsd-3-clause",
+        "cc0-1.0",
+        "isc",
+        "mit",
+        "unlicense"
+      ],
+      "maximum_examples": 2000
+    }
+  ]
+}

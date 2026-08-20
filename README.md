@@ -168,8 +168,11 @@ canonical immutable records, deterministic lineage-group splits, licence and
 source-revision provenance, exact-content overlap detection, corpus hashes, and
 automatic denial of every pinned SWE-bench evaluation ID and base revision.
 The registered policy lives in
-`benchmarks/training_data/manifest_v1.json`; no repair corpus or trained adapter
-is claimed yet. See [the Phase 4 lesson](docs/PHASE_4_TRAINING.md).
+`benchmarks/training_data/manifest_v1.json`. Milestone 014 also pins and verifies
+the CommitPackFT Python shard, normalizes 2,000 deterministic
+`broken_to_corrected` examples, and writes a rejection report. Bulk raw and
+processed data remain ignored and reconstructable; no trained adapter is
+claimed yet. See [the Phase 4 lesson](docs/PHASE_4_TRAINING.md).
 
 Real agent runs now execute repository-owned public tests in the pinned
 SWE-bench instance image by default. The runner prepares selected images,

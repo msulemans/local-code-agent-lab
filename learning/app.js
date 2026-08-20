@@ -309,6 +309,14 @@ const milestones = [
     evidence: "schema v1 · four task types · SHA-256 80/10/10 lineage split · 20 evaluation IDs + 20 revisions denied · offline contract CLI",
     decision: "Proceed to source acquisition only after registering licence, revision, checksum, bounded reconstruction, and rejection accounting. No corpus, baseline, or adapter exists yet.",
   },
+  {
+    id: "014",
+    state: "Real corpus verified",
+    title: "Pinned acquisition and deterministic normalization",
+    story: "LocalCode pins one CommitPackFT Python artifact by dataset revision, byte count, and SHA-256 before parsing it. The builder keeps only single-repository Python file corrections with a reviewed permissive licence, rejects ambiguous provenance and duplicate content, then selects the stable lowest-hash 2,000 examples. Raw and processed code stay ignored; manifests and evidence stay versioned.",
+    evidence: "56,025 raw → 25,989 candidates → 2,000 examples · train 1,594 · validation 211 · sealed 195 · corpus SHA-256 4d7629c1…fafb",
+    decision: "Treat commit corrections as noisy supervision, not executable proof. Proceed to an untouched base-model validation and a one-batch adapter feasibility gate before full training.",
+  },
 ];
 
 const configurations = [
@@ -449,6 +457,8 @@ const flashcards = [
   ["Why split Phase 4 data by repair lineage?", "One fix can generate issue, broken-code, and test-failure variants. Hashing their shared lineage sends every variant to one split so validation or sealed test cannot reward memorization of a training sibling."],
   ["Why deny evaluation base revisions as well as issue IDs?", "A source may rename or omit the benchmark ID while still containing the exact pre-fix repository state and answer. Blocking both identities closes that simple leakage path."],
   ["When may Phase 4 open the sealed test?", "Exactly once after the adapter, checkpoint, prompt, and decoding settings are selected using training and validation only. Sealed results report; they never tune."],
+  ["Why reject CommitPackFT rows naming many repositories?", "The same commit can appear across many forks, so choosing one repository would invent provenance. Schema v1 accepts only a single unambiguous owner/repository."],
+  ["Does a before/after commit pair prove a bug was fixed?", "No. It is useful repair-shaped supervision, but only executable tests can establish behavioral correctness. Promotion therefore uses test-backed validation."],
 ];
 
 const quiz = [

@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
 Last updated: 2026-08-20 (Australia/Sydney)
-Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestone 013 now has a leakage-safe training-data contract; no corpus, baseline, or trained adapter is claimed yet.
+Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestones 013–014 now have a leakage-safe contract and a verified 2,000-example repair corpus; no base-model baseline or trained adapter is claimed yet.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -37,10 +37,38 @@ starting with data provenance and leakage boundaries before model work.
 
 ## Current milestone
 
-Milestone 013 training-data contract. Phase 3 runtime engineering is complete;
-the frozen-20 score remains unmeasured. Phase 4 must not download a corpus or
-train until schema-v1 provenance, deterministic splits, overlap checks, licence
-review, and evaluation denylists pass.
+Milestone 014 pinned acquisition and corpus build. Phase 3 runtime engineering
+is complete; the frozen-20 score remains unmeasured. Phase 4 now has a verified
+seed corpus and proceeds to an untouched pretrained baseline before training.
+
+### Phase 4 Milestone 014 — pinned acquisition and corpus build (2026-08-20)
+
+- Registered the CommitPackFT Python shard at exact dataset revision
+  `fc56fe33c030c6daa414c2b112c932b8eed085e6`, 135,858,935 bytes, SHA-256
+  `d167da37e1058371c48e057cd8815d03700c867dd8bcf58e61420d4dcd288d73`.
+- The dataset card is MIT, but code records retain their source-repository
+  licence. Schema v1 accepts only the explicitly reviewed permissive set and
+  rejects unknown, AGPL, LGPL, EPL, MPL, and Artistic records for this seed.
+- Added strict source-manifest parsing, HTTPS/pinned-revision validation,
+  byte/checksum verification, record normalization, deterministic lowest-hash
+  selection, content deduplication, and rejection accounting.
+- The real pinned shard contained 56,025 records. There were 25,989 candidates;
+  the deterministic cap selected 2,000 `broken_to_corrected` examples and
+  reported 15,909 ambiguous repositories, 5,873 unapproved licences, 8,254
+  invalid/oversized old contents, 99 exact content duplicates, and 23,890
+  candidates beyond the selection cap.
+- The validated corpus SHA-256 is
+  `4d7629c1a026559859abc3c28c596a18e21cc478b7ea8c6f7a65ccf99d53fafb`.
+  Its deterministic split is 1,594 train, 211 validation, and 195 sealed test.
+- Raw data, normalized JSONL, and the local build report remain ignored and
+  reconstructable. The versioned source/policy manifests contain no code data.
+- Repeating the complete build produced the same corpus hash. Verification
+  passed: 256 Python unit tests with 8 expected sandbox skips, the learning-UI
+  contract with 50 unique static IDs, JavaScript syntax, Python byte
+  compilation, corpus contract validation, and `git diff --check`.
+- Next gate: Milestone 015 must choose a comfortably runnable base checkpoint,
+  record untouched validation behavior, and prove one tokenize/forward/backward
+  adapter step on this Mac before any full training run.
 
 ### Phase 4 Milestone 013 — training-data contract (2026-08-20)
 

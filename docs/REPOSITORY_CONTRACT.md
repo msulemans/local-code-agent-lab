@@ -38,14 +38,16 @@ or change runtime policy.
 - pinned Docker public-test and official SWE-bench evaluation boundaries;
 - a measured B0/A1/A2/A3 real-issue pilot; and
 - a versioned Phase 4 training record, split, provenance, checksum, and
-  evaluation-leakage contract.
+  evaluation-leakage contract; and
+- a pinned, checksum-verified, deterministic repair-source normalizer and local
+  2,000-example seed-corpus reconstruction path.
 
 ## What deliberately does not exist yet
 
 - an unrestricted terminal or arbitrary model-selected command;
 - network access from repository tests;
 - file creation, deletion, rename, mode change, or binary patch support;
-- a downloaded Phase 4 repair corpus;
+- committed bulk Phase 4 source or normalized data;
 - an untouched Phase 4 base-model baseline;
 - a trained coding adapter; or
 - a sealed Phase 4 evaluation result.
