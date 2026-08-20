@@ -188,6 +188,21 @@ false and keeps the sealed split closed. It answers the immediate scientific
 question—whether any safely saved adapter improves on 4/6—without resetting the
 optimizer or silently changing the training treatment.
 
+The recovery completed in 247.64 seconds. Full-validation loss selected update
+200 at `1.333`, a small improvement over the untouched model's `1.383`.
+Executable evidence contradicted that proxy: the adapter solved only 1/6 while
+the untouched model solved 4/6. It retained strict output formatting but lost
+repair behavior on the parser, boundary, whitespace, syntax, and fallback
+cases. Only the zero-denominator ratio repair passed.
+
+This is the key M016 result: lower commit-imitation loss did not imply better
+executable repair. The selected adapter is not promoted, the sealed split stays
+closed, and a longer run of the same treatment is not justified. The next
+training treatment must improve data/metric alignment using executable repair
+evidence rather than tuning the learning rate against these six development
+cases. The concise versioned evidence is
+`benchmarks/training/m016_recovery_result_v1.json`.
+
 ## Explain-back questions
 
 1. Why must variants of one repair share a lineage split?

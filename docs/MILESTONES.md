@@ -186,6 +186,12 @@ immutable recovery record, but it must not be reported as completion of the
 configured training length. Adapter-only continuation also resets Adam state,
 so it is a new treatment rather than an exact resume.
 
+Observed v1 recovery result: update 200 reduced full-validation loss from
+`1.383` to `1.333`, but executable development solves regressed from 4/6 to
+1/6. The adapter is not promoted and the sealed split remains closed. Further
+work must change the data/evidence treatment rather than merely extending this
+run.
+
 ## 017 — One sealed evaluation and LocalCode comparison
 
 Open the sealed test exactly once after configuration selection. Compare the

@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m016-qwen25-coder-lora-v1",
+  "run_id": "m016-lora-v2-recovery-v1",
+  "source_run_id": "m016-lora-v2",
+  "treatment": "shortened_completed_checkpoints_after_interrupted_training",
+  "original_1600_step_treatment_complete": false,
+  "sealed_examples_loaded": 0,
+  "record_canonical_sha256": "bacac73574572de99e62e31a8d765af2c4722c6f95231bf5011750d9083ca63d",
+  "available_checkpoint_iterations": [200, 400, 600, 800],
+  "checkpoint_validation": [
+    {"iteration": 200, "loss": 1.333, "perplexity": 3.791},
+    {"iteration": 400, "loss": 1.333, "perplexity": 3.793},
+    {"iteration": 600, "loss": 1.346, "perplexity": 3.843},
+    {"iteration": 800, "loss": 1.353, "perplexity": 3.869}
+  ],
+  "selected_adapter": {
+    "iteration": 200,
+    "sha256": "6add9f42612d9c0307fc864c67d5c513a21790e319b4dd02d468931c3313db34",
+    "validation_loss": 1.333,
+    "validation_perplexity": 3.791
+  },
+  "untouched_baseline": {
+    "validation_loss": 1.383,
+    "executable_solved": 4,
+    "executable_registered": 6
+  },
+  "executable_evaluation": {
+    "solved": 1,
+    "registered": 6,
+    "improved_over_untouched": false,
+    "case_statuses": {
+      "parser-none": "tests_failed",
+      "discount-boundary": "tests_failed",
+      "display-whitespace": "tests_failed",
+      "label-syntax": "tests_failed",
+      "fallback-port": "tests_failed",
+      "ratio-retry": "solved"
+    }
+  },
+  "verdict": "recovered_negative",
+  "decision": "Do not promote this adapter and do not open the sealed split. Replace the commit-imitation validation treatment with executable-aligned repair evidence before another training run."
+}

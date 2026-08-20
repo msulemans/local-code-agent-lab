@@ -327,11 +327,11 @@ const milestones = [
   },
   {
     id: "016",
-    state: "Checkpoint recovery ready",
+    state: "Recovered negative · 1/6",
     title: "Train, select, then test one LoRA adapter",
-    story: "The v2 diagnostic passed, then the planned 1,600 train updates reached update 980 before macOS Metal stopped a command buffer for impacting interactivity. It was not an OOM: peak active memory was only 4.739 GB. Four complete checkpoints through update 800 remain usable, so a bounded recovery now performs the validation selection and executable comparison without retraining.",
-    evidence: "v1 validation 0.208 → 0.010, confirmed by corrected v2 diagnostic · step 800 saved at 171,707 supervised tokens · last metric step 980 at 214,285 · checkpoints 200/400/600/800 · peak 4.739 GB · sealed loaded 0",
-    decision: "Validate and test the four completed checkpoints. Keep the original 1,600-step treatment marked incomplete; promote a recovered adapter only if it exceeds the frozen 4/6 executable baseline, and keep sealed data closed.",
+    story: "The v2 diagnostic passed and training reached update 980 before a Metal interactivity interruption. Recovery fully validated checkpoints 200/400/600/800 and selected step 200. Its commit-imitation loss improved slightly, but executable repair fell from the untouched model's 4/6 to 1/6: formatting survived while five fixes were behaviorally wrong.",
+    evidence: "validation 1.383 base → 1.333 adapter · executable 4/6 base → 1/6 adapter · selected step 200 · recovery 247.64 s · peak training memory 4.739 GB · sealed loaded 0",
+    decision: "Preserve the adapter as a negative result. Do not open sealed data, resume the same recipe, or tune against the six development cases. Build the next treatment around executable-aligned repair data and validation evidence.",
   },
 ];
 
@@ -480,6 +480,7 @@ const flashcards = [
   ["Why evaluate every saved M016 checkpoint on validation?", "Training loss selects memorization, not generalization. Full validation loss chooses one stopping point before executable comparison and before the sealed split is opened."],
   ["Why did the first M016 diagnostic stop despite validation loss collapsing?", "The gate compared losses from different shuffled mini-batches. The corrected gate compares the same frozen eight-row validation set and uses minimum observed train loss only as supporting overfit evidence."],
   ["Why recover M016 checkpoints instead of resuming from step 800?", "MLX saved adapter weights but not the Adam optimizer state. Resuming would reset optimizer state and create a different segmented treatment. Recovery keeps the completed weights, selects them honestly on validation, and labels the original 1,600-step run incomplete."],
+  ["Why was lower M016 validation loss not enough?", "The validation split measured imitation of noisy commit edits. Step 200 improved that loss from 1.383 to 1.333 but executable repairs dropped from 4/6 to 1/6. A proxy metric is useful only when it tracks the capability we actually want."],
   ["Why reduce the sequence ceiling from 2,048 to 1,024?", "Pinned-tokenizer inspection found every development row at 849 tokens or fewer. A 1,024 ceiling preserves all evidence while reducing memory and compute."],
 ];
 

@@ -17,6 +17,7 @@ from localcode.training_run import (
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "benchmarks/training/m016_lora_v1.json"
+RECOVERY_RESULT = ROOT / "benchmarks/training/m016_recovery_result_v1.json"
 
 
 class TrainingRunTests(unittest.TestCase):
@@ -30,6 +31,19 @@ class TrainingRunTests(unittest.TestCase):
         self.assertEqual(document["full_training"]["checkpoint_iterations"], list(range(200, 1601, 200)))
         self.assertEqual(document["promotion_gate"]["must_exceed"], 4)
         self.assertIn("Do not load", document["sealed_split_policy"])
+
+    def test_recovery_result_preserves_negative_verdict_and_sealed_boundary(self) -> None:
+        document = json.loads(RECOVERY_RESULT.read_text(encoding="utf-8"))
+        self.assertEqual(document["verdict"], "recovered_negative")
+        self.assertFalse(document["original_1600_step_treatment_complete"])
+        self.assertEqual(document["sealed_examples_loaded"], 0)
+        self.assertEqual(document["selected_adapter"]["iteration"], 200)
+        self.assertEqual(document["executable_evaluation"]["solved"], 1)
+        self.assertFalse(document["executable_evaluation"]["improved_over_untouched"])
+        self.assertGreater(
+            document["untouched_baseline"]["executable_solved"],
+            document["executable_evaluation"]["solved"],
+        )
 
     def test_training_metrics_drive_overfit_gate(self) -> None:
         output = (
