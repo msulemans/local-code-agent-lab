@@ -203,6 +203,47 @@ evidence rather than tuning the learning rate against these six development
 cases. The concise versioned evidence is
 `benchmarks/training/m016_recovery_result_v1.json`.
 
+## M016b: executable-aligned correction
+
+M016b changes the evidence, not merely the learning rate. It pins the official
+SWE-smith Python dataset at revision `77cab905…`, then downloads only shard
+`00000` (16,852,671 bytes; SHA-256 `302a383b…833d`). SWE-smith retains tasks
+whose synthetic mutation breaks one or more unit tests and supplies an
+executable environment. LocalCode accepts only one-file Python modifications
+from ten explicitly reviewed permissive repositories.
+
+The normalizer mechanically reverses each test-breaking mutation into its gold
+repair. Model input contains the generated issue, FAIL_TO_PASS names, and
+post-mutation broken hunk context. Original correct removed lines are excluded
+from input, so the answer is not copied into the prompt. Repository-plus-file
+lineages stay in one deterministic split, and a 300-example repository cap
+prevents large projects from dominating.
+
+The pinned shard produced 4,628 raw rows, 2,530 quality candidates, and 1,553
+selected examples across ten repositories. Before tokenizer filtering the
+split is 1,252 train, 235 validation, and 66 sealed. The pinned Qwen tokenizer
+then keeps 755 train and 131 validation rows that fit completely within 1,024
+tokens; it skips sealed rows before rendering or tokenization. No truncation is
+silently treated as full supervision.
+
+Checkpoint loss remains a selection aid, but promotion is executable. The
+unchanged six development fixtures are forbidden from training. The untouched
+model and future adapter receive the issue, an actually observed failing-test
+output, and the broken file; they must return one strict unified diff. Trusted
+code applies it in a disposable workspace and reruns the registered tests.
+Run the new untouched baseline in normal Terminal:
+
+```bash
+caffeinate -dimsu env PYTHONPATH=src \
+  .venv-mlx/bin/python scripts/run_m016b_patch_baseline.py \
+  --run-id m016b-patch-base-v1
+```
+
+The frozen data evidence is `benchmarks/training/m016b_data_v1.json`. The
+source dataset is documented by the official
+[`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
+and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).
+
 ## Explain-back questions
 
 1. Why must variants of one repair share a lineage split?

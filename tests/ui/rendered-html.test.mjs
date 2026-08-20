@@ -102,6 +102,10 @@ assert.match(js, /executable 4\/6 base → 1\/6 adapter/);
 assert.match(js, /Why evaluate every saved M016 checkpoint on validation/);
 assert.match(js, /Why was lower M016 validation loss not enough/);
 assert.match(js, /Why did the first M016 diagnostic stop despite validation loss collapsing/);
+assert.match(js, /id: "016B"/);
+assert.match(js, /4,628 raw → 2,530 candidates → 1,553 selected/);
+assert.match(js, /755 train \+ 131 validation/);
+assert.match(js, /How does M016b avoid putting the SWE-smith answer in its prompt/);
 assert.match(js, /Why is the two-update LoRA adapter not yet CodeLM/);
 assert.match(js, /One patch decision/);
 

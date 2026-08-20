@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "source_id": "swe-smith-py-shard-00000-v1",
+      "provider": "huggingface",
+      "dataset": "SWE-bench/SWE-smith-py",
+      "dataset_revision": "77cab9055d42ab4a5c25c89a8f937096db13558e",
+      "dataset_license": "MIT",
+      "artifact_path": "data/train-00000-of-00011.parquet",
+      "artifact_url": "https://huggingface.co/datasets/SWE-bench/SWE-smith-py/resolve/77cab9055d42ab4a5c25c89a8f937096db13558e/data/train-00000-of-00011.parquet",
+      "artifact_bytes": 16852671,
+      "artifact_sha256": "302a383bb9229c42063ff2364b2ea637e9e7a20d82e0d566614d3aba9234833d",
+      "language": "Python",
+      "maximum_examples": 1800,
+      "maximum_examples_per_repository": 300,
+      "allowed_repository_licenses": {
+        "Suor/funcy": "BSD-3-Clause",
+        "cknd/stackprinter": "MIT",
+        "jd/tenacity": "Apache-2.0",
+        "madzak/python-json-logger": "BSD-2-Clause",
+        "oauthlib/oauthlib": "BSD-3-Clause",
+        "pdfminer/pdfminer.six": "MIT",
+        "pudo/dataset": "MIT",
+        "pygments/pygments": "BSD-2-Clause",
+        "pytest-dev/iniconfig": "MIT",
+        "seatgeek/thefuzz": "MIT"
+      },
+      "quality_requirements": {
+        "requires_fail_to_pass": true,
+        "single_file_only": true,
+        "python_file_only": true,
+        "maximum_problem_chars": 4000,
+        "maximum_patch_chars": 16000,
+        "maximum_failing_tests": 64
+      }
+    }
+  ]
+}

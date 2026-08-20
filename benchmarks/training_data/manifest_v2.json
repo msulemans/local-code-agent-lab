@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "dataset_id": "localcode-executable-repair-v2",
+  "split_seed": 20260820,
+  "split_buckets": {
+    "train": 8000,
+    "validation": 1000,
+    "sealed_test": 1000
+  },
+  "task_types": [
+    "issue_to_diff",
+    "broken_to_corrected",
+    "test_failure_to_patch",
+    "function_to_implementation"
+  ],
+  "evaluation_manifests": [
+    "benchmarks/real_benchmark/manifest_v1.json"
+  ],
+  "max_input_chars": 24000,
+  "max_target_chars": 16000,
+  "max_changed_paths": 1
+}

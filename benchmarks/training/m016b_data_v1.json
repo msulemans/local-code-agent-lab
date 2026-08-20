@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m016b-executable-aligned-repair-v1",
+  "purpose": "replace noisy commit imitation with test-grounded issue-to-diff supervision",
+  "source": {
+    "dataset": "SWE-bench/SWE-smith-py",
+    "revision": "77cab9055d42ab4a5c25c89a8f937096db13558e",
+    "shard": "data/train-00000-of-00011.parquet",
+    "bytes": 16852671,
+    "sha256": "302a383bb9229c42063ff2364b2ea637e9e7a20d82e0d566614d3aba9234833d",
+    "dataset_license": "MIT",
+    "raw_records": 4628
+  },
+  "normalization": {
+    "task_type": "issue_to_diff",
+    "requires_fail_to_pass": true,
+    "single_python_file_only": true,
+    "gold_repair": "mechanical_inverse_of_test_breaking_mutation",
+    "input_excludes_original_correct_lines": true,
+    "reviewed_permissive_repositories": 10,
+    "maximum_examples_per_repository": 300,
+    "candidate_records": 2530,
+    "selected_records": 1553,
+    "corpus_sha256": "50600e205e0c40a9419150b770785a28218f764df6280c1a28f3bc06a55882f4"
+  },
+  "split_before_token_filter": {
+    "train": 1252,
+    "validation": 235,
+    "sealed_test": 66
+  },
+  "mlx_export": {
+    "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "model_revision": "cc932d8a05bf5a3dcd700f50584714d17fc4d03a",
+    "maximum_sequence_tokens": 1024,
+    "train_examples": 755,
+    "validation_examples": 131,
+    "sealed_examples_withheld": 66,
+    "sealed_examples_tokenized": 0,
+    "train_overlength_rejected": 497,
+    "validation_overlength_rejected": 104,
+    "train_sha256": "4bf4a9c6f3cbb9fa7f967c664c3c38b7afd023daec2f437b8ba1c0f4b3f70131",
+    "validation_sha256": "fb617f53a73690fd6ec4f4835a4380260cfe2422a557d2115ba6dc9af2c0e115"
+  },
+  "development_gate": {
+    "suite": "m015-executable-dev-v1",
+    "cases": 6,
+    "input": "issue plus observed failing-test output plus broken file",
+    "output": "one strict unified diff",
+    "tests_authoritative": true,
+    "suite_examples_allowed_in_training": false,
+    "baseline_status": "pending"
+  },
+  "sealed_examples_loaded_for_training": 0
+}

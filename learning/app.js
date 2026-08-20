@@ -333,6 +333,14 @@ const milestones = [
     evidence: "validation 1.383 base → 1.333 adapter · executable 4/6 base → 1/6 adapter · selected step 200 · recovery 247.64 s · peak training memory 4.739 GB · sealed loaded 0",
     decision: "Preserve the adapter as a negative result. Do not open sealed data, resume the same recipe, or tune against the six development cases. Build the next treatment around executable-aligned repair data and validation evidence.",
   },
+  {
+    id: "016B",
+    state: "Executable-aligned data ready",
+    title: "Train on test-breaking mutations, not ordinary commits",
+    story: "M016b pins one official SWE-smith Python shard. Every accepted task has failing-test evidence. Trusted normalization reverses the test-breaking mutation into the repair diff while showing the model only the issue, failing test names, and broken post-mutation hunk—not the original correct lines.",
+    evidence: "4,628 raw → 2,530 candidates → 1,553 selected · 10 permissive repositories · 755 train + 131 validation within 1,024 tokens · 66 sealed withheld before tokenization · corpus SHA-256 50600e20…82f4",
+    decision: "Measure the untouched issue-to-diff baseline on the unchanged six executable fixtures. Only then freeze the LoRA schedule; tests, not validation loss alone, decide promotion.",
+  },
 ];
 
 const configurations = [
@@ -481,6 +489,8 @@ const flashcards = [
   ["Why did the first M016 diagnostic stop despite validation loss collapsing?", "The gate compared losses from different shuffled mini-batches. The corrected gate compares the same frozen eight-row validation set and uses minimum observed train loss only as supporting overfit evidence."],
   ["Why recover M016 checkpoints instead of resuming from step 800?", "MLX saved adapter weights but not the Adam optimizer state. Resuming would reset optimizer state and create a different segmented treatment. Recovery keeps the completed weights, selects them honestly on validation, and labels the original 1,600-step run incomplete."],
   ["Why was lower M016 validation loss not enough?", "The validation split measured imitation of noisy commit edits. Step 200 improved that loss from 1.383 to 1.333 but executable repairs dropped from 4/6 to 1/6. A proxy metric is useful only when it tracks the capability we actually want."],
+  ["How does M016b avoid putting the SWE-smith answer in its prompt?", "A SWE-smith mutation diff contains both the original correct lines and new broken lines. The builder omits the removed correct lines from input, retains only broken postimage context, and uses the mechanically reversed diff as the target."],
+  ["Why cap M016b examples per repository?", "Without a cap, Pygments, OAuthlib, and pdfminer would dominate the shard. A 300-row cap preserves more repository diversity and reduces memorization of one project's local patterns."],
   ["Why reduce the sequence ceiling from 2,048 to 1,024?", "Pinned-tokenizer inspection found every development row at 849 tokens or fewer. A 1,024 ceiling preserves all evidence while reducing memory and compute."],
 ];
 
