@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Any, Protocol
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -99,6 +100,7 @@ class OpenAIResponsesLoopBackend:
         self._system_prompt = LOOP_SYSTEM_PROMPT if system_prompt is None else system_prompt
         self._generated_tokens = 0
         self._input_tokens = 0
+        self._last_reasoning = ""
 
     def complete(self, request: LoopRequest) -> str:
         if request.protocol_version != "1":
@@ -125,7 +127,17 @@ class OpenAIResponsesLoopBackend:
             }
         )
         self._record_usage(result.get("usage"))
-        return _protocol_payload(result)
+        # Reasoning summaries are surfaced for the chat UI; they never change
+        # the returned decision envelope (the controller stays authoritative).
+        self._last_reasoning = _reasoning_text(result.get("output"))
+        payload = _protocol_payload(result)
+        _write_trace(request, result, payload)
+        return payload
+
+    @property
+    def last_reasoning(self) -> str:
+        """The model's latest reasoning summary, if the provider returned one."""
+        return self._last_reasoning
 
     def _record_usage(self, usage: object) -> None:
         if not isinstance(usage, dict):
@@ -215,6 +227,47 @@ def _protocol_payload(result: dict[str, Any]) -> str:
         sort_keys=True,
         separators=(",", ":"),
     )
+
+
+def _write_trace(request: LoopRequest, result: dict[str, Any], payload: str) -> None:
+    """Append one bounded decision to the optional LOCALCODE_TRACE_PATH file."""
+    trace_path = os.environ.get("LOCALCODE_TRACE_PATH")
+    if not trace_path:
+        return
+    output = result.get("output")
+    content = json.dumps(output, sort_keys=True) if output is not None else ""
+    with Path(trace_path).open("a", encoding="utf-8") as trace:
+        trace.write(
+            json.dumps(
+                {
+                    "turn": request.turn_index,
+                    "context_tail": request.context[-1200:],
+                    "content": content[:2000],
+                    "payload": payload,
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+
+def _reasoning_text(output: object) -> str:
+    """Extract provider reasoning summaries without changing the decision."""
+    if not isinstance(output, list):
+        return ""
+    parts: list[str] = []
+    for item in output:
+        if not isinstance(item, dict) or item.get("type") != "reasoning":
+            continue
+        summary = item.get("summary")
+        if not isinstance(summary, list):
+            continue
+        for block in summary:
+            if isinstance(block, dict) and block.get("type") == "summary_text":
+                value = block.get("text")
+                if isinstance(value, str) and value.strip():
+                    parts.append(value.strip())
+    return "\n".join(parts)
 
 
 def _output_text(output: list[object]) -> str:

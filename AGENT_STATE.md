@@ -37,9 +37,140 @@ starting with data provenance and leakage boundaries before model work.
 
 ## Current milestone
 
-Milestone 016 controlled adapter training. Its complete train-only pipeline is
-implemented and preflight-verified; the remaining gate is the real normal-
-Terminal diagnostic and training measurement.
+Milestone 022 interactive chat. On top of the Milestone 021 one-shot CLI, a
+chat REPL now opens in any project (`scripts/localcode_chat.py`), keeps one
+persistent disposable workspace for the whole session so follow-up requests
+build on prior edits, streams the live loop AND the model's reasoning per
+turn, and delivers edits only when you type `apply` (unstaged, after
+`git apply --check`).
+
+### Phase 4 Milestone 022 — interactive chat REPL with visible reasoning (2026-08-21, complete)
+
+- Added `src/localcode/thinking.py` with `ThinkingBackend`, a loop-backend
+  decorator that passes the decision envelope through unchanged (the
+  controller stays authoritative) and surfaces the model's reasoning per turn:
+  `thought_summary` from the envelope, or provider reasoning summaries when
+  the backend exposes `last_reasoning`.
+- Additive change to `src/localcode/backends/openai_responses.py`: the
+  backend now captures the provider's `reasoning` summaries into a
+  `last_reasoning` attribute (the returned envelope is unchanged; 2 new unit
+  tests).
+- Added `scripts/localcode_chat.py`: `cd <project> && scripts/localcode_chat.py
+  --backend mlx|openai|openai-compatible` opens a REPL with commands
+  `help`, `diff`, `apply`, `status`, `exit`. Each request runs the real
+  `AgentLoop` on a session-persistent disposable workspace; the previous
+  conversation is composed into the next request so follow-ups build on
+  prior edits. `diff` shows the cumulative Git diff; `apply` delivers it to
+  the original repo unstaged after `git apply --check`. `--strict` restores
+  the lab's patch+passing-tests completion gate; chat mode is lenient by
+  default. Evidence is written to `runs/tui/<run-id>/run.json`.
+- Registered 7 new unit tests (`tests/unit/test_thinking_backend.py` plus 2
+  reasoning-capture tests in `tests/unit/test_openai_responses_backend.py`).
+  All pass with the existing backend suites.
+- Added run-from-anywhere launchers `bin/localcode-chat` and
+  `bin/localcode-cli` (absolute-path wrappers; `.venv-mlx` runs every backend
+  because the OpenAI transports are standard-library only).
+- Extended the workspace exclusion policy in `src/localcode/tools/base.py`:
+  `target`/`build` (Maven/Gradle output like `node_modules`), `secrets`
+  (like `.ssh`/`.aws`), and `.sops.yaml` are now excluded from every
+  disposable workspace and from the model context. Verified against the real
+  `fvs-api` Java project: a 130 MB tree with `secrets/`, `.sops.yaml`, and a
+  106 MB `target/` copies cleanly into the bounded workspace.
+- Verified the chat end-to-end on the user's real `fvs-api` Java project via
+  `bin/localcode-chat`: it opened the project, streamed `💭` reasoning, and
+  answered a read-only request with zero edits (evidence in
+  `runs/tui/m-chat-fvsapi-v1`). Java projects have no `run_tests` feedback
+  (the runner is Python-unittest), so chat mode's lenient completion and
+  read/search/edit flow are the right fit.
+- D-051: models consistently emit `search_code` with a `file_paths` array to
+  target specific files, but the schema was `additionalProperties: false`
+  with only a string `path`, so every such call was rejected as
+  `invalid_arguments` and the agent burned its invalid-action budget doing
+  nothing. Fixed end-to-end: `file_paths` (array of strings) is now a
+  declared `search_code` parameter, `_matches_type` accepts `array`, and the
+  tool searches exactly those files through the repository policy. Verified
+  on `fvs-api` with the exact failing question: `search_code` and `read_file`
+  now execute and the model answers from real file evidence instead of
+  `invalid_action_exhaustion` (evidence `runs/tui/m-chat-jwt-fixed-v1`).
+- D-052: local Qwen 7B repetition loops. With greedy decoding the 7B
+  deterministically repeats an identical `read_file` after gathering evidence
+  instead of finalizing. Added a `temperature` parameter to `MlxLoopBackend`
+  (default 0.0, existing runs unchanged) exposed as `--temperature` on the
+  chat/CLI, made the repeated-action rejection directive for read-only tools
+  ("you already have this result; propose a final answer or act elsewhere"),
+  and added a stuck-loop hint in chat. Verified: `--temperature 0.4` broadens
+  exploration but the 7B still converges to repeated identical `read_file`
+  and exhausts invalid actions on the real Java `fvs-api` project. Honest
+  conclusion: the scaffold now works (tools execute, steering fires); the
+  local 7B is the remaining bottleneck for multi-turn exploration on large
+  repositories, so BYOK hosted models are the reliable path for real work.
+- D-053 (root cause found): the SAME identical-`read_file` exhaustion
+  reproduced with a hosted model (`gpt-5.6-terra`), which proved it was NOT a
+  model-capability limit. The chat runner set `phase_tool_policy=True`, and
+  `_phase_tools` restricts the surface to `(apply_patch, edit_file,
+  read_file, write_file)` after a `read_file` — blocking `search_code`,
+  `git_diff`, and `list_files`. In an open-ended chat/explanation session on a
+  large repo, the model reads a doc, wants to search `src/`, cannot, and falls
+  back to re-reading the same surfaced file → identical → rejected → stuck.
+  Fix: chat mode now sets `phase_tool_policy=False` (full tool surface every
+  turn); the rigid phase policy stays only on the one-shot benchmark CLI.
+  Also added `LOCALCODE_TRACE_PATH` support to the OpenAI Responses backend
+  (parity with MLX/Ollama) so hosted runs are diagnosable. Verified: chat on
+  the fixture searches→reads→finalizes cleanly; 19 related tests pass. The
+  user must re-run the `fvs-api` question to confirm on the hosted model.
+- D-053 confirmed fixed with the user's hosted run + trace
+  (`runs/fvs-trace.jsonl`): with `phase_tool_policy=False` the model now
+  explores correctly — it drilled `src/main/resources` → root →
+  `src/main/java/com/caprock/fvs` and found `AdminAuthController.java` in the
+  auth package — but hit the chat 8-turn cap before reading the Java code and
+  finalizing (`turn_exhaustion`). Follow-up fix: raised chat-mode budgets so
+  open-ended exploration finishes on large repos (`--max-turns` default 15,
+  `--max-tool-calls` 15, `--max-wall-seconds` 300, `max_context_chars`
+  16_000); the one-shot CLI keeps its original budgets.
+- Verified end-to-end with the local MLX Qwen 7B on `parser-none`: the chat
+  rendered live `💭` reasoning per turn, streamed events, auto-ran tests, and
+  recorded evidence. The same run also re-observed the known base-model
+  flip-flop (it oscillated between the correct and a broken edit and stopped
+  at `tool_exhaustion`), which is a model-quality finding, not a tooling
+  failure; stronger BYOK models are the reliable path for hard cases.
+- Training verdict (unchanged): M019 and M020 are preserved negatives; no more
+  local training runs on single-shot datasets. The next training task, if any,
+  must use multi-turn loop trajectories (context envelope → typed decision per
+  turn).
+
+### Phase 4 Milestone 021 — interactive CLI and BYOK backend (2026-08-21, complete)
+
+- Added `src/localcode/backends/openai_chat.py`: a dependency-free
+  OpenAI-compatible Chat Completions BYOK transport (configurable `base_url`;
+  covers OpenAI, OpenRouter, Groq, Together, LM Studio, vLLM, Ollama endpoints).
+  It reads `OPENAI_API_KEY`, never persists or echoes the key, converts one
+  native tool call into the versioned LocalCode decision envelope, and keeps
+  the controller as the validating authority.
+- Added `scripts/localcode_cli.py`: `--repo <path> --issue <text|file>
+  --backend mlx|openai|openai-compatible --context retrieval|simple
+  [--model --base-url --adapter-path --apply --output-diff --no-test-gate]`.
+  It copies the repository into a disposable workspace (the safety boundary
+  never leaves it), runs the real `AgentLoop` with retrieval context and the
+  terminal event stream, writes `runs/tui/<run-id>/final.diff`, and with
+  `--apply` applies the diff to the original repository only after
+  `git apply --check` passes (unstaged, for review).
+- Registered 6 new unit tests in `tests/unit/test_openai_chat_backend.py`
+  (tool call crosses the validator, plain output becomes final, multiple calls
+  are not silently selected, unknown tool subset stops before network,
+  whitespace-tolerant arguments). All pass; the full suite passes in a normal
+  Terminal (the outer sandbox blocks `git init` in temp dirs, per the README
+  note).
+- Verified end-to-end on the frozen `parser-none` fixture with the local MLX
+  Qwen 7B and retrieval context: the CLI rendered the live run, the model
+  searched, read, and edited `src/tiny_parser.py`, the automatic unittest
+  passed (`exit=0`), and the run finished `final_answer` with the exact gold
+  fix (`text.strip() if text is not None else ''`) in 17.5 s.
+- Verified `--apply` on a disposable git copy: the diff was applied to the
+  original repo (`M src/tiny_parser.py`, unstaged).
+- Training verdict (unchanged): M019 and M020 are preserved negatives; no more
+  local training runs on single-shot datasets. The next training task, if any,
+  must use multi-turn loop trajectories (context envelope → typed decision per
+  turn).
 
 ### Phase 4 Milestone 016 — controlled LoRA runner (2026-08-20, ready)
 

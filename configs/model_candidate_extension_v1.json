@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "experiment_id": "model-compatibility-extension-v1",
+  "source_hash_refresh_reason": "D-051 added the declared search_code file_paths array type without changing the frozen model prompt, tool pack, or sampling gates.",
   "status": "candidate_1_downloaded_verified_needs_clean_baseline",
   "registered_at": "2026-08-09T00:00:00+10:00",
   "parent_experiment": {
@@ -36,7 +37,7 @@
     "benchmarks/model_compatibility/prompt_pack.jsonl": "f5c3e3c2503456817f8ad96410077c86352d1a728c0220414ae7e60e37ee5e6d",
     "benchmarks/model_compatibility/tool_schemas.json": "d1e4b748a444ec783ad2d2754e46c2b6bf87d4ce8ef4a77872f2257887ef81ad",
     "benchmarks/model_compatibility/system_prompt.txt": "e69a01d4ea7749d33252ae8498843147fd42d72bb958425c219dd69839c982ad",
-    "src/localcode/compatibility.py": "578ef84eef559a0fb6f40945eee36906e43b2e771032615a6502fa6038370403"
+    "src/localcode/compatibility.py": "07c3ec56c6cfda5faa494c1c3b2f13911c3794b24bbf6d190e02650f7acab8b4"
   },
   "acquisition_policy": {
     "maximum_downloaded_candidates": 1,

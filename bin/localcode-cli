@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Run the one-shot LocalCode CLI from any directory.
+#
+# Usage:
+#   <lab>/bin/localcode-cli --repo /path/to/project --issue "fix X" --backend mlx
+#   <lab>/bin/localcode-cli --repo /path/to/project --issue-file ./issue.md \
+#       --backend openai --model gpt-5.6-terra
+set -euo pipefail
+LAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="$LAB_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$LAB_ROOT/.venv-mlx/bin/python" "$LAB_ROOT/scripts/localcode_cli.py" "$@"

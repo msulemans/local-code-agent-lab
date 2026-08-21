@@ -74,13 +74,23 @@ class RetrievalContextCompiler:
             max_files=self.max_files,
             max_total_chars=min(self.max_retrieval_chars, max(512, request.max_chars // 2)),
         )
+        evidence = _retrieval_payload(pack)
+        read_paths = _read_paths_from_history(request.history)
+        if read_paths:
+            evidence = dict(evidence)
+            evidence["excerpts"] = [
+                excerpt for excerpt in evidence["excerpts"] if excerpt["path"] not in read_paths
+            ]
+            evidence["selected_paths"] = [
+                path for path in evidence["selected_paths"] if path not in read_paths
+            ]
         return _compile_payload(
             request.issue,
             request.history,
             request.budgets_remaining,
             request.max_chars,
             extra={
-                "retrieved_evidence": _retrieval_payload(pack),
+                "retrieved_evidence": evidence,
                 "retrieval_treatment": {
                     "kind": "deterministic_v1",
                     "max_files": self.max_files,
@@ -200,6 +210,51 @@ def _compile_payload(
 def _controller_instructions(history: tuple[str, ...]) -> str:
     """Return trusted phase guidance separate from untrusted tool output."""
     tools = []
+    read_paths: set[str] = set()
+    for entry in history:
+        try:
+            value = json.loads(entry)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(value, dict):
+            continue
+        tool = value.get("tool")
+        if isinstance(tool, str) and tool and tool not in tools:
+            tools.append(tool)
+        arguments = value.get("arguments")
+        if tool == "read_file" and isinstance(arguments, dict) and isinstance(arguments.get("path"), str):
+            read_paths.add(arguments["path"])
+    # Evidence-heavy exploration with no repair begun: the model has enough to
+    # answer and should stop reading/searching and summarize (D-058). In
+    # strict completion mode the controller still gates a premature final.
+    if (
+        len(read_paths) >= 4
+        and not any(tool in {"apply_patch", "edit_file", "write_file", "run_tests"} for tool in tools)
+    ):
+        return (
+            "Trusted controller directive: you have already read several files "
+            "and gathered enough evidence. Provide your concise final answer now; "
+            "only inspect more if a specific fact is still missing."
+        )
+    # Exploration stall with a repair still expected: the model keeps searching
+    # and listing without committing to a change (D-060). Force it to act.
+    exploration = 0
+    for entry in history:
+        try:
+            value = json.loads(entry)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict) and value.get("tool") in {"search_code", "list_files"}:
+            exploration += 1
+    edited = any(tool in {"apply_patch", "edit_file", "write_file"} for tool in tools)
+    if exploration >= 6 and not edited and "run_tests" not in tools:
+        return (
+            "Trusted controller directive: you have been searching and listing "
+            "repeatedly without making a change. If the task asks you to modify "
+            "code, pick the relevant file you located and apply an edit_file now. "
+            "If it asks for an explanation, provide your final answer now. Do not "
+            "search or list again."
+        )
     for entry in history:
         for name in ("search_code", "read_file", "apply_patch", "edit_file", "write_file", "run_tests", "git_diff"):
             if f'"tool":"{name}"' in entry and name not in tools:
@@ -213,6 +268,29 @@ def _controller_instructions(history: tuple[str, ...]) -> str:
     if "run_tests" in tools and "git_diff" not in tools:
         return "Trusted controller directive: inspect git_diff, then finish."
     return "Trusted controller directive: choose the next bounded repair action."
+
+
+def _read_paths_from_history(history: tuple[str, ...]) -> set[str]:
+    """Paths the model has already read via read_file, to stop re-surfacing them.
+
+    Retrieval evidence is recomputed from the static issue every turn; without
+    this, a doc that matches the issue terms is re-injected forever and the
+    model fixates on re-reading it instead of moving to the code (D-056).
+    """
+    read_paths: set[str] = set()
+    for entry in history:
+        try:
+            value = json.loads(entry)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(value, dict) or value.get("tool") != "read_file":
+            continue
+        arguments = value.get("arguments")
+        if isinstance(arguments, dict):
+            path = arguments.get("path")
+            if isinstance(path, str) and path:
+                read_paths.add(path)
+    return read_paths
 
 
 def _retrieval_payload(pack: RetrievalPack) -> dict[str, Any]:

@@ -86,6 +86,74 @@ class ContextCompilerTests(unittest.TestCase):
         self.assertNotIn("expected_changed_paths", payload)
         self.assertLessEqual(len(json.dumps(payload, separators=(",", ":"))), 4_000)
 
+    def test_retrieval_context_stops_resurfacing_already_read_files(self) -> None:
+        issue = (ROOT / "ISSUE.md").read_text(encoding="utf-8")
+        request = ContextRequest(
+            issue=issue,
+            history=(
+                json.dumps(
+                    {
+                        "tool": "read_file",
+                        "arguments": {"path": "src/tiny_parser.py"},
+                        "observation": "content",
+                    },
+                    sort_keys=True,
+                ),
+            ),
+            budgets_remaining=(("turns", 8),),
+            max_chars=4_000,
+        )
+
+        payload = json.loads(RetrievalContextCompiler(ROOT, max_files=2).compile(request))
+
+        self.assertNotIn("src/tiny_parser.py", payload["retrieved_evidence"]["selected_paths"])
+        excerpt_paths = [entry["path"] for entry in payload["retrieved_evidence"]["excerpts"]]
+        self.assertNotIn("src/tiny_parser.py", excerpt_paths)
+
+    def test_controller_instruction_asks_for_answer_after_evidence(self) -> None:
+        request = ContextRequest(
+            issue="Explain authentication",
+            history=tuple(
+                json.dumps(
+                    {
+                        "tool": "read_file",
+                        "arguments": {"path": f"src/module_{index}.java"},
+                        "observation": "content",
+                    },
+                    sort_keys=True,
+                )
+                for index in range(5)
+            ),
+            budgets_remaining=(("turns", 10),),
+            max_chars=4_000,
+        )
+
+        payload = json.loads(RetrievalContextCompiler(ROOT, max_files=2).compile(request))
+
+        self.assertIn("Provide your concise final answer now", payload["controller_instructions"])
+
+    def test_controller_instruction_forces_commit_after_exploration_stall(self) -> None:
+        request = ContextRequest(
+            issue="Fix the auth bypass",
+            history=tuple(
+                json.dumps(
+                    {
+                        "tool": "search_code",
+                        "arguments": {"query": f"needle-{index}"},
+                        "observation": "content",
+                    },
+                    sort_keys=True,
+                )
+                for index in range(6)
+            ),
+            budgets_remaining=(("turns", 10),),
+            max_chars=4_000,
+        )
+
+        payload = json.loads(RetrievalContextCompiler(ROOT, max_files=2).compile(request))
+
+        self.assertIn("apply an edit_file now", payload["controller_instructions"])
+
     def test_retrieval_payload_bounds_the_rendered_repository_map(self) -> None:
         files = tuple(
             RepositoryFile(

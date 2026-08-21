@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m019-qwen25-coder-7b-executable-aligned-qlora-v1",
+  "base_model_config": "benchmarks/training/m017_7b_baseline_v1.json",
+  "data_treatment": "benchmarks/training/m016b_lora_v2.json",
+  "model_path": "models/qwen25-coder-7b-instruct-4bit",
+  "data_directory": "data/processed/mlx-m016b-768",
+  "data_boundary": {
+    "train_examples": 468,
+    "validation_examples": 80,
+    "sealed_examples_withheld": 66,
+    "sealed_examples_loaded": 0,
+    "train_sha256": "53e195d21d2e218289d43f4e4f8a43213b32dc2f87f75845f5c89daf58a9ca64",
+    "validation_sha256": "dabbebf2599e52d54ea7ed73965514a8cb4ec6024602e00adfe4729dab696b28"
+  },
+  "method": {
+    "fine_tune_type": "lora",
+    "quantized_base": true,
+    "num_layers": 4,
+    "batch_size": 1,
+    "learning_rate": 0.0001,
+    "mask_prompt": true,
+    "max_sequence_length": 768,
+    "gradient_checkpointing": true,
+    "seed": 42
+  },
+  "diagnostic": {
+    "run_id": "m019-qwen7b-diagnostic",
+    "iterations": 40,
+    "validation_batches": 8,
+    "best_validation_loss": 0.308,
+    "peak_memory_gb": 5.968,
+    "status": "passed"
+  },
+  "full_training": {
+    "run_id": "m019-qwen7b-full",
+    "iterations": 800,
+    "validation_batches": 25,
+    "checkpoint_every": 100,
+    "adapter_path": "adapters/m019-qwen7b-full",
+    "status": "operator_stopped_at_step_440_last_checkpoint_400",
+    "checkpoints_saved": [100, 200, 300, 400],
+    "validation_losses": {
+      "100": 0.294,
+      "200": 0.366,
+      "300": 0.325,
+      "400": 0.380
+    },
+    "best_checkpoint_by_validation": 100
+  },
+  "promotion_gate": "select by full validation loss, then require executable repair improvement before opening sealed data",
+  "sealed_examples_loaded": 0
+}

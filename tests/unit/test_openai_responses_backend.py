@@ -96,6 +96,45 @@ class OpenAIResponsesLoopBackendTests(unittest.TestCase):
             backend.complete(request("terminal"))
         self.assertEqual(client.requests, [])
 
+    def test_provider_reasoning_summary_is_captured_without_changing_the_decision(self) -> None:
+        client = FakeClient({
+            "output": [
+                {
+                    "type": "reasoning",
+                    "summary": [
+                        {"type": "summary_text", "text": "The boundary condition is off by one."},
+                        {"type": "summary_text", "text": "Change > 100 to >= 100."},
+                    ],
+                },
+                {"type": "function_call", "name": "read_file", "arguments": '{"path":"a.py"}'},
+            ],
+            "usage": {"input_tokens": 5, "output_tokens": 3},
+        })
+        backend = OpenAIResponsesLoopBackend(
+            model="gpt-5.6-terra", tool_document=self.document, client=client,
+            allow_tool_subsets=True,
+        )
+
+        decision = self.validator.validate(backend.complete(request("read_file")))
+
+        self.assertEqual(decision.tool, "read_file")
+        self.assertEqual(
+            backend.last_reasoning,
+            "The boundary condition is off by one.\nChange > 100 to >= 100.",
+        )
+
+    def test_last_reasoning_is_empty_when_provider_returns_none(self) -> None:
+        client = FakeClient({"output": [{"type": "message", "content": [
+            {"type": "output_text", "text": "Done."}
+        ]}]})
+        backend = OpenAIResponsesLoopBackend(
+            model="gpt-5.6-terra", tool_document=self.document, client=client,
+        )
+
+        backend.complete(request(*backend.tool_names))
+
+        self.assertEqual(backend.last_reasoning, "")
+
 
 if __name__ == "__main__":
     unittest.main()

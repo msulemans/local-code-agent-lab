@@ -349,6 +349,46 @@ const milestones = [
     evidence: "exact 4.296 GB snapshot pinned · strict diff 0/6 · trusted edit 4/6 · 4.883 GB peak · 11.37 s · sealed loaded 0",
     decision: "Use Qwen 7B with typed trusted editing in the agent loop. Stop tuning prompts on these six development cases; next test bounded retry/review on separate registered tasks before deciding on QLoRA.",
   },
+  {
+    id: "018",
+    state: "Agent loop measured · A1 0/6 · A2 3/6",
+    title: "Run Qwen through the real bounded controller",
+    story: "The pinned Qwen 7B checkpoint now drives the actual LocalCode loop through MLX. It searches and reads evidence, proposes typed edit_file actions, receives automatic sandboxed test results, retries within fixed budgets, and can finish only with a tested patch. The controller owns validation, workspace writes, tests, and termination.",
+    evidence: "same Qwen 7B · simple A1 0/6 · retrieval A2 3/6 · 3,592 retrieval tokens · 5.281 GB peak · sandboxed tests · sealed loaded 0",
+    decision: "Retrieval is a measured gain for this local loop. Keep the six-case gate frozen; next measure fresh retry/review tasks before QLoRA.",
+  },
+  {
+    id: "019",
+    state: "Adapter rejected · 0/6",
+    title: "Select a checkpoint by validation, then require executable gain",
+    story: "The Qwen 7B LoRA run was stopped at update 440 after saving checkpoints 100, 200, 300, and 400. Checkpoint 100 had the best recorded validation loss, so it was evaluated through the real bounded retrieval loop on the unchanged six-case executable suite.",
+    evidence: "checkpoint 600 validation loss 0.279 · checkpoint 800 loss 0.420 · executable 0/6 vs base retrieval 3/6 · 10,358 generated tokens · 5.692 GB peak · 267.63 s · sealed loaded 0",
+    decision: "Do not promote this adapter or repeat the same diff-target recipe. Preserve the negative result and change the action-format treatment before another training run.",
+  },
+  {
+    id: "020",
+    state: "Protocol diagnostic negative · 0/6",
+    title: "Train the model on the controller's action language",
+    story: "M019 proved that unified-diff supervision does not teach the bounded loop to emit valid typed decisions. M020 preserves the reviewed issue and repair evidence but wraps each target as a strict apply_patch decision envelope and filters rows over the 768-token bound.",
+    evidence: "step-40 adapter · 0/6 · valid tools and tests executed · repeated edit expansion · 8,239 generated tokens · 5.720 GB peak · sealed loaded 0",
+    decision: "Do not run 400 more iterations. Build multi-turn trajectory data with observations and successful revisions before another training attempt.",
+  },
+  {
+    id: "021",
+    state: "Hosted/local CLI complete",
+    title: "Use the same agent through local or BYOK backends",
+    story: "The one-shot CLI now supports the pinned local MLX model, OpenAI Responses, and OpenAI-compatible endpoints through one strict LocalCode decision protocol. The repository is always copied into a disposable workspace, while an optional apply step delivers only a checked unstaged diff.",
+    evidence: "BYOK transport tests · parser-none local end-to-end repair · automatic tests · final.diff · apply gated by git apply --check",
+    decision: "Keep hosted models as a separate capability comparison; never mix their scores with local-model benchmarks.",
+  },
+  {
+    id: "022",
+    state: "Interactive chat complete",
+    title: "Turn the runtime into a reusable project chat",
+    story: "The chat REPL keeps one disposable workspace across follow-up requests, streams events and model reasoning, exposes diff/status/context controls, and applies changes only after an explicit apply command. The TUI remains a consumer of the trusted event stream rather than owning agent behavior.",
+    evidence: "fvs-api read-only chat verified · reasoning capture · persistent session diff · secret/build exclusions · file_paths search fix · 19 related tests",
+    decision: "Phase 3 is closed. Preserve M019/M020 as training negatives and move to the next learning project; future training requires multi-turn trajectory data.",
+  },
 ];
 
 const configurations = [

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Run the LocalCode interactive chat from any directory.
+#
+# Usage (from inside any project):
+#   <lab>/bin/localcode-chat --backend mlx
+#   <lab>/bin/localcode-chat --repo /path/to/project --backend openai --model gpt-5.6-terra
+#
+# The .venv-mlx interpreter runs every backend (the OpenAI and
+# OpenAI-compatible transports are standard-library only).
+set -euo pipefail
+LAB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="$LAB_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$LAB_ROOT/.venv-mlx/bin/python" "$LAB_ROOT/scripts/localcode_chat.py" "$@"

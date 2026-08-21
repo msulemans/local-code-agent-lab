@@ -213,6 +213,36 @@ Gate: a clean environment can verify the manifest, load the base plus adapter,
 run the demo, and reproduce the reported small evaluation without secrets or
 untracked source data.
 
+## 019–020 — Training negatives and protocol diagnosis
+
+The Qwen 7B LoRA checkpoints were selected by validation loss and then tested
+through the unchanged executable loop. Both the diff-target treatment and the
+single-shot protocol-envelope treatment solved `0/6`, so neither adapter is
+promoted. These are preserved negative results, not unfinished claims.
+
+Gate: do not continue either recipe. Any future training data must contain
+multi-turn context, typed decisions, observations, and successful revisions.
+
+## 021 — One-shot CLI and BYOK backends
+
+Expose the real bounded runtime through a one-shot CLI with local MLX, OpenAI
+Responses, and OpenAI-compatible transports. Keep the model replaceable while
+the controller, tools, disposable workspace, test gate, and final diff remain
+trusted LocalCode code.
+
+Gate: local and hosted transports cross the same validator; secrets never enter
+the repository; `--apply` requires `git apply --check` and remains unstaged.
+
+## 022 — Interactive chat and visible reasoning
+
+Add a persistent-session chat REPL, live event/reasoning rendering, cumulative
+diff/status/context commands, and explicit apply delivery. Extend workspace
+exclusions for build output and secret directories, and keep chat exploration
+free from the rigid one-shot phase policy.
+
+Gate: a real repository can be inspected safely, follow-up requests reuse the
+disposable workspace, and headless/TUI behavior remains owned by the same loop.
+
 ## Proposed 3–5 day prototype sprint
 
 This schedule is for a working teaching prototype, not a credible completed

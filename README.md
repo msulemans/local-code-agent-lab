@@ -316,3 +316,81 @@ sandbox may prevent macOS from applying a nested test sandbox:
 ```bash
 PYTHONPATH=src python3.11 scripts/demo_engineering_agent.py
 ```
+
+## Use it interactively
+
+Point the real loop at any repository and an issue. The repository is copied
+into a disposable workspace, the live run streams to the terminal UI, and the
+final Git diff is written for review (apply it yourself, or pass `--apply` for
+an unstaged `git apply` after `--check` passes).
+
+Local model (needs `.venv-mlx` and the pinned Qwen 7B snapshot):
+
+```bash
+PYTHONPATH=src .venv-mlx/bin/python scripts/localcode_cli.py \
+  --repo ~/projects/demo-repo --issue "fix the port fallback" --backend mlx
+```
+
+Bring your own key, OpenAI Responses API:
+
+```bash
+PYTHONPATH=src python3.11 scripts/localcode_cli.py \
+  --repo ~/projects/demo-repo --issue "fix the discount boundary" \
+  --backend openai --model gpt-5.6-terra
+```
+
+Bring your own key, any OpenAI-compatible endpoint (OpenRouter, Groq, Together,
+LM Studio, vLLM, Ollama, ...):
+
+```bash
+PYTHONPATH=src python3.11 scripts/localcode_cli.py \
+  --repo ~/projects/demo-repo --issue "..." \
+  --backend openai-compatible --base-url https://openrouter.ai/api/v1 \
+  --model provider/model
+```
+
+Run evidence is written to `runs/tui/<run-id>/` (`run.json` plus `final.diff`).
+See the interactive CLI milestone in `AGENT_STATE.md`.
+
+## Chat with it in any project
+
+Open a REPL in a project and ask it to do things conversationally. The
+repository is copied once into a disposable workspace that persists for the
+session, so follow-up requests build on prior edits. The live loop AND the
+model's reasoning are streamed per turn (`💭` lines). Edits are delivered to
+the real repository only when you type `apply` (unstaged, after
+`git apply --check`). Commands: `help`, `diff`, `apply`, `status`, `exit`.
+
+```bash
+cd ~/projects/myapp
+PYTHONPATH=src .venv-mlx/bin/python scripts/localcode_chat.py --backend mlx
+```
+
+```bash
+PYTHONPATH=src python3.11 scripts/localcode_chat.py \
+  --backend openai --model gpt-5.6-terra
+```
+
+```bash
+PYTHONPATH=src python3.11 scripts/localcode_chat.py \
+  --backend openai-compatible --base-url https://openrouter.ai/api/v1 \
+  --model provider/model
+```
+
+Pass `--repo <path>` to target a different project, and `--strict` to require
+a patch with passing tests before the loop may finish.
+
+From any directory (no need to cd into the lab), use the launchers:
+
+```bash
+# open the chat in the current project
+/path/to/local-code-agent-lab/bin/localcode-chat --backend mlx
+
+# one-shot fix
+/path/to/local-code-agent-lab/bin/localcode-cli \
+  --repo ~/projects/myapp --issue "fix X" --backend mlx
+```
+
+The workspace policy excludes build output (`target/`, `build/`), `secrets/`
+directories, `.env`, `.sops.yaml`, and other secret-like files, so large or
+sensitive repositories copy into the disposable workspace safely.

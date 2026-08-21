@@ -195,6 +195,8 @@ def _matches_type(value: Any, expected: str) -> bool:
         return isinstance(value, bool)
     if expected == "object":
         return isinstance(value, dict)
+    if expected == "array":
+        return isinstance(value, list)
     return False
 
 

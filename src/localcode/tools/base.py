@@ -62,6 +62,13 @@ EXCLUDED_DIRECTORY_NAMES = frozenset(
         ".mypy_cache",
         ".ruff_cache",
         "node_modules",
+        # Maven/Gradle build output is generated, not source, and can exceed
+        # the disposable-workspace byte budget (e.g. a 100 MB target/ dir).
+        "target",
+        "build",
+        # Dedicated secrets directories must never reach the disposable
+        # workspace or the model context.
+        "secrets",
         "runs",
         "models",
         "checkpoints",
@@ -81,6 +88,7 @@ SECRET_EXACT_NAMES = frozenset(
         ".env",
         ".npmrc",
         ".pypirc",
+        ".sops.yaml",
         "credentials",
         "credentials.json",
         "id_dsa",

@@ -364,9 +364,83 @@ selects Qwen 7B with the first trusted-edit treatment at `4/6`, compared with
 loop and evaluate on separately registered tasks before deciding on QLoRA.
 Evidence is frozen in `benchmarks/training/m017_7b_result_v1.json`.
 
+## M018: Qwen 7B in the bounded engineering loop
+
+M018 connects the pinned Qwen 7B checkpoint to the actual LocalCode runtime
+through an MLX text adapter. The model proposes one typed decision at a time;
+the existing validator, disposable Git workspace, `edit_file`, automatic
+registered test run, retry budget, and final-answer completion gate remain
+trusted controller code. The adapter only normalizes transport spellings (for
+example, Qwen's flattened `edit_file` fields); it does not repair paths,
+snippets, or code semantics.
+
+The simple and retrieval treatments ran the same six development-only
+executable cases in separate resident model processes. The simple treatment
+solved `0/6`; retrieval solved `3/6` under the same model, tool, and test
+budgets:
+
+```bash
+LOCALCODE_TRACE_PATH=/tmp/m018-trace.jsonl PYTHONPATH=src \
+  .venv-mlx/bin/python scripts/run_m018_7b_agent_loop.py \
+  --run-id m018-qwen7b-loop-retrieval-v6 \
+  --context-mode retrieval --max-cases 6
+```
+
+The retrieval run generated 3,592 tokens, used 5.281 GB peak active memory, and
+completed in 192.52 seconds. Every successful case applied a typed edit and
+passed a sandboxed test command; the original fixtures remained unchanged.
+The misses were bounded: one non-unique edit snippet, one repeated edit after
+a failing test, and one attempted test-file edit rejected by the review-safe
+registry. No model output could execute a shell command or write outside the
+disposable workspace.
+
+This is an agent-loop capability result, not SWE-bench resolution evidence and
+not a reason to tune the six cases further. The frozen contract and result are
+`benchmarks/training/m018_qwen7b_agent_loop_v1.json`. The next treatment is a
+fresh registered retry/review set, then a matched A3 comparison; QLoRA remains
+deferred until that scaffold has a measured baseline.
+
 The source dataset is documented by the official
 [`SWE-smith-py` dataset card](https://huggingface.co/datasets/SWE-bench/SWE-smith-py)
 and [SWE-smith repository](https://github.com/SWE-bench/SWE-smith).
+
+## M019: Qwen 7B adapter selection and executable promotion gate
+
+The completed repeat run saved checkpoints through update 800. Checkpoint
+600 had the lowest validation loss (`0.279`); checkpoint 800 had worsened to
+`0.420`, so checkpoint 600 was copied into a separate evaluation directory.
+The real MLX loop evaluated it on all six registered executable cases: `0/6`
+solved in `267.63` seconds, with `10,358` generated tokens and `5.692 GB` peak
+memory. Every case exhausted the invalid-action budget; no sealed examples
+were loaded.
+
+This is the final negative result for this treatment. The adapter is not
+promoted, the base retrieval result (`3/6`) remains the best measured Qwen 7B
+treatment, and repeating the same diff-target LoRA recipe is not justified.
+Evidence is frozen in
+`benchmarks/training/m019_qwen7b_adapter600_result_v1.json` and the raw run is
+under `runs/training/m019-qwen7b-adapter600-retrieval-v1`.
+
+## M020: Protocol-aligned adapter treatment
+
+M020 changes the training target rather than increasing model size or
+iterations. It converts the reviewed one-file repair targets into strict
+`apply_patch` decision envelopes while preserving the original issue and
+broken-file evidence. Rows that exceed the 768-token sequence bound are
+removed deterministically; no sealed examples are loaded. The resulting
+dataset contains 326 train and 58 validation rows.
+
+Run the 40-update diagnostic first. It is a gate, not a claim of learned
+repair ability. Only if it passes should a 400-update run be started, followed
+by the unchanged six-case M018 retrieval evaluation.
+
+The diagnostic did learn valid tool-shaped JSON and executed tests, but its
+step-40 adapter solved `0/6` in the real loop. It repeatedly expanded or
+reapplied edits after failures, ending in tool or invalid-action exhaustion.
+This is a second negative result: protocol formatting alone is insufficient;
+the next dataset must contain multi-turn context/observation trajectories.
+Do not run the planned 400-update continuation of M020. Evidence is frozen in
+`benchmarks/training/m020_protocol40_result_v1.json`.
 
 ## Explain-back questions
 

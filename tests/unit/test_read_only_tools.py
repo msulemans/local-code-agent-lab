@@ -5,8 +5,12 @@ import subprocess
 import tempfile
 import unittest
 
+from localcode.actions import ActionValidator
 from localcode.tools import ToolError, git_diff, list_files, read_file, search_code
 from localcode.tools.files import MAX_FILE_BYTES
+
+
+SCHEMAS = Path("benchmarks/micro_agent/tool_schemas.json")
 
 
 class RepositoryToolTests(unittest.TestCase):
@@ -137,6 +141,38 @@ class RepositoryToolTests(unittest.TestCase):
         # misdirect the agent (D-044; requests/packages/urllib3 in m042).
         self.assertNotIn("src/vendor/third.py", result.content)
         self.assertIn("src/parser.py", result.content)
+
+    def test_search_file_paths_searches_exactly_those_files(self) -> None:
+        (self.root / "src/parser.py").write_text("needle = True\n", encoding="utf-8")
+        (self.root / "src/other.py").write_text("needle = True\n", encoding="utf-8")
+
+        result = search_code(self.root, "needle", file_paths=["src/parser.py"])
+
+        self.assertIn("src/parser.py", result.content)
+        self.assertNotIn("src/other.py", result.content)
+        self.assertEqual(result.metadata_dict()["match_count"], 1)
+
+    def test_search_file_paths_rejects_excluded_and_missing_entries(self) -> None:
+        with self.assertRaises(ToolError) as excluded:
+            search_code(self.root, "needle", file_paths=[".env"])
+        self.assertEqual(excluded.exception.code, "excluded_path")
+
+        with self.assertRaises(ToolError) as missing:
+            search_code(self.root, "needle", file_paths=["src/does-not-exist.py"])
+        self.assertNotEqual(missing.exception.code, "excluded_path")
+
+    def test_search_file_paths_validator_accepts_the_array_argument(self) -> None:
+        validator = ActionValidator.from_path(SCHEMAS)
+        action = validator.validate(
+            '{"protocol_version":"1","thought_summary":"targeted search",'
+            '"action":{"tool":"search_code","arguments":{"query":"jwt",'
+            '"file_paths":["src/a.py","src/b.py"]}}}'
+        )
+
+        self.assertEqual(action.tool, "search_code")
+        self.assertEqual(
+            dict(action.arguments_dict())["file_paths"], ["src/a.py", "src/b.py"]
+        )
 
 
 class GitDiffToolTests(unittest.TestCase):

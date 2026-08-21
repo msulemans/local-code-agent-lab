@@ -2,6 +2,13 @@
 
 from .ollama import BackendError, OllamaBackend
 from .ollama_loop import OllamaLoopBackend
+from .openai_chat import OpenAIChatLoopBackend
 from .openai_responses import OpenAIResponsesLoopBackend
 
-__all__ = ["BackendError", "OllamaBackend", "OllamaLoopBackend", "OpenAIResponsesLoopBackend"]
+__all__ = [
+    "BackendError",
+    "OllamaBackend",
+    "OllamaLoopBackend",
+    "OpenAIChatLoopBackend",
+    "OpenAIResponsesLoopBackend",
+]

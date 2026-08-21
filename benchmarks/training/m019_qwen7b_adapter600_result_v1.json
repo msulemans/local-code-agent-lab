@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m019-qwen25-coder-7b-adapter-selection-v2",
+  "base_model_config": "benchmarks/training/m017_7b_baseline_v1.json",
+  "adapter_source": "adapters/m019-qwen7b-repeat-v1/0000600_adapters.safetensors",
+  "selected_checkpoint": 600,
+  "selection_basis": "lowest full-training validation loss (0.279)",
+  "evaluation": {
+    "run_id": "m019-qwen7b-adapter600-retrieval-v1",
+    "suite_id": "m015-executable-dev-v1",
+    "context_mode": "retrieval",
+    "registered": 6,
+    "solved": 0,
+    "generated_tokens": 10358,
+    "peak_memory_gb": 5.691918,
+    "wall_seconds": 267.627917,
+    "sealed_examples_loaded": 0,
+    "state": "measured",
+    "case_termination": {
+      "parser-none": "invalid_action_exhaustion",
+      "discount-boundary": "invalid_action_exhaustion",
+      "display-whitespace": "invalid_action_exhaustion",
+      "label-syntax": "invalid_action_exhaustion",
+      "fallback-port": "invalid_action_exhaustion",
+      "ratio-retry": "invalid_action_exhaustion"
+    }
+  },
+  "promotion_decision": "not_promoted",
+  "reason": "The validation-selected checkpoint did not improve executable repair over the frozen base retrieval result of 3/6; all six cases exhausted the invalid-action budget.",
+  "sealed_examples_loaded": 0
+}

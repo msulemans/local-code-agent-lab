@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m020-qwen25-coder-7b-localcode-protocol-lora-v1",
+  "adapter_source": "adapters/m020-qwen7b-protocol-diagnostic-v1/0000040_adapters.safetensors",
+  "evaluation": {
+    "run_id": "m020-qwen7b-protocol40-retrieval-v1",
+    "suite_id": "m015-executable-dev-v1",
+    "context_mode": "retrieval",
+    "registered": 6,
+    "solved": 0,
+    "generated_tokens": 8239,
+    "peak_memory_gb": 5.720476,
+    "wall_seconds": 289.294166,
+    "sealed_examples_loaded": 0,
+    "termination_counts": {
+      "tool_exhaustion": 2,
+      "invalid_action_exhaustion": 4
+    },
+    "tests_executed": true
+  },
+  "promotion_decision": "not_promoted",
+  "reason": "Protocol validity improved, but single-shot apply_patch supervision still caused repeated or expanding edits and no executable repair succeeded.",
+  "sealed_examples_loaded": 0
+}

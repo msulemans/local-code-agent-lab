@@ -359,7 +359,7 @@ class ReadOnlyAgentLoop:
                     observation = _error_observation(
                         "action_rejected",
                         "repeated_action",
-                        f"do not repeat {decision.tool} with identical arguments; choose a different next action",
+                        _repeated_action_message(decision.tool),
                     )
                     self._append_observation(observations, observation)
                     history.append(observation.content)
@@ -701,6 +701,18 @@ def _error_observation(kind: str, code: str, message: str) -> ToolResult:
         content=f"{kind}: {message}",
         metadata=(("code", code), ("observation_type", kind)),
     )
+
+
+def _repeated_action_message(tool: str) -> str:
+    """Direct the model after an identical action is blocked."""
+    base = f"do not repeat {tool} with identical arguments"
+    if tool in {"read_file", "search_code", "list_files", "git_diff"}:
+        return (
+            f"{base}. You already have this result in the conversation. "
+            "If you have enough evidence, propose a final answer now; "
+            "otherwise act on a different file or tool."
+        )
+    return f"{base}; change the arguments or move to the next repair phase"
 
 
 def _state_for_tool(tool: str) -> str:

@@ -26,8 +26,14 @@ def search_code(
     max_results: int = 40,
     regex: bool = False,
     case_sensitive: bool = True,
+    file_paths: list[str] | None = None,
 ) -> ToolResult:
-    """Search allowed UTF-8 files without exposing excluded repository content."""
+    """Search allowed UTF-8 files without exposing excluded repository content.
+
+    When ``file_paths`` is provided, search exactly those files instead of
+    walking ``path``; each entry is resolved through the repository policy so
+    excluded and escaping paths stay unreachable.
+    """
 
     if not isinstance(query, str) or not query or len(query) > MAX_QUERY_CHARS:
         raise ToolError("invalid_argument", f"query must contain 1-{MAX_QUERY_CHARS} characters")
@@ -39,6 +45,12 @@ def search_code(
         raise ToolError("invalid_argument", "glob must be a non-empty string")
     if not isinstance(regex, bool) or not isinstance(case_sensitive, bool):
         raise ToolError("invalid_argument", "regex and case_sensitive must be booleans")
+    if file_paths is not None and (
+        not isinstance(file_paths, list)
+        or not file_paths
+        or any(not isinstance(item, str) or not item for item in file_paths)
+    ):
+        raise ToolError("invalid_argument", "file_paths must be a non-empty list of non-empty strings")
 
     flags = 0 if case_sensitive else re.IGNORECASE
     pattern_text = query if regex else re.escape(query)
@@ -48,13 +60,25 @@ def search_code(
         raise ToolError("invalid_regex", f"query is not a valid regular expression: {exc}") from exc
 
     policy = RepositoryPolicy.from_root(root)
-    start_relative, start = policy.resolve(path)
-    if start.is_file():
-        candidates = iter(((start_relative, start),))
-    elif start.is_dir():
-        candidates = policy.iter_files(start)
+    if file_paths is not None:
+        resolved_paths: list[tuple[PurePosixPath, Path]] = []
+        for raw_path in file_paths:
+            relative, candidate = policy.resolve(raw_path)
+            if not candidate.is_file():
+                raise ToolError(
+                    "invalid_path",
+                    f"file_paths entry is not a file: {relative.as_posix()}",
+                )
+            resolved_paths.append((relative, candidate))
+        candidates = iter(resolved_paths)
     else:
-        raise ToolError("invalid_path", f"search path is not a file or directory: {start_relative}")
+        start_relative, start = policy.resolve(path)
+        if start.is_file():
+            candidates = iter(((start_relative, start),))
+        elif start.is_dir():
+            candidates = policy.iter_files(start)
+        else:
+            raise ToolError("invalid_path", f"search path is not a file or directory: {start_relative}")
 
     matches: list[str] = []
     considered_files = 0

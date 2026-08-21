@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m018-qwen25-coder-7b-bounded-agent-loop-v1",
+  "model_config": "benchmarks/training/m017_7b_baseline_v1.json",
+  "executable_suite": "benchmarks/training/m015_executable_dev_v1.json",
+  "tool_schema": "benchmarks/micro_agent/tool_schemas.json",
+  "action_representation": "typed_tools_edit_file_retry",
+  "context_treatments": ["simple", "retrieval"],
+  "selected_context_treatment": "retrieval",
+  "budgets": {
+    "max_turns": 10,
+    "max_tool_calls": 10,
+    "max_invalid_actions": 3,
+    "max_identical_actions": 1,
+    "max_context_chars": 12000,
+    "max_wall_seconds": 300
+  },
+  "generation": {
+    "temperature": 0,
+    "max_output_tokens": 768,
+    "seed": 42
+  },
+  "result": {
+    "run_id": "m018-qwen7b-loop-retrieval-v6",
+    "registered": 6,
+    "solved": 3,
+    "generated_tokens": 3592,
+    "peak_memory_gb": 5.280778,
+    "wall_seconds": 192.524614,
+    "sealed_examples_loaded": 0
+  },
+  "matched_comparison": {
+    "simple": {
+      "run_id": "m018-qwen7b-loop-simple-v1",
+      "solved": 0,
+      "generated_tokens": 2921,
+      "peak_memory_gb": 5.086546,
+      "wall_seconds": 110.732788
+    },
+    "retrieval": {
+      "run_id": "m018-qwen7b-loop-retrieval-v6",
+      "solved": 3,
+      "generated_tokens": 3592,
+      "peak_memory_gb": 5.280778,
+      "wall_seconds": 192.524614
+    }
+  },
+  "next_gate": "measure_bounded_retry_and_review_on_separate_registered_tasks"
+}

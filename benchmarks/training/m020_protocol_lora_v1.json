@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "experiment_id": "m020-qwen25-coder-7b-localcode-protocol-lora-v1",
+  "supersedes": "benchmarks/training/m019_qwen7b_qlora_v1.json",
+  "reason": "The M019 adapter learned unified-diff answers while the agent loop requires typed LocalCode decisions. This treatment keeps the same reviewed repair evidence but wraps targets as apply_patch protocol envelopes and removes rows over the 768-token bound.",
+  "base_model_config": "benchmarks/training/m017_7b_baseline_v1.json",
+  "source_data": "data/processed/mlx-m016b-768",
+  "data_directory": "data/processed/mlx-m020-protocol-768",
+  "data_boundary": {
+    "source_train_examples": 468,
+    "source_validation_examples": 80,
+    "train_examples": 326,
+    "validation_examples": 58,
+    "sealed_examples_loaded": 0,
+    "train_sha256": "4e5c6c392967b0874f352ce8cd9c103cc96bf530fa31d7b253de7239b84b9563",
+    "validation_sha256": "e979a2a79229424706f7589120f73ec835e1840356fe7baa4fa84d820444f93c"
+  },
+  "target_contract": {
+    "tool": "apply_patch",
+    "envelope": "protocol_version + thought_summary + decision.kind/tool/arguments",
+    "source_target_preserved": true,
+    "multi_file_targets": 0,
+    "max_sequence_tokens": 768
+  },
+  "method": {
+    "fine_tune_type": "lora",
+    "quantized_base": true,
+    "num_layers": 4,
+    "batch_size": 1,
+    "learning_rate": 0.0001,
+    "mask_prompt": true,
+    "max_sequence_length": 768,
+    "gradient_checkpointing": true,
+    "seed": 42
+  },
+  "diagnostic": {
+    "iterations": 40,
+    "validation_batches": 8,
+    "steps_per_report": 5,
+    "steps_per_eval": 10,
+    "save_every": 40
+  },
+  "full_training": {
+    "iterations": 400,
+    "validation_batches": 20,
+    "checkpoint_every": 100,
+    "checkpoint_selection": "lowest_validation_loss_then_earliest"
+  },
+  "promotion_gate": "evaluate the selected adapter through the unchanged M018 retrieval loop; promote only if it exceeds base retrieval 3/6",
+  "sealed_examples_loaded": 0
+}
