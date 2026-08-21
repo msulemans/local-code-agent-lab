@@ -359,7 +359,9 @@ repository is copied once into a disposable workspace that persists for the
 session, so follow-up requests build on prior edits. The live loop AND the
 model's reasoning are streamed per turn (`💭` lines). Edits are delivered to
 the real repository only when you type `apply` (unstaged, after
-`git apply --check`). Commands: `help`, `diff`, `apply`, `status`, `exit`.
+`git apply --check`). Commands: `help`, `diff`, `apply`, `status`, `context`,
+`exit`. `context` prints the full context envelope the model saw for the last
+request; `status` shows token usage and prompt-cache hit/miss tokens.
 
 ```bash
 cd ~/projects/myapp
@@ -375,6 +377,13 @@ PYTHONPATH=src python3.11 scripts/localcode_chat.py \
 PYTHONPATH=src python3.11 scripts/localcode_chat.py \
   --backend openai-compatible --base-url https://openrouter.ai/api/v1 \
   --model provider/model
+```
+
+```bash
+# DeepSeek via BYOK (temperature 0.4 is the verified sweet spot for hosted models)
+PYTHONPATH=src python3.11 scripts/localcode_chat.py \
+  --backend openai-compatible --base-url https://api.deepseek.com/v1 \
+  --model deepseek-chat --api-key-env DS_KEY --temperature 0.4
 ```
 
 Pass `--repo <path>` to target a different project, and `--strict` to require

@@ -1,7 +1,7 @@
 # LocalCode Agent Lab — State
 
-Last updated: 2026-08-20 (Australia/Sydney)
-Status: Phase 3's complete issue-to-evaluator path and matched B0/A1/A2/A3 pilot are verified. Phase 4 Milestones 013–015 are complete. The untouched Qwen executable baseline is 4/6, and the bounded Milestone 016 diagnostic, training, validation-selection, and executable-comparison runner is ready for normal Terminal.
+Last updated: 2026-08-21 (Australia/Sydney)
+Status: Phase 3 is closed and the interactive chat product is verified end-to-end. Milestones 021–022 (one-shot CLI + chat REPL) work against the local MLX Qwen 7B and BYOK OpenAI-compatible models, expose diff/apply/status/context observability with prompt-cache stats, and delivered a verified 23-line flag-gated repair on the real fvs-api Java project through the disposable-copy/apply model. M019/M020 remain preserved training negatives; any future training must use multi-turn trajectory data.
 
 This is the canonical chronological record. A command is not complete evidence
 until its observed result is written here. Future assistants must read this file
@@ -133,6 +133,54 @@ turn, and delivers edits only when you type `apply` (unstaged, after
   flip-flop (it oscillated between the correct and a broken edit and stopped
   at `tool_exhaustion`), which is a model-quality finding, not a tooling
   failure; stronger BYOK models are the reliable path for hard cases.
+- D-054: raised chat-mode budgets so open-ended exploration finishes on large
+  repos (first raise: `--max-turns` 15, `--max-tool-calls` 15,
+  `--max-wall-seconds` 300, `max_context_chars` 16_000); the one-shot CLI
+  keeps its original budgets.
+- D-055: DeepSeek (`openai-compatible`) returned multiple parallel
+  `tool_calls` per response even with `parallel_tool_calls: False`; the
+  adapter now uses the FIRST well-formed tool call when several are returned
+  (skipping malformed leading entries), and the controller still validates
+  every argument, so a schema bypass is impossible. The OpenAI Responses
+  backend stays strict. Trace evidence: `runs/ds-trace.jsonl`.
+- D-056: retrieval evidence was recomputed from the static issue every turn
+  and re-injected, so a document matching issue terms fixated the model on
+  re-reading it (repeated identical `read_file`). `RetrievalContextCompiler`
+  now filters out files already read (parses history `read_file` arguments),
+  and chat `max_invalid_actions` rose 3 → 5 for recovery room.
+- D-057: verified with DeepSeek + `--temperature 0.4` that the hosted model
+  explores, recovers from repeats, and finds the real answer source
+  (`SandpitAuthTokenController.java`, `FVS_SANDPIT_TOKEN_API_ENABLED`) — but
+  hit the 15-turn cap one read short of the controller. Second budget raise:
+  chat `--max-turns` 20, `--max-tool-calls` 20, `--max-wall-seconds` 420.
+  `temperature 0.4` breaks the local 7B's greedy repeat loop; recommended for
+  `openai-compatible`. Trace: `runs/ds2-trace.jsonl`.
+- D-058: explanation runs stalled at 20 turns of pure reading with no
+  finalization. `_controller_instructions` now injects a trusted directive to
+  answer now once >= 4 DISTINCT files were read with no edit/test. VERIFIED:
+  an explanation question on the real `fvs-api` Java project was answered
+  perfectly in 8 turns.
+- D-059 (observability): chat gained `context` (prints the full context
+  envelope the model saw, captured via `ThinkingBackend.last_context`) and
+  `status` (token usage + prompt-cache stats). `--max-context-chars` flag
+  (default 16_000). The OpenAI-compatible backend records
+  `cache_hit_tokens`/`cache_miss_tokens` (DeepSeek
+  `prompt_cache_hit_tokens`/`prompt_cache_miss_tokens`, or OpenAI
+  `prompt_tokens_details.cached_tokens`) and prints a per-run tokens/cache
+  line.
+- D-060: repair runs stalled re-searching/list-files without committing to an
+  edit. `_controller_instructions` now forces a commit once exploration
+  (`search_code`/`list_files` occurrences) reaches 6 with no edit/test: "pick
+  the file you located and apply an edit_file now; do not search or list
+  again." VERIFIED: the user's JWT-bypass repair on the real `fvs-api`
+  project produced a 23-line flag-gated diff with passing tests (evidence
+  `runs/tui/m-chat-20260821-204655/run.json`); delivered to the disposable
+  copy, with `apply` writing it to the real repo unstaged after
+  `git apply --check`.
+- Chat now prints a prominent warning after any run with changes: the diff
+  lives in the DISPOSABLE COPY only; `apply` delivers it to the real repo
+  unstaged (after `git apply --check`), `diff` reviews it first, and
+  `git checkout -- <file>` reverts.
 - Training verdict (unchanged): M019 and M020 are preserved negatives; no more
   local training runs on single-shot datasets. The next training task, if any,
   must use multi-turn loop trajectories (context envelope → typed decision per

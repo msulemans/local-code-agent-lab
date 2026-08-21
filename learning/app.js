@@ -385,8 +385,8 @@ const milestones = [
     id: "022",
     state: "Interactive chat complete",
     title: "Turn the runtime into a reusable project chat",
-    story: "The chat REPL keeps one disposable workspace across follow-up requests, streams events and model reasoning, exposes diff/status/context controls, and applies changes only after an explicit apply command. The TUI remains a consumer of the trusted event stream rather than owning agent behavior.",
-    evidence: "fvs-api read-only chat verified · reasoning capture · persistent session diff · secret/build exclusions · file_paths search fix · 19 related tests",
+    story: "The chat REPL keeps one disposable workspace across follow-up requests, streams events and model reasoning, exposes diff/status/context controls, and applies changes only after an explicit apply command. Verified on a real Java project for both explanation and repair, with answer-now and force-commit steering so exploration always converges. The TUI remains a consumer of the trusted event stream rather than owning agent behavior.",
+    evidence: "fvs-api explanation (8 turns) AND repair (23-line flag-gated diff, passing tests) verified · reasoning capture · persistent session diff · context/status + prompt-cache observability · secret/build exclusions · file_paths search fix",
     decision: "Phase 3 is closed. Preserve M019/M020 as training negatives and move to the next learning project; future training requires multi-turn trajectory data.",
   },
 ];
